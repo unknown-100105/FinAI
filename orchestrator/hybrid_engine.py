@@ -418,9 +418,17 @@ class FinAIHybridEngine:
 
             operation_plan = plan_market_operations(user_text)
 
-            date_range = parse_market_date_range(user_text)
-            start = date_range.start
-            end = date_range.end
+            date_range = None
+            start = None
+            end = None
+
+            if any(
+                operation in operation_plan.operations
+                for operation in (OP_HISTORY, OP_ANALYTICS)
+            ):
+                date_range = parse_market_date_range(user_text)
+                start = date_range.start
+                end = date_range.end
 
             operation_results = []
 
@@ -517,13 +525,15 @@ class FinAIHybridEngine:
             market_data_result = {
                 "operations": list(operation_plan.operations),
                 "planning_reason": operation_plan.reason,
-                "date_range_reason": date_range.reason,
-                "range": {
-                    "start": start,
-                    "end": end,
-                },
                 "results": operation_results,
             }
+
+            if date_range is not None:
+                market_data_result["date_range_reason"] = date_range.reason
+                market_data_result["range"] = {
+                    "start": start,
+                    "end": end,
+                }
 
             return {
                 "stage": "market_data",

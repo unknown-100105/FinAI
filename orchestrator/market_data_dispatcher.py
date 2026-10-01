@@ -52,15 +52,21 @@ class MarketDataDispatcher:
             "instrument": self._instrument_payload(item),
             "result": {
                 "symbol": quote.symbol,
-                "price": quote.price,
+                "observed_price": quote.price,
+                "latest_session_close": quote.close,
                 "open": quote.open,
                 "high": quote.high,
                 "low": quote.low,
-                "close": quote.close,
                 "volume": quote.volume,
                 "currency": quote.currency,
                 "timestamp": quote.timestamp,
                 "source": quote.source,
+                "data_status": (
+                    "complete"
+                    if quote.price is not None
+                    and quote.close is not None
+                    else "partial"
+                ),
             },
         }
 

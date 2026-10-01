@@ -75,8 +75,9 @@ def test_quote_dispatch():
 
     assert result["operation"] == "MARKET_QUOTE"
     assert result["instrument"]["instrument_id"] == "NSE:NIFTY50"
-    assert result["result"]["price"] == 25000.0
+    assert result["result"]["observed_price"] == 25000.0
     assert result["result"]["source"] == "test"
+    assert result["result"]["data_status"] == "complete"
 
 
 def test_history_dispatch():
@@ -141,3 +142,4 @@ def test_reversed_history_range():
         raise AssertionError(
             "Reversed range should raise ValueError."
         )
+
