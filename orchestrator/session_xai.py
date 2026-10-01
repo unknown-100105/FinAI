@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 
 from orchestrator.hybrid_engine import FinAIHybridEngine
 from orchestrator.session import SessionStore
@@ -42,6 +42,33 @@ class XAISessionOrchestrator:
         # ---------------------------------------------------------
 
         if session.awaiting_authentication:
+
+            # Never interpret an arbitrary message as authentication.
+            if not self._is_authentication(user_text):
+
+                message = (
+                    "Authentication is required before continuing. "
+                    "Please complete authentication and reply with "
+                    "'authenticated'."
+                )
+
+                trace.record_session(session.snapshot())
+
+                trace.record_final(
+                    stage="session",
+                    status="AUTH_REQUIRED",
+                    message=message,
+                )
+
+                trace_path = trace.save()
+
+                return {
+                    "status": "AUTH_REQUIRED",
+                    "message": message,
+                    "trace_id": trace.data["trace_id"],
+                    "trace_path": str(trace_path),
+                    "session": session.snapshot(),
+                }
 
             session.authenticate()
 
@@ -386,6 +413,19 @@ class XAISessionOrchestrator:
         return {
             **result,
             "session": session.snapshot(),
+        }
+
+    @staticmethod
+    def _is_authentication(text: str):
+
+        normalized = text.strip().lower()
+
+        return normalized in {
+            "authenticated",
+            "authentication complete",
+            "authenticated successfully",
+            "otp verified",
+            "verification complete",
         }
 
     @staticmethod
