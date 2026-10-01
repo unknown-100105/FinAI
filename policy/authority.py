@@ -69,6 +69,22 @@ def _build_non_tool_contract(intent: str) -> AuthorityContract:
             execution_class="COMPUTE",
         )
 
+    if intent == "MARKET_DATA_QUERY":
+
+        return AuthorityContract(
+            intent=intent,
+            risk_level=policy.risk_level,
+            category=policy.category,
+            authority_class="MARKET_DATA",
+            authority_source="market_data_provider",
+            allowed_components=(
+                "market_data",
+                "response_verifier",
+            ),
+            llm_role="EXPLAIN_TOOL_RESULT",
+            verification_mode="MARKET_DATA_RESULT_CONSISTENCY",
+            execution_class="LOOKUP",
+        )
     if intent in _KNOWLEDGE_INTENTS:
 
         return AuthorityContract(
@@ -293,4 +309,5 @@ if __name__ == "__main__":
 
     print()
     print("UNKNOWN:", get_authority_contract("UNKNOWN"))
+
 

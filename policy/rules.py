@@ -311,6 +311,10 @@ POLICIES = {
         None, "financial_information"
     ),
 
+    "MARKET_DATA_QUERY": IntentPolicy(
+        "low", False, False,
+        None, "market_data"
+    ),
     "SUPPORT_REQUEST": IntentPolicy(
         "low", False, False,
         "create_support_ticket", "support"
@@ -324,3 +328,4 @@ def get_policy(intent: str) -> Optional[IntentPolicy]:
 
 def is_known_intent(intent: str) -> bool:
     return intent in POLICIES
+

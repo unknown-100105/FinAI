@@ -1,6 +1,7 @@
-from datetime import datetime
+﻿from datetime import datetime
 
 from orchestrator.engine import FinAIOrchestrator
+from router.domain_router import FinAIDomainRouter
 from orchestrator.finance_dispatcher import FinanceDispatcher
 from orchestrator.risk_controller import RiskCapabilityController
 
@@ -11,6 +12,7 @@ class FinAIHybridEngine:
         self.base_engine = FinAIOrchestrator()
         self.finance = FinanceDispatcher()
         self.controller = RiskCapabilityController()
+        self.domain_router = FinAIDomainRouter()
         self.response_service = response_service
 
         # Inject a retriever in tests; construct the production retriever lazily.
@@ -111,7 +113,34 @@ class FinAIHybridEngine:
 
         router = base_result.get("router") or {}
 
-        intent = router.get("intent")
+        classified_intent = router.get("intent")
+
+        # ---------------------------------------------------------
+        # Second-stage scalable domain routing.
+        # ---------------------------------------------------------
+
+        domain_route = self.domain_router.route(
+            user_text,
+            classified_intent=classified_intent,
+        )
+
+        domain = domain_route.get("domain")
+
+        router = dict(router)
+        router["classified_intent"] = classified_intent
+        router["domain"] = domain
+        router["domain_reason"] = domain_route.get("reason")
+        router["domain_source"] = domain_route.get("source")
+
+        intent = classified_intent
+
+        # Promote clear market-data requests to the dedicated
+        # market-data execution intent.
+        if domain == "MARKET_DATA":
+            intent = "MARKET_DATA_QUERY"
+            router["intent"] = intent
+            router["intent_source"] = "domain_router"
+
         router_decision = router.get(
             "decision",
             "REJECT",
@@ -395,7 +424,7 @@ if __name__ == "__main__":
         {
             "name": "Complete EMI",
             "text": (
-                "Calculate EMI for ₹10 lakh at "
+                "Calculate EMI for â‚¹10 lakh at "
                 "8.5% for 20 years"
             ),
         },
@@ -487,6 +516,8 @@ if __name__ == "__main__":
             )
 
         print("MESSAGE:", result["message"])
+
+
 
 
 

@@ -115,6 +115,7 @@ class RiskCapabilityController:
             "DETERMINISTIC_COMPUTATION": "finance_engine",
             "RULE_ENGINE": "financial_rules_engine",
             "RETRIEVED_KNOWLEDGE": "rag",
+            "MARKET_DATA": "market_data",
             "AUTHORIZED_TOOL": "tool_engine",
             "VERIFIED_TOOL": "tool_engine",
             "INFORMATION_TOOL": "tool_engine",
@@ -193,4 +194,5 @@ if __name__ == "__main__":
         print("INTENT:", intent)
         print("ROUTER DECISION:", decision)
         print("PLAN:", plan)
+
 
