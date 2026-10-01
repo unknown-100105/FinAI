@@ -312,6 +312,15 @@ class FinAIDomainRouter:
                     "known_intent",
                 )
 
+        # Product queries such as credit cards, accounts,
+        # benefits, rewards, fees, and eligibility.
+        if _contains_any(normalized, PRODUCT_TERMS):
+            return _build_result(
+                DOMAIN_PRODUCT_COMPARISON,
+                "product_term",
+                "deterministic_domain_rule",
+            )
+
         # Strong domain-specific knowledge has priority over the
         # broad knowledge vocabulary.
         if _contains_any(normalized, REGULATORY_TERMS):
