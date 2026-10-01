@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+import re
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -84,15 +85,34 @@ class HybridRetriever:
 
         return self._index, self._document_ids
 
+    @staticmethod
+    def _build_fts5_query(query: str) -> str:
+        """Convert free-form user text into a safe FTS5 query.
+
+        FTS5 treats punctuation such as ?, commas, and some operators as
+        query syntax. Tokenizing and quoting each term prevents user text
+        from becoming FTS5 syntax while preserving keyword retrieval.
+        """
+        tokens = re.findall(r"\w+", query, flags=re.UNICODE)
+        tokens = [token for token in tokens if token]
+
+        if not tokens:
+            return '""'
+
+        return " OR ".join(
+            '"' + token.replace('"', '""') + '"'
+            for token in tokens
+        )
+
     def _fts_search(
         self,
         query: str,
         top_k: int,
     ) -> List[dict]:
 
-        query = query.strip()
+        query = self._build_fts5_query(query.strip())
 
-        if not query:
+        if query == '""':
             return []
 
         results = []
