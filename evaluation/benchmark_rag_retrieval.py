@@ -144,8 +144,6 @@ def summarize(case_results: Sequence[dict]) -> dict:
 
 
 def build_fts_retriever(db_path: Path):
-    from rag.hybrid_retriever import HybridRetriever
-
     class FTSOnly:
         def __init__(self, path: Path):
             self.db_path = path
