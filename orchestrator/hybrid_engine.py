@@ -4,6 +4,7 @@ from orchestrator.engine import FinAIOrchestrator
 from router.domain_router import FinAIDomainRouter
 from orchestrator.finance_dispatcher import FinanceDispatcher
 from orchestrator.market_data_dispatcher import MarketDataDispatcher
+from orchestrator.market_date_parser import parse_market_date_range
 from orchestrator.market_operation_planner import (
     OP_ANALYTICS,
     OP_HISTORY,
@@ -417,8 +418,9 @@ class FinAIHybridEngine:
 
             operation_plan = plan_market_operations(user_text)
 
-            start = datetime.now() - timedelta(days=365)
-            end = datetime.now()
+            date_range = parse_market_date_range(user_text)
+            start = date_range.start
+            end = date_range.end
 
             operation_results = []
 
@@ -515,6 +517,7 @@ class FinAIHybridEngine:
             market_data_result = {
                 "operations": list(operation_plan.operations),
                 "planning_reason": operation_plan.reason,
+                "date_range_reason": date_range.reason,
                 "range": {
                     "start": start,
                     "end": end,
@@ -750,6 +753,8 @@ if __name__ == "__main__":
             )
 
         print("MESSAGE:", result["message"])
+
+
 
 
 
