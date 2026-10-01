@@ -10,6 +10,7 @@ from xai.claims import build_finance_claims
 
 from llm.response_adapter import SarvamResponseAdapter
 from llm.rllm_finqa_adapter import RLLMFinQAModelAdapter
+from llm.cloud.gemini_adapter import GeminiResponseAdapter
 
 
 class ResponseService:
@@ -20,8 +21,9 @@ class ResponseService:
     }
 
     ADAPTERS = {
-        "sarvam-1": SarvamResponseAdapter,
+        "gemini-cloud": GeminiResponseAdapter,
         "rllm-finqa-4b": RLLMFinQAModelAdapter,
+        "sarvam-1": SarvamResponseAdapter,
     }
 
     REQUIRED_CLAIM_FIELDS = {
@@ -40,7 +42,7 @@ class ResponseService:
             gateway
             if gateway is not None
             else ModelGateway(
-                default_model="sarvam-1"
+                default_model="gemini-cloud"
             )
         )
 

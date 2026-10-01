@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 from typing import Tuple
 
 
@@ -12,27 +12,19 @@ class ModelSpec:
 
 
 MODEL_REGISTRY = {
-    "sarvam-1": ModelSpec(
-        model_id="sarvam-1",
-        model_name="sarvamai/sarvam-1",
-        role="general_financial_response",
+    "gemini-cloud": ModelSpec(
+        model_id="gemini-cloud",
+        model_name="gemini-3.8-flash",
+        role="cloud_financial_response",
         capabilities=(
             "response_generation",
-            "financial_explanation",
-            "persona_control",
-        ),
-        enabled=True,
-    ),
-
-    "fin-r1": ModelSpec(
-        model_id="fin-r1",
-        model_name="SUFE-AIFLM-Lab/Fin-R1",
-        role="financial_reasoning",
-        capabilities=(
-            "financial_reasoning",
             "financial_qa",
             "financial_explanation",
+            "persona_control",
+            "table_reasoning",
+            "tool_assisted_qa",
         ),
+        enabled=True,
     ),
 
     "rllm-finqa-4b": ModelSpec(
@@ -47,6 +39,30 @@ MODEL_REGISTRY = {
             "tool_assisted_qa",
         ),
         enabled=True,
+    ),
+
+    # Retained for migration/reproducibility, but no longer active.
+    "sarvam-1": ModelSpec(
+        model_id="sarvam-1",
+        model_name="sarvamai/sarvam-1",
+        role="legacy_general_financial_response",
+        capabilities=(
+            "response_generation",
+            "financial_explanation",
+            "persona_control",
+        ),
+        enabled=False,
+    ),
+
+    "fin-r1": ModelSpec(
+        model_id="fin-r1",
+        model_name="SUFE-AIFLM-Lab/Fin-R1",
+        role="financial_reasoning",
+        capabilities=(
+            "financial_reasoning",
+            "financial_qa",
+            "financial_explanation",
+        ),
     ),
 
     "qwen3-embedding-0.6b": ModelSpec(
@@ -82,6 +98,7 @@ MODEL_REGISTRY = {
             "response_generation",
             "financial_explanation",
         ),
+        enabled=False,
     ),
 
     "gemma-candidate": ModelSpec(
@@ -93,18 +110,16 @@ MODEL_REGISTRY = {
             "response_generation",
             "financial_explanation",
         ),
+        enabled=False,
     ),
 }
 
 
 def get_model_spec(model_id: str) -> ModelSpec:
-
     model_id = str(model_id).strip().lower()
 
     if model_id not in MODEL_REGISTRY:
-        raise KeyError(
-            f"Unknown model: {model_id}"
-        )
+        raise KeyError(f"Unknown model: {model_id}")
 
     return MODEL_REGISTRY[model_id]
 
@@ -126,18 +141,15 @@ def models_for_capability(capability: str):
 
 
 if __name__ == "__main__":
-
     print("=" * 80)
     print("FINAI MODEL REGISTRY")
     print("=" * 80)
 
     for spec in MODEL_REGISTRY.values():
-
         print()
         print("MODEL ID:", spec.model_id)
         print("MODEL:", spec.model_name)
         print("ROLE:", spec.role)
         print("CAPABILITIES:", spec.capabilities)
         print("ENABLED:", spec.enabled)
-
 

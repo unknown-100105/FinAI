@@ -176,6 +176,8 @@ SCHEME_TERMS = (
 PRODUCT_TERMS = (
     "credit card",
     "credit cards",
+    "credit card benefits",
+    "credit card rewards",
     "debit card",
     "bank account",
     "savings account",
@@ -190,6 +192,8 @@ PRODUCT_TERMS = (
     "card rewards",
     "cashback",
     "airport lounge",
+    "airport lounge benefits",
+    "lounge access",
     "annual fee",
     "joining fee",
     "forex fee",

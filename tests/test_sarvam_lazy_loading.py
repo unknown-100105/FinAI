@@ -1,19 +1,15 @@
 ﻿from llm.response_service import ResponseService
-from llm.response_adapter import SarvamResponseAdapter
 
 
-def test_production_sarvam_adapter_is_lazy():
+def test_sarvam_is_not_registered_in_production_gateway():
 
     service = ResponseService()
 
-    adapter = service.gateway.get_adapter("sarvam-1")
+    try:
+        service.gateway.get_adapter("sarvam-1")
+    except ValueError:
+        return
 
-    assert isinstance(
-        adapter,
-        SarvamResponseAdapter,
+    raise AssertionError(
+        "Sarvam must remain disabled in the production response path."
     )
-
-    assert adapter.lazy_load is True
-    assert adapter.loaded is False
-    assert adapter.model is None
-    assert adapter.tokenizer is None
