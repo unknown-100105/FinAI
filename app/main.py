@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from orchestrator.session_xai import XAISessionOrchestrator
 
 from market_data.service import MarketDataService
+from app.market_api import router as market_router
 
 
 APP_VERSION = "0.1.0"
@@ -35,6 +36,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(market_router)
 
 
 _orchestrator: Optional[XAISessionOrchestrator] = None
@@ -206,4 +210,6 @@ if __name__ == "__main__":
         port=8000,
         reload=False,
     )
+
+
 
