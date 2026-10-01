@@ -149,6 +149,13 @@ def build_fts_retriever(db_path: Path):
             self.db_path = path
 
         def retrieve(self, query: str, top_k: int):
+            from rag.hybrid_retriever import HybridRetriever
+
+            fts_query = HybridRetriever._build_fts5_query(query.strip())
+
+            if fts_query == '""':
+                return []
+
             with sqlite3.connect(str(self.db_path)) as con:
                 rows = con.execute(
                     """
@@ -165,7 +172,7 @@ def build_fts_retriever(db_path: Path):
                     ORDER BY bm25(documents_fts)
                     LIMIT ?
                     """,
-                    (query.strip(), top_k),
+                    (fts_query, top_k),
                 ).fetchall()
 
             return [
