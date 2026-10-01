@@ -72,6 +72,15 @@ class XAITrace:
                 "all_verified": False,
             },
 
+            "rag": {
+                "query": None,
+                "retrieval_method": None,
+                "top_k": 0,
+                "evidence_count": 0,
+                "documents": [],
+                "error": None,
+            },
+
             "final": {
                 "stage": None,
                 "status": None,
@@ -354,6 +363,29 @@ class XAITrace:
             "total_count": len(items),
             "authoritative_count": authoritative_count,
             "all_verified": all_verified,
+        }
+
+    def record_rag(self, rag_result: Optional[Dict[str, Any]]):
+        if not rag_result:
+            return
+
+        documents = rag_result.get("documents") or []
+
+        self.data["rag"] = {
+            "query": self._safe_value(
+                rag_result.get("query")
+            ),
+            "retrieval_method": self._safe_value(
+                rag_result.get("retrieval_method")
+            ),
+            "top_k": int(
+                rag_result.get("top_k", len(documents)) or 0
+            ),
+            "evidence_count": len(documents),
+            "documents": self._clean_value(documents),
+            "error": self._safe_value(
+                rag_result.get("error")
+            ),
         }
 
     def record_final(
