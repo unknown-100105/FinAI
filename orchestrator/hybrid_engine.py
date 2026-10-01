@@ -3,6 +3,7 @@
 from orchestrator.engine import FinAIOrchestrator
 from router.domain_router import FinAIDomainRouter
 from orchestrator.finance_dispatcher import FinanceDispatcher
+from orchestrator.market_data_dispatcher import MarketDataDispatcher
 from orchestrator.risk_controller import RiskCapabilityController
 
 
@@ -14,6 +15,10 @@ class FinAIHybridEngine:
         self.controller = RiskCapabilityController()
         self.domain_router = FinAIDomainRouter()
         self.response_service = response_service
+
+        # Lazily constructed because it can load an external market-data
+        # provider. The dispatcher remains behind the provider abstraction.
+        self.market_data = None
 
         # Inject a retriever in tests; construct the production retriever lazily.
         # This prevents GPU model loading during normal engine initialization.
@@ -78,6 +83,23 @@ class FinAIHybridEngine:
             "verification_mode": plan.verification_mode,
         }
 
+    def _get_market_data_dispatcher(self):
+        if self.market_data is None:
+            from market_data.providers.yfinance_provider import (
+                YFinanceProvider,
+            )
+            from market_data.service import MarketDataService
+
+            service = MarketDataService(
+                providers={
+                    "yfinance": YFinanceProvider(),
+                },
+                default_provider="yfinance",
+            )
+
+            self.market_data = MarketDataDispatcher(service)
+
+        return self.market_data
     def process(
         self,
         user_text: str,
@@ -140,6 +162,12 @@ class FinAIHybridEngine:
             intent = "MARKET_DATA_QUERY"
             router["intent"] = intent
             router["intent_source"] = "domain_router"
+
+            # A clearly recognized market-data request is a valid
+            # read-only route even when the legacy 50-class classifier
+            # could not classify it.
+            router["decision"] = "ROUTE"
+            router["risk_level"] = "low"
 
         router_decision = router.get(
             "decision",
@@ -312,6 +340,161 @@ class FinAIHybridEngine:
                 "message": final_response,
                 "response": final_response,
                 "response_generation": response_result,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+
+        # ---------------------------------------------------------
+        # Market-data execution path.
+        #
+        # Market data is authoritative from the configured provider.
+        # The LLM may explain the returned structured result, but it
+        # does not invent market values.
+        # ---------------------------------------------------------
+
+        if (
+            plan.decision == "EXECUTE"
+            and plan.capability == "market_data"
+        ):
+            dispatcher = self._get_market_data_dispatcher()
+
+            normalized_text = user_text.lower()
+
+            # Resolve the first supported instrument mentioned
+            # in the user's request.
+            instrument_query = None
+
+            for instrument in dispatcher.resolver.instruments:
+                candidates = (
+                    instrument.aliases
+                    + (instrument.display_name,)
+                    + (instrument.instrument_id,)
+                )
+
+                if any(
+                    str(candidate).lower() in normalized_text
+                    for candidate in candidates
+                ):
+                    instrument_query = instrument.display_name
+                    break
+
+            if instrument_query is None:
+                return {
+                    "stage": "market_data",
+                    "status": "CLARIFICATION_REQUIRED",
+                    "user_text": user_text,
+                    "router": router,
+                    "execution_plan": execution_plan,
+                    "policy": {
+                        "status": "ALLOWED",
+                        "risk_level": plan.risk_level,
+                        "authentication_required": (
+                            plan.authentication_required
+                        ),
+                        "confirmation_required": (
+                            plan.confirmation_required
+                        ),
+                        "tool": plan.tool,
+                    },
+                    "market_data": None,
+                    "tool": None,
+                    "message": (
+                        "Which financial instrument would you "
+                        "like me to look up?"
+                    ),
+                    "response": (
+                        "Which financial instrument would you "
+                        "like me to look up?"
+                    ),
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+            try:
+                # Current quote is the first supported operation.
+                # Historical and analytics operation planning will
+                # be added as a separate tested layer.
+                market_result = dispatcher.quote(
+                    instrument_query,
+                )
+
+            except ValueError as exc:
+                return {
+                    "stage": "market_data",
+                    "status": "CLARIFICATION_REQUIRED",
+                    "user_text": user_text,
+                    "router": router,
+                    "execution_plan": execution_plan,
+                    "policy": {
+                        "status": "ALLOWED",
+                        "risk_level": plan.risk_level,
+                        "authentication_required": (
+                            plan.authentication_required
+                        ),
+                        "confirmation_required": (
+                            plan.confirmation_required
+                        ),
+                        "tool": plan.tool,
+                    },
+                    "market_data": None,
+                    "tool": None,
+                    "message": str(exc),
+                    "response": str(exc),
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+            except Exception as exc:
+                return {
+                    "stage": "market_data",
+                    "status": "MARKET_DATA_ERROR",
+                    "user_text": user_text,
+                    "router": router,
+                    "execution_plan": execution_plan,
+                    "policy": {
+                        "status": "ALLOWED",
+                        "risk_level": plan.risk_level,
+                        "authentication_required": (
+                            plan.authentication_required
+                        ),
+                        "confirmation_required": (
+                            plan.confirmation_required
+                        ),
+                        "tool": plan.tool,
+                    },
+                    "market_data": None,
+                    "tool": {
+                        "tool": "market_data_dispatcher",
+                        "success": False,
+                    },
+                    "message": "Market data is currently unavailable.",
+                    "response": "Market data is currently unavailable.",
+                    "error": str(exc),
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+            return {
+                "stage": "market_data",
+                "status": "MARKET_DATA_RETRIEVED",
+                "user_text": user_text,
+                "router": router,
+                "execution_plan": execution_plan,
+                "policy": {
+                    "status": "ALLOWED",
+                    "risk_level": plan.risk_level,
+                    "authentication_required": (
+                        plan.authentication_required
+                    ),
+                    "confirmation_required": (
+                        plan.confirmation_required
+                    ),
+                    "tool": plan.tool,
+                },
+                "market_data": market_result,
+                "tool": {
+                    "tool": "market_data_dispatcher",
+                    "success": True,
+                },
+                "message": "Market data retrieved successfully.",
+                "response": "Market data retrieved successfully.",
                 "timestamp": datetime.now().isoformat(),
             }
 
@@ -516,6 +699,9 @@ if __name__ == "__main__":
             )
 
         print("MESSAGE:", result["message"])
+
+
+
 
 
 
