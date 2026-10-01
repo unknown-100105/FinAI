@@ -136,7 +136,7 @@ def parse_model_output(model_output: str):
         re.IGNORECASE,
     )
 
-	tool_match = re.search(
+    tool_match = re.search(
     r"^\s*TOOL:\s*([A-Z0-9_]+|none)\s*$",
     model_output,
     re.IGNORECASE | re.MULTILINE,

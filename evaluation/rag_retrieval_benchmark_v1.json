@@ -1,0 +1,1453 @@
+{
+  "benchmark": "FinAI RAG Retrieval Benchmark",
+  "version": "v1",
+  "gold_set": "evaluation\\rag_retrieval_gold_v1.json",
+  "top_k_values": [
+    5,
+    10
+  ],
+  "methods": {
+    "fts5": {
+      "top_5": {
+        "summary": {
+          "cases": 10,
+          "recall_at_k": 0.7,
+          "mrr": 0.575,
+          "mean_latency_seconds": 1.010590010008309,
+          "median_latency_seconds": 1.0209947999683209,
+          "failed_cases": 0
+        },
+        "cases": [
+          {
+            "case_id": "RAG-001",
+            "topic": "payment_data_storage",
+            "query": "What did RBI require payment system operators to do with payment transaction data?",
+            "retrieved_document_ids": [
+              210522,
+              264626,
+              316873,
+              231565,
+              224244
+            ],
+            "gold_document_ids": [
+              210522
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.194228999898769,
+            "error": null
+          },
+          {
+            "case_id": "RAG-002",
+            "topic": "digital_payment_security",
+            "query": "Why did PayU acquire Wibmo and what was Wibmo known for?",
+            "retrieved_document_ids": [
+              79011,
+              243016,
+              168501,
+              144465,
+              276334
+            ],
+            "gold_document_ids": [
+              79011
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.1326274999883026,
+            "error": null
+          },
+          {
+            "case_id": "RAG-003",
+            "topic": "personal_loans",
+            "query": "What should someone consider before choosing a personal loan?",
+            "retrieved_document_ids": [
+              119552,
+              71449,
+              166148,
+              126817,
+              83509
+            ],
+            "gold_document_ids": [
+              126817
+            ],
+            "recall": 1.0,
+            "mrr": 0.25,
+            "first_relevant_rank": 4,
+            "latency_seconds": 1.0672032000729814,
+            "error": null
+          },
+          {
+            "case_id": "RAG-004",
+            "topic": "personal_loan_business_use",
+            "query": "Under what circumstances might a personal loan be used for a business?",
+            "retrieved_document_ids": [
+              12537,
+              255120,
+              12538,
+              14983,
+              69289
+            ],
+            "gold_document_ids": [
+              12537
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.0796003000577912,
+            "error": null
+          },
+          {
+            "case_id": "RAG-005",
+            "topic": "payment_fraud",
+            "query": "What did RBI do to address fraud in payment systems?",
+            "retrieved_document_ids": [
+              70419,
+              248123,
+              20026,
+              54436,
+              93143
+            ],
+            "gold_document_ids": [
+              140404
+            ],
+            "recall": 0.0,
+            "mrr": 0.0,
+            "first_relevant_rank": null,
+            "latency_seconds": 0.9375738000962883,
+            "error": null
+          },
+          {
+            "case_id": "RAG-006",
+            "topic": "swift_compliance",
+            "query": "What action did RBI take against lenders for SWIFT compliance problems?",
+            "retrieved_document_ids": [
+              96033,
+              230333,
+              58450,
+              320153,
+              52925
+            ],
+            "gold_document_ids": [
+              54435
+            ],
+            "recall": 0.0,
+            "mrr": 0.0,
+            "first_relevant_rank": null,
+            "latency_seconds": 0.8864303000736982,
+            "error": null
+          },
+          {
+            "case_id": "RAG-007",
+            "topic": "banking_fraud_statistics",
+            "query": "How many major fraud cases involving cards and internet banking were reported in 2018?",
+            "retrieved_document_ids": [
+              152480,
+              151603,
+              184643,
+              194641,
+              194640
+            ],
+            "gold_document_ids": [
+              152480
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.9262328000040725,
+            "error": null
+          },
+          {
+            "case_id": "RAG-008",
+            "topic": "soundwave_payments",
+            "query": "How does soundwave technology support digital payments, including on phones without internet?",
+            "retrieved_document_ids": [
+              16773,
+              16774,
+              123463,
+              123464,
+              231469
+            ],
+            "gold_document_ids": [
+              16774
+            ],
+            "recall": 1.0,
+            "mrr": 0.5,
+            "first_relevant_rank": 2,
+            "latency_seconds": 0.8400135999545455,
+            "error": null
+          },
+          {
+            "case_id": "RAG-009",
+            "topic": "electronic_payment_charges",
+            "query": "What did CBDT say about charges on electronic payment modes such as RuPay and BHIM-UPI?",
+            "retrieved_document_ids": [
+              324037,
+              23420,
+              324038,
+              301035,
+              131439
+            ],
+            "gold_document_ids": [
+              324037
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.0356764999451116,
+            "error": null
+          },
+          {
+            "case_id": "RAG-010",
+            "topic": "stock_exchange_outage",
+            "query": "What happens to stock exchange trading hours when there is a technical outage?",
+            "retrieved_document_ids": [
+              8469,
+              8472,
+              8470,
+              272642,
+              272641
+            ],
+            "gold_document_ids": [
+              8471
+            ],
+            "recall": 0.0,
+            "mrr": 0.0,
+            "first_relevant_rank": null,
+            "latency_seconds": 1.0063130999915302,
+            "error": null
+          }
+        ]
+      },
+      "top_10": {
+        "summary": {
+          "cases": 10,
+          "recall_at_k": 0.8,
+          "mrr": 0.5916666666666667,
+          "mean_latency_seconds": 0.8891107000177726,
+          "median_latency_seconds": 0.8507708000252023,
+          "failed_cases": 0
+        },
+        "cases": [
+          {
+            "case_id": "RAG-001",
+            "topic": "payment_data_storage",
+            "query": "What did RBI require payment system operators to do with payment transaction data?",
+            "retrieved_document_ids": [
+              210522,
+              264626,
+              316873,
+              231565,
+              224244,
+              320030,
+              167689,
+              140404,
+              289015,
+              103726
+            ],
+            "gold_document_ids": [
+              210522
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.8355577000183985,
+            "error": null
+          },
+          {
+            "case_id": "RAG-002",
+            "topic": "digital_payment_security",
+            "query": "Why did PayU acquire Wibmo and what was Wibmo known for?",
+            "retrieved_document_ids": [
+              79011,
+              243016,
+              168501,
+              144465,
+              276334,
+              292542,
+              254506,
+              243014,
+              292543,
+              290392
+            ],
+            "gold_document_ids": [
+              79011
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.8237636000849307,
+            "error": null
+          },
+          {
+            "case_id": "RAG-003",
+            "topic": "personal_loans",
+            "query": "What should someone consider before choosing a personal loan?",
+            "retrieved_document_ids": [
+              119552,
+              71449,
+              166148,
+              126817,
+              83509,
+              161111,
+              126816,
+              315736,
+              232252,
+              65325
+            ],
+            "gold_document_ids": [
+              126817
+            ],
+            "recall": 1.0,
+            "mrr": 0.25,
+            "first_relevant_rank": 4,
+            "latency_seconds": 0.7333105000434443,
+            "error": null
+          },
+          {
+            "case_id": "RAG-004",
+            "topic": "personal_loan_business_use",
+            "query": "Under what circumstances might a personal loan be used for a business?",
+            "retrieved_document_ids": [
+              12537,
+              255120,
+              12538,
+              14983,
+              69289,
+              6099,
+              274955,
+              255119,
+              299958,
+              194595
+            ],
+            "gold_document_ids": [
+              12537
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.025541799957864,
+            "error": null
+          },
+          {
+            "case_id": "RAG-005",
+            "topic": "payment_fraud",
+            "query": "What did RBI do to address fraud in payment systems?",
+            "retrieved_document_ids": [
+              70419,
+              248123,
+              20026,
+              54436,
+              93143,
+              152480,
+              121280,
+              330432,
+              162007,
+              166435
+            ],
+            "gold_document_ids": [
+              140404
+            ],
+            "recall": 0.0,
+            "mrr": 0.0,
+            "first_relevant_rank": null,
+            "latency_seconds": 0.9868511999957263,
+            "error": null
+          },
+          {
+            "case_id": "RAG-006",
+            "topic": "swift_compliance",
+            "query": "What action did RBI take against lenders for SWIFT compliance problems?",
+            "retrieved_document_ids": [
+              96033,
+              230333,
+              58450,
+              320153,
+              52925,
+              59078,
+              237625,
+              226967,
+              197807,
+              270994
+            ],
+            "gold_document_ids": [
+              54435
+            ],
+            "recall": 0.0,
+            "mrr": 0.0,
+            "first_relevant_rank": null,
+            "latency_seconds": 0.8135648000752553,
+            "error": null
+          },
+          {
+            "case_id": "RAG-007",
+            "topic": "banking_fraud_statistics",
+            "query": "How many major fraud cases involving cards and internet banking were reported in 2018?",
+            "retrieved_document_ids": [
+              152480,
+              151603,
+              184643,
+              194641,
+              194640,
+              113726,
+              194642,
+              47794,
+              16567,
+              95599
+            ],
+            "gold_document_ids": [
+              152480
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.8659839000320062,
+            "error": null
+          },
+          {
+            "case_id": "RAG-008",
+            "topic": "soundwave_payments",
+            "query": "How does soundwave technology support digital payments, including on phones without internet?",
+            "retrieved_document_ids": [
+              16773,
+              16774,
+              123463,
+              123464,
+              231469,
+              314739,
+              293332,
+              326416,
+              191387,
+              220262
+            ],
+            "gold_document_ids": [
+              16774
+            ],
+            "recall": 1.0,
+            "mrr": 0.5,
+            "first_relevant_rank": 2,
+            "latency_seconds": 0.822343600098975,
+            "error": null
+          },
+          {
+            "case_id": "RAG-009",
+            "topic": "electronic_payment_charges",
+            "query": "What did CBDT say about charges on electronic payment modes such as RuPay and BHIM-UPI?",
+            "retrieved_document_ids": [
+              324037,
+              23420,
+              324038,
+              301035,
+              131439,
+              298294,
+              302994,
+              330432,
+              6241,
+              27353
+            ],
+            "gold_document_ids": [
+              324037
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.9655507999705151,
+            "error": null
+          },
+          {
+            "case_id": "RAG-010",
+            "topic": "stock_exchange_outage",
+            "query": "What happens to stock exchange trading hours when there is a technical outage?",
+            "retrieved_document_ids": [
+              8469,
+              8472,
+              8470,
+              272642,
+              272641,
+              8471,
+              255254,
+              255253,
+              255255,
+              8473
+            ],
+            "gold_document_ids": [
+              8471
+            ],
+            "recall": 1.0,
+            "mrr": 0.16666666666666666,
+            "first_relevant_rank": 6,
+            "latency_seconds": 1.0186390999006107,
+            "error": null
+          }
+        ]
+      }
+    },
+    "faiss": {
+      "top_5": {
+        "summary": {
+          "cases": 10,
+          "recall_at_k": 0.9,
+          "mrr": 0.77,
+          "mean_latency_seconds": 0.3338248300016858,
+          "median_latency_seconds": 0.16845789999933913,
+          "failed_cases": 0
+        },
+        "cases": [
+          {
+            "case_id": "RAG-001",
+            "topic": "payment_data_storage",
+            "query": "What did RBI require payment system operators to do with payment transaction data?",
+            "retrieved_document_ids": [
+              264626,
+              210522,
+              289015,
+              103726,
+              229038
+            ],
+            "gold_document_ids": [
+              210522
+            ],
+            "recall": 1.0,
+            "mrr": 0.5,
+            "first_relevant_rank": 2,
+            "latency_seconds": 1.842315400019288,
+            "error": null
+          },
+          {
+            "case_id": "RAG-002",
+            "topic": "digital_payment_security",
+            "query": "Why did PayU acquire Wibmo and what was Wibmo known for?",
+            "retrieved_document_ids": [
+              79011,
+              243016,
+              243015,
+              168501,
+              243014
+            ],
+            "gold_document_ids": [
+              79011
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.17365620005875826,
+            "error": null
+          },
+          {
+            "case_id": "RAG-003",
+            "topic": "personal_loans",
+            "query": "What should someone consider before choosing a personal loan?",
+            "retrieved_document_ids": [
+              126817,
+              12538,
+              12539,
+              12537,
+              83509
+            ],
+            "gold_document_ids": [
+              126817
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.17422049993183464,
+            "error": null
+          },
+          {
+            "case_id": "RAG-004",
+            "topic": "personal_loan_business_use",
+            "query": "Under what circumstances might a personal loan be used for a business?",
+            "retrieved_document_ids": [
+              12537,
+              12538,
+              12539,
+              213895,
+              117238
+            ],
+            "gold_document_ids": [
+              12537
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.16652329999487847,
+            "error": null
+          },
+          {
+            "case_id": "RAG-005",
+            "topic": "payment_fraud",
+            "query": "What did RBI do to address fraud in payment systems?",
+            "retrieved_document_ids": [
+              49383,
+              251987,
+              54436,
+              172283,
+              323248
+            ],
+            "gold_document_ids": [
+              140404
+            ],
+            "recall": 0.0,
+            "mrr": 0.0,
+            "first_relevant_rank": null,
+            "latency_seconds": 0.1703925000037998,
+            "error": null
+          },
+          {
+            "case_id": "RAG-006",
+            "topic": "swift_compliance",
+            "query": "What action did RBI take against lenders for SWIFT compliance problems?",
+            "retrieved_document_ids": [
+              54435,
+              54436,
+              270994,
+              226967,
+              255257
+            ],
+            "gold_document_ids": [
+              54435
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.16449749993626028,
+            "error": null
+          },
+          {
+            "case_id": "RAG-007",
+            "topic": "banking_fraud_statistics",
+            "query": "How many major fraud cases involving cards and internet banking were reported in 2018?",
+            "retrieved_document_ids": [
+              152480,
+              151603,
+              184643,
+              251987,
+              147566
+            ],
+            "gold_document_ids": [
+              152480
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.17144519998691976,
+            "error": null
+          },
+          {
+            "case_id": "RAG-008",
+            "topic": "soundwave_payments",
+            "query": "How does soundwave technology support digital payments, including on phones without internet?",
+            "retrieved_document_ids": [
+              16774,
+              123464,
+              123463,
+              16773,
+              88466
+            ],
+            "gold_document_ids": [
+              16774
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.16268900001887232,
+            "error": null
+          },
+          {
+            "case_id": "RAG-009",
+            "topic": "electronic_payment_charges",
+            "query": "What did CBDT say about charges on electronic payment modes such as RuPay and BHIM-UPI?",
+            "retrieved_document_ids": [
+              324037,
+              324038,
+              23420,
+              27353,
+              291980
+            ],
+            "gold_document_ids": [
+              324037
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.15929009998217225,
+            "error": null
+          },
+          {
+            "case_id": "RAG-010",
+            "topic": "stock_exchange_outage",
+            "query": "What happens to stock exchange trading hours when there is a technical outage?",
+            "retrieved_document_ids": [
+              8469,
+              8470,
+              272642,
+              8472,
+              8471
+            ],
+            "gold_document_ids": [
+              8471
+            ],
+            "recall": 1.0,
+            "mrr": 0.2,
+            "first_relevant_rank": 5,
+            "latency_seconds": 0.15321860008407384,
+            "error": null
+          }
+        ]
+      },
+      "top_10": {
+        "summary": {
+          "cases": 10,
+          "recall_at_k": 0.9,
+          "mrr": 0.77,
+          "mean_latency_seconds": 0.17972295999061316,
+          "median_latency_seconds": 0.1637143000261858,
+          "failed_cases": 0
+        },
+        "cases": [
+          {
+            "case_id": "RAG-001",
+            "topic": "payment_data_storage",
+            "query": "What did RBI require payment system operators to do with payment transaction data?",
+            "retrieved_document_ids": [
+              264626,
+              210522,
+              289015,
+              103726,
+              229038,
+              262605,
+              231565,
+              233971,
+              320030,
+              20026
+            ],
+            "gold_document_ids": [
+              210522
+            ],
+            "recall": 1.0,
+            "mrr": 0.5,
+            "first_relevant_rank": 2,
+            "latency_seconds": 0.15929430001415312,
+            "error": null
+          },
+          {
+            "case_id": "RAG-002",
+            "topic": "digital_payment_security",
+            "query": "Why did PayU acquire Wibmo and what was Wibmo known for?",
+            "retrieved_document_ids": [
+              79011,
+              243016,
+              243015,
+              168501,
+              243014,
+              176742,
+              43491,
+              314335,
+              254506,
+              92830
+            ],
+            "gold_document_ids": [
+              79011
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.18795359996147454,
+            "error": null
+          },
+          {
+            "case_id": "RAG-003",
+            "topic": "personal_loans",
+            "query": "What should someone consider before choosing a personal loan?",
+            "retrieved_document_ids": [
+              126817,
+              12538,
+              12539,
+              12537,
+              83509,
+              83510,
+              141526,
+              126818,
+              117238,
+              126816
+            ],
+            "gold_document_ids": [
+              126817
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.15845540002919734,
+            "error": null
+          },
+          {
+            "case_id": "RAG-004",
+            "topic": "personal_loan_business_use",
+            "query": "Under what circumstances might a personal loan be used for a business?",
+            "retrieved_document_ids": [
+              12537,
+              12538,
+              12539,
+              213895,
+              117238,
+              299958,
+              83509,
+              192818,
+              28612,
+              8099
+            ],
+            "gold_document_ids": [
+              12537
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.15548879990819842,
+            "error": null
+          },
+          {
+            "case_id": "RAG-005",
+            "topic": "payment_fraud",
+            "query": "What did RBI do to address fraud in payment systems?",
+            "retrieved_document_ids": [
+              49383,
+              251987,
+              54436,
+              172283,
+              323248,
+              54435,
+              168572,
+              329721,
+              320155,
+              262605
+            ],
+            "gold_document_ids": [
+              140404
+            ],
+            "recall": 0.0,
+            "mrr": 0.0,
+            "first_relevant_rank": null,
+            "latency_seconds": 0.15758860006462783,
+            "error": null
+          },
+          {
+            "case_id": "RAG-006",
+            "topic": "swift_compliance",
+            "query": "What action did RBI take against lenders for SWIFT compliance problems?",
+            "retrieved_document_ids": [
+              54435,
+              54436,
+              270994,
+              226967,
+              255257,
+              230333,
+              27878,
+              237625,
+              59078,
+              197807
+            ],
+            "gold_document_ids": [
+              54435
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.1570661999285221,
+            "error": null
+          },
+          {
+            "case_id": "RAG-007",
+            "topic": "banking_fraud_statistics",
+            "query": "How many major fraud cases involving cards and internet banking were reported in 2018?",
+            "retrieved_document_ids": [
+              152480,
+              151603,
+              184643,
+              251987,
+              147566,
+              113447,
+              194640,
+              55418,
+              182033,
+              95599
+            ],
+            "gold_document_ids": [
+              152480
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.2848347000544891,
+            "error": null
+          },
+          {
+            "case_id": "RAG-008",
+            "topic": "soundwave_payments",
+            "query": "How does soundwave technology support digital payments, including on phones without internet?",
+            "retrieved_document_ids": [
+              16774,
+              123464,
+              123463,
+              16773,
+              88466,
+              231469,
+              88467,
+              314738,
+              330698,
+              123466
+            ],
+            "gold_document_ids": [
+              16774
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.18464469991158694,
+            "error": null
+          },
+          {
+            "case_id": "RAG-009",
+            "topic": "electronic_payment_charges",
+            "query": "What did CBDT say about charges on electronic payment modes such as RuPay and BHIM-UPI?",
+            "retrieved_document_ids": [
+              324037,
+              324038,
+              23420,
+              27353,
+              291980,
+              23421,
+              214697,
+              214695,
+              265904,
+              239654
+            ],
+            "gold_document_ids": [
+              324037
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 0.18376899999566376,
+            "error": null
+          },
+          {
+            "case_id": "RAG-010",
+            "topic": "stock_exchange_outage",
+            "query": "What happens to stock exchange trading hours when there is a technical outage?",
+            "retrieved_document_ids": [
+              8469,
+              8470,
+              272642,
+              8472,
+              8471,
+              175874,
+              272641,
+              255255,
+              312037,
+              304120
+            ],
+            "gold_document_ids": [
+              8471
+            ],
+            "recall": 1.0,
+            "mrr": 0.2,
+            "first_relevant_rank": 5,
+            "latency_seconds": 0.1681343000382185,
+            "error": null
+          }
+        ]
+      }
+    },
+    "hybrid_rrf": {
+      "top_5": {
+        "summary": {
+          "cases": 10,
+          "recall_at_k": 1.0,
+          "mrr": 0.7783333333333333,
+          "mean_latency_seconds": 1.4096688399789854,
+          "median_latency_seconds": 1.2341312499484047,
+          "failed_cases": 0
+        },
+        "cases": [
+          {
+            "case_id": "RAG-001",
+            "topic": "payment_data_storage",
+            "query": "What did RBI require payment system operators to do with payment transaction data?",
+            "retrieved_document_ids": [
+              210522,
+              264626,
+              231565,
+              289015,
+              316873
+            ],
+            "gold_document_ids": [
+              210522
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 2.867185499984771,
+            "error": null
+          },
+          {
+            "case_id": "RAG-002",
+            "topic": "digital_payment_security",
+            "query": "Why did PayU acquire Wibmo and what was Wibmo known for?",
+            "retrieved_document_ids": [
+              79011,
+              243016,
+              168501,
+              243014,
+              254506
+            ],
+            "gold_document_ids": [
+              79011
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.2371648999396712,
+            "error": null
+          },
+          {
+            "case_id": "RAG-003",
+            "topic": "personal_loans",
+            "query": "What should someone consider before choosing a personal loan?",
+            "retrieved_document_ids": [
+              126817,
+              83509,
+              126816,
+              12537,
+              119552
+            ],
+            "gold_document_ids": [
+              126817
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.1304534999653697,
+            "error": null
+          },
+          {
+            "case_id": "RAG-004",
+            "topic": "personal_loan_business_use",
+            "query": "Under what circumstances might a personal loan be used for a business?",
+            "retrieved_document_ids": [
+              12537,
+              12538,
+              299958,
+              12539,
+              255120
+            ],
+            "gold_document_ids": [
+              12537
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.1621609000721946,
+            "error": null
+          },
+          {
+            "case_id": "RAG-005",
+            "topic": "payment_fraud",
+            "query": "What did RBI do to address fraud in payment systems?",
+            "retrieved_document_ids": [
+              54436,
+              262605,
+              140404,
+              226908,
+              121280
+            ],
+            "gold_document_ids": [
+              140404
+            ],
+            "recall": 1.0,
+            "mrr": 0.3333333333333333,
+            "first_relevant_rank": 3,
+            "latency_seconds": 1.1653391999425367,
+            "error": null
+          },
+          {
+            "case_id": "RAG-006",
+            "topic": "swift_compliance",
+            "query": "What action did RBI take against lenders for SWIFT compliance problems?",
+            "retrieved_document_ids": [
+              230333,
+              226967,
+              270994,
+              54435,
+              59078
+            ],
+            "gold_document_ids": [
+              54435
+            ],
+            "recall": 1.0,
+            "mrr": 0.25,
+            "first_relevant_rank": 4,
+            "latency_seconds": 1.106961999903433,
+            "error": null
+          },
+          {
+            "case_id": "RAG-007",
+            "topic": "banking_fraud_statistics",
+            "query": "How many major fraud cases involving cards and internet banking were reported in 2018?",
+            "retrieved_document_ids": [
+              152480,
+              151603,
+              184643,
+              194640,
+              251987
+            ],
+            "gold_document_ids": [
+              152480
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.5193354999646544,
+            "error": null
+          },
+          {
+            "case_id": "RAG-008",
+            "topic": "soundwave_payments",
+            "query": "How does soundwave technology support digital payments, including on phones without internet?",
+            "retrieved_document_ids": [
+              16774,
+              16773,
+              123464,
+              123463,
+              231469
+            ],
+            "gold_document_ids": [
+              16774
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.2310975999571383,
+            "error": null
+          },
+          {
+            "case_id": "RAG-009",
+            "topic": "electronic_payment_charges",
+            "query": "What did CBDT say about charges on electronic payment modes such as RuPay and BHIM-UPI?",
+            "retrieved_document_ids": [
+              324037,
+              23420,
+              324038,
+              27353,
+              302994
+            ],
+            "gold_document_ids": [
+              324037
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.3101120999781415,
+            "error": null
+          },
+          {
+            "case_id": "RAG-010",
+            "topic": "stock_exchange_outage",
+            "query": "What happens to stock exchange trading hours when there is a technical outage?",
+            "retrieved_document_ids": [
+              8469,
+              8470,
+              8472,
+              272642,
+              8471
+            ],
+            "gold_document_ids": [
+              8471
+            ],
+            "recall": 1.0,
+            "mrr": 0.2,
+            "first_relevant_rank": 5,
+            "latency_seconds": 1.3668772000819445,
+            "error": null
+          }
+        ]
+      },
+      "top_10": {
+        "summary": {
+          "cases": 10,
+          "recall_at_k": 1.0,
+          "mrr": 0.7783333333333333,
+          "mean_latency_seconds": 1.2047969999723136,
+          "median_latency_seconds": 1.20517839997774,
+          "failed_cases": 0
+        },
+        "cases": [
+          {
+            "case_id": "RAG-001",
+            "topic": "payment_data_storage",
+            "query": "What did RBI require payment system operators to do with payment transaction data?",
+            "retrieved_document_ids": [
+              210522,
+              264626,
+              231565,
+              289015,
+              316873,
+              103726,
+              320030,
+              262605,
+              167689,
+              35367
+            ],
+            "gold_document_ids": [
+              210522
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.2338384999893606,
+            "error": null
+          },
+          {
+            "case_id": "RAG-002",
+            "topic": "digital_payment_security",
+            "query": "Why did PayU acquire Wibmo and what was Wibmo known for?",
+            "retrieved_document_ids": [
+              79011,
+              243016,
+              168501,
+              243014,
+              254506,
+              176742,
+              292542,
+              292543,
+              43491,
+              276335
+            ],
+            "gold_document_ids": [
+              79011
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.1605456999968737,
+            "error": null
+          },
+          {
+            "case_id": "RAG-003",
+            "topic": "personal_loans",
+            "query": "What should someone consider before choosing a personal loan?",
+            "retrieved_document_ids": [
+              126817,
+              83509,
+              126816,
+              12537,
+              12538,
+              83510,
+              315736,
+              299958,
+              119552,
+              71449
+            ],
+            "gold_document_ids": [
+              126817
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.1488710999256,
+            "error": null
+          },
+          {
+            "case_id": "RAG-004",
+            "topic": "personal_loan_business_use",
+            "query": "Under what circumstances might a personal loan be used for a business?",
+            "retrieved_document_ids": [
+              12537,
+              12538,
+              299958,
+              12539,
+              255120,
+              126816,
+              255119,
+              188864,
+              164564,
+              14983
+            ],
+            "gold_document_ids": [
+              12537
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.1765182999661192,
+            "error": null
+          },
+          {
+            "case_id": "RAG-005",
+            "topic": "payment_fraud",
+            "query": "What did RBI do to address fraud in payment systems?",
+            "retrieved_document_ids": [
+              54436,
+              262605,
+              140404,
+              226908,
+              172283,
+              121280,
+              70419,
+              20026,
+              54435,
+              287887
+            ],
+            "gold_document_ids": [
+              140404
+            ],
+            "recall": 1.0,
+            "mrr": 0.3333333333333333,
+            "first_relevant_rank": 3,
+            "latency_seconds": 1.2412107998970896,
+            "error": null
+          },
+          {
+            "case_id": "RAG-006",
+            "topic": "swift_compliance",
+            "query": "What action did RBI take against lenders for SWIFT compliance problems?",
+            "retrieved_document_ids": [
+              230333,
+              226967,
+              270994,
+              54435,
+              59078,
+              237625,
+              255257,
+              197807,
+              52925,
+              54436
+            ],
+            "gold_document_ids": [
+              54435
+            ],
+            "recall": 1.0,
+            "mrr": 0.25,
+            "first_relevant_rank": 4,
+            "latency_seconds": 0.9853899999288842,
+            "error": null
+          },
+          {
+            "case_id": "RAG-007",
+            "topic": "banking_fraud_statistics",
+            "query": "How many major fraud cases involving cards and internet banking were reported in 2018?",
+            "retrieved_document_ids": [
+              152480,
+              151603,
+              184643,
+              194640,
+              251987,
+              194641,
+              113726,
+              194642,
+              55418,
+              95599
+            ],
+            "gold_document_ids": [
+              152480
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.3398273000493646,
+            "error": null
+          },
+          {
+            "case_id": "RAG-008",
+            "topic": "soundwave_payments",
+            "query": "How does soundwave technology support digital payments, including on phones without internet?",
+            "retrieved_document_ids": [
+              16774,
+              16773,
+              123464,
+              123463,
+              231469,
+              314739,
+              314737,
+              88466,
+              293332,
+              88467
+            ],
+            "gold_document_ids": [
+              16774
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.0654612999642268,
+            "error": null
+          },
+          {
+            "case_id": "RAG-009",
+            "topic": "electronic_payment_charges",
+            "query": "What did CBDT say about charges on electronic payment modes such as RuPay and BHIM-UPI?",
+            "retrieved_document_ids": [
+              324037,
+              23420,
+              324038,
+              27353,
+              302994,
+              23421,
+              30030,
+              239654,
+              265904,
+              114268
+            ],
+            "gold_document_ids": [
+              324037
+            ],
+            "recall": 1.0,
+            "mrr": 1.0,
+            "first_relevant_rank": 1,
+            "latency_seconds": 1.311722599901259,
+            "error": null
+          },
+          {
+            "case_id": "RAG-010",
+            "topic": "stock_exchange_outage",
+            "query": "What happens to stock exchange trading hours when there is a technical outage?",
+            "retrieved_document_ids": [
+              8469,
+              8470,
+              8472,
+              272642,
+              8471,
+              272641,
+              255255,
+              304120,
+              8473,
+              313192
+            ],
+            "gold_document_ids": [
+              8471
+            ],
+            "recall": 1.0,
+            "mrr": 0.2,
+            "first_relevant_rank": 5,
+            "latency_seconds": 1.3845844001043588,
+            "error": null
+          }
+        ]
+      }
+    }
+  },
+  "corpus_integrity": {
+    "database_documents": 332385,
+    "faiss_vectors": 332385,
+    "faiss_dimension": 1024,
+    "document_ids": 332385,
+    "complete": true
+  },
+  "gold_cases": 10,
+  "notes": [
+    "Recall@k uses at least one gold document appearing in the top-k results.",
+    "MRR uses the rank of the first gold document.",
+    "Model load time is excluded from per-query latency via a warmup call.",
+    "FAISS/Hybrid runs require a complete production index unless --skip-semantic is used."
+  ]
+}

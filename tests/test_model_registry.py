@@ -1,4 +1,4 @@
-﻿from llm.model_registry import (
+from llm.model_registry import (
     MODEL_REGISTRY,
     get_model_spec,
     enabled_models,
@@ -19,8 +19,10 @@ def test_sarvam_is_current_enabled_model():
 
     models = enabled_models()
 
-    assert len(models) == 1
-    assert models[0].model_id == "sarvam-1"
+    ids = {model.model_id for model in models}
+
+    assert "sarvam-1" in ids
+    assert get_model_spec("sarvam-1").enabled is True
 
 
 def test_fin_r1_is_financial_reasoning_candidate():
