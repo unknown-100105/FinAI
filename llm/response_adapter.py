@@ -1,5 +1,9 @@
-﻿import re
+﻿from pathlib import Path
+import re
+import time
 from typing import Any, Dict
+
+import torch
 
 from .response_verifier import FinancialResponseVerifier
 from xai.claims import build_finance_claims
@@ -9,15 +13,102 @@ from xai.claim_verifier import ClaimVerifier
 
 class SarvamResponseAdapter:
 
+    BASE_MODEL = "sarvamai/sarvam-1"
+    DEFAULT_ADAPTER_PATH = "models/finai-v3-final-smoke"
+
     def __init__(
         self,
         model=None,
         tokenizer=None,
+        lazy_load: bool = False,
+        adapter_path: str = DEFAULT_ADAPTER_PATH,
     ):
         self.model = model
         self.tokenizer = tokenizer
+
+        self.lazy_load = bool(lazy_load)
+        self.adapter_path = str(adapter_path)
+
+        self.loaded = (
+            model is not None
+            and tokenizer is not None
+        )
+
+        self.load_seconds = None
+
         self.verifier = FinancialResponseVerifier()
         self.claim_verifier = ClaimVerifier()
+
+    def load(self):
+
+        if self.loaded:
+            return
+
+        if not self.lazy_load:
+            raise RuntimeError(
+                "SarvamResponseAdapter is not configured for "
+                "automatic model loading."
+            )
+
+        if not torch.cuda.is_available():
+            raise RuntimeError(
+                "CUDA is required for the production Sarvam-1 adapter."
+            )
+
+        from transformers import (
+            AutoModelForCausalLM,
+            AutoTokenizer,
+            BitsAndBytesConfig,
+        )
+        from peft import PeftModel
+
+        start = time.perf_counter()
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.BASE_MODEL,
+            trust_remote_code=True,
+        )
+
+        if self.tokenizer.pad_token_id is None:
+            self.tokenizer.pad_token = (
+                self.tokenizer.eos_token
+            )
+
+        quant_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+        )
+
+        self.model = AutoModelForCausalLM.from_pretrained(
+            self.BASE_MODEL,
+            quantization_config=quant_config,
+            device_map="auto",
+            dtype=torch.float16,
+            trust_remote_code=True,
+        )
+
+        adapter_path = Path(self.adapter_path)
+
+        if not adapter_path.exists():
+            raise FileNotFoundError(
+                f"FinAI adapter path does not exist: "
+                f"{adapter_path}"
+            )
+
+        self.model = PeftModel.from_pretrained(
+            self.model,
+            str(adapter_path),
+        )
+
+        self.model.eval()
+
+        self.load_seconds = (
+            time.perf_counter() - start
+        )
+
+        self.loaded = True
 
     def build_prompt(
         self,
@@ -52,7 +143,20 @@ The system has already determined the user's intent.
 Do not change the intent.
 
 The system has already verified the result.
-Do not change, recalculate, invent, or omit numerical values.
+Do not change, recalculate, invent, reinterpret, rename, or omit
+any supplied numerical or monetary value.
+
+Every required value in the VERIFIED RESULT must be explicitly
+included in the final response.
+
+For financial calculations:
+- Preserve every number exactly.
+- Preserve the meaning of every number exactly.
+- Never call total interest the total payment.
+- Never call total payment the total interest.
+- Never replace one verified value with another value.
+- Never summarize away a required field.
+- Do not perform new calculations.
 
 Intent:
 {intent}
@@ -74,6 +178,7 @@ Persona:
 
 Response requirements:
 - Explain only the verified result.
+- Include every supplied authoritative financial value.
 - Preserve all supplied numerical values exactly.
 - Do not invent financial data.
 - Do not claim a tool was executed unless the verified result says so.
@@ -133,7 +238,6 @@ Return only the final user-facing response.
         if text.startswith(prompt):
             text = text[len(prompt):].strip()
 
-        # Remove accidental role markers / next-turn drift.
         text = re.split(
             r"\n\s*(?:USER|ASSISTANT|SYSTEM)\s*:",
             text,
@@ -150,7 +254,6 @@ Return only the final user-facing response.
         verified_result: Dict[str, Any],
     ) -> Dict[str, Any]:
 
-        # The current verifier has an EMI-specific contract.
         if intent == "EMI_QUERY":
 
             result = self.verifier.verify_emi(
@@ -171,12 +274,14 @@ Return only the final user-facing response.
         }
 
     def _required_claim_fields(self, intent: str):
+
         if intent == "EMI_QUERY":
             return [
                 "monthly_emi",
                 "total_payment",
                 "total_interest",
             ]
+
         return []
 
     def _verify_claims(
@@ -186,9 +291,11 @@ Return only the final user-facing response.
         verified_result,
         source: str,
     ):
+
         required_fields = self._required_claim_fields(intent)
 
         if not required_fields:
+
             return {
                 "applicable": False,
                 "passed": True,
@@ -265,6 +372,14 @@ Return only the final user-facing response.
         max_new_tokens: int = 160,
     ) -> Dict[str, Any]:
 
+        if (
+            self.model is None
+            or self.tokenizer is None
+        ):
+
+            if self.lazy_load:
+                self.load()
+
         prompt = self.build_prompt(
             user_text=user_text,
             intent=intent,
@@ -274,11 +389,10 @@ Return only the final user-facing response.
             persona=persona,
         )
 
-        # ---------------------------------------------------------
-        # Safe development fallback
-        # ---------------------------------------------------------
-
-        if self.model is None or self.tokenizer is None:
+        if (
+            self.model is None
+            or self.tokenizer is None
+        ):
 
             fallback_result = self._build_verified_fallback(
                 user_text=user_text,
@@ -300,10 +414,6 @@ Return only the final user-facing response.
                 ],
             }
 
-        # ---------------------------------------------------------
-        # Model generation
-        # ---------------------------------------------------------
-
         inputs = self.tokenizer(
             prompt,
             return_tensors="pt",
@@ -318,9 +428,10 @@ Return only the final user-facing response.
             **inputs,
             max_new_tokens=max_new_tokens,
             do_sample=False,
-            temperature=None,
-            top_p=None,
             pad_token_id=self.tokenizer.eos_token_id,
+            eos_token_id=self.tokenizer.eos_token_id,
+            repetition_penalty=1.05,
+            use_cache=True,
         )
 
         generated = self.tokenizer.decode(
@@ -332,10 +443,6 @@ Return only the final user-facing response.
             generated,
             prompt,
         )
-
-        # ---------------------------------------------------------
-        # Financial response verification
-        # ---------------------------------------------------------
 
         verification = self._verify_response(
             response=response,
@@ -349,11 +456,6 @@ Return only the final user-facing response.
             verified_result=verified_result,
             source=source,
         )
-
-        # ---------------------------------------------------------
-        # Reject unsafe / factually invalid generated response.
-        # Both response-level and claim-level verification must pass.
-        # ---------------------------------------------------------
 
         response_failed = (
             verification["applicable"]
@@ -379,14 +481,15 @@ Return only the final user-facing response.
                 "source": source,
                 "language": language,
                 "persona": persona,
-                "prompt": prompt,
                 "response": fallback_result["response"],
                 "verification": verification,
                 "claim_verification": claim_verification,
-                "fallback_verification": fallback_result["verification"],
-                "fallback_claim_verification": fallback_result[
-                    "claim_verification"
-                ],
+                "fallback_verification": (
+                    fallback_result["verification"]
+                ),
+                "fallback_claim_verification": (
+                    fallback_result["claim_verification"]
+                ),
                 "original_response": response,
             }
 
@@ -395,51 +498,10 @@ Return only the final user-facing response.
             "source": source,
             "language": language,
             "persona": persona,
-            "prompt": prompt,
             "response": response,
             "verification": verification,
             "claim_verification": claim_verification,
+            "metrics": {
+                "load_seconds": self.load_seconds,
+            },
         }
-
-
-if __name__ == "__main__":
-
-    adapter = SarvamResponseAdapter()
-
-    verified = {
-        "principal": 1_000_000,
-        "annual_rate": 8.5,
-        "tenure_months": 240,
-        "monthly_emi": 8678.23,
-        "total_payment": 2082775.76,
-        "total_interest": 1082775.76,
-    }
-
-    print("=" * 80)
-    print("FINAI SARVAM RESPONSE ADAPTER TEST")
-    print("=" * 80)
-
-    for persona in (
-        "neutral",
-        "hype",
-        "stern",
-    ):
-
-        result = adapter.generate(
-            user_text=(
-                "Calculate EMI for ₹10 lakh at "
-                "8.5% for 20 years"
-            ),
-            intent="EMI_QUERY",
-            verified_result=verified,
-            source="deterministic_finance_engine",
-            language="English",
-            persona=persona,
-        )
-
-        print()
-        print("PERSONA:", persona)
-        print("STATUS:", result["status"])
-        print("SOURCE:", result["source"])
-        print("VERIFICATION:", result["verification"])
-        print("RESPONSE:", result["response"])

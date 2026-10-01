@@ -1,4 +1,4 @@
-﻿from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional
 
 from llm.model_gateway import ModelGateway
 from llm.model_registry import enabled_models
@@ -71,9 +71,16 @@ class ResponseService:
                     f"model '{spec.model_id}'."
                 )
 
+            if spec.model_id == "sarvam-1":
+                adapter = adapter_class(
+                    lazy_load=True,
+                )
+            else:
+                adapter = adapter_class()
+
             self.gateway.register(
                 model_id=spec.model_id,
-                adapter=adapter_class(),
+                adapter=adapter,
                 capabilities=list(
                     spec.capabilities
                 ),
