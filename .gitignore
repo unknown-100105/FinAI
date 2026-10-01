@@ -75,3 +75,6 @@ xai/traces/
 # ============================================================
 *.faiss
 *.npy
+
+# Local migration backups
+backups/
