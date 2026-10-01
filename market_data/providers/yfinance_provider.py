@@ -133,7 +133,7 @@ class YFinanceProvider(MarketDataProvider):
                 interval="1d",
                 auto_adjust=False,
                 actions=False,
-                progress=False,
+                timeout=self.timeout,
             )
         except Exception as exc:
             raise RuntimeError(
@@ -212,7 +212,7 @@ class YFinanceProvider(MarketDataProvider):
                 interval="1d",
                 auto_adjust=False,
                 actions=False,
-                progress=False,
+                timeout=self.timeout,
             )
         except Exception as exc:
             raise RuntimeError(
