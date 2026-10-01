@@ -63,5 +63,7 @@ def test_market_data_execution():
     assert result["router"]["intent"] == "MARKET_DATA_QUERY"
     assert result["router"]["decision"] == "ROUTE"
     assert result["execution_plan"]["capability"] == "market_data"
-    assert result["market_data"]["operation"] == "MARKET_QUOTE"
-    assert result["market_data"]["result"]["price"] == 25000.0
+    assert result["market_data"]["operations"] == ["QUOTE"]
+    assert result["market_data"]["results"][0]["operation"] == "MARKET_QUOTE"
+    assert result["market_data"]["results"][0]["result"]["price"] == 25000.0
+

@@ -1,9 +1,15 @@
-﻿from datetime import datetime
+﻿from datetime import datetime, timedelta
 
 from orchestrator.engine import FinAIOrchestrator
 from router.domain_router import FinAIDomainRouter
 from orchestrator.finance_dispatcher import FinanceDispatcher
 from orchestrator.market_data_dispatcher import MarketDataDispatcher
+from orchestrator.market_operation_planner import (
+    OP_ANALYTICS,
+    OP_HISTORY,
+    OP_QUOTE,
+    plan_market_operations,
+)
 from orchestrator.risk_controller import RiskCapabilityController
 
 
@@ -409,13 +415,45 @@ class FinAIHybridEngine:
                     "timestamp": datetime.now().isoformat(),
                 }
 
+            operation_plan = plan_market_operations(user_text)
+
+            start = datetime.now() - timedelta(days=365)
+            end = datetime.now()
+
+            operation_results = []
+
             try:
-                # Current quote is the first supported operation.
-                # Historical and analytics operation planning will
-                # be added as a separate tested layer.
-                market_result = dispatcher.quote(
-                    instrument_query,
-                )
+                for operation in operation_plan.operations:
+
+                    if operation == OP_QUOTE:
+                        operation_results.append(
+                            dispatcher.quote(
+                                instrument_query,
+                            )
+                        )
+
+                    elif operation == OP_HISTORY:
+                        operation_results.append(
+                            dispatcher.history(
+                                instrument_query,
+                                start=start,
+                                end=end,
+                            )
+                        )
+
+                    elif operation == OP_ANALYTICS:
+                        operation_results.append(
+                            dispatcher.analytics(
+                                instrument_query,
+                                start=start,
+                                end=end,
+                            )
+                        )
+
+                    else:
+                        raise ValueError(
+                            f"Unsupported market operation: {operation}"
+                        )
 
             except ValueError as exc:
                 return {
@@ -436,7 +474,10 @@ class FinAIHybridEngine:
                         "tool": plan.tool,
                     },
                     "market_data": None,
-                    "tool": None,
+                    "tool": {
+                        "tool": "market_data_dispatcher",
+                        "success": False,
+                    },
                     "message": str(exc),
                     "response": str(exc),
                     "timestamp": datetime.now().isoformat(),
@@ -471,6 +512,16 @@ class FinAIHybridEngine:
                     "timestamp": datetime.now().isoformat(),
                 }
 
+            market_data_result = {
+                "operations": list(operation_plan.operations),
+                "planning_reason": operation_plan.reason,
+                "range": {
+                    "start": start,
+                    "end": end,
+                },
+                "results": operation_results,
+            }
+
             return {
                 "stage": "market_data",
                 "status": "MARKET_DATA_RETRIEVED",
@@ -488,7 +539,7 @@ class FinAIHybridEngine:
                     ),
                     "tool": plan.tool,
                 },
-                "market_data": market_result,
+                "market_data": market_data_result,
                 "tool": {
                     "tool": "market_data_dispatcher",
                     "success": True,
@@ -699,6 +750,7 @@ if __name__ == "__main__":
             )
 
         print("MESSAGE:", result["message"])
+
 
 
 
