@@ -306,6 +306,11 @@ POLICIES = {
     # Support
     # ---------------------------------------------------------
 
+    "FINANCIAL_GUIDANCE": IntentPolicy(
+        "low", False, False,
+        None, "financial_information"
+    ),
+
     "SUPPORT_REQUEST": IntentPolicy(
         "low", False, False,
         "create_support_ticket", "support"

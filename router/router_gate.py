@@ -33,6 +33,88 @@ CONFUSION_PAIRS = {
 }
 
 
+# Safe knowledge-query patterns that are not represented by the
+# current 50-class classifier. These are informational queries only.
+FINANCIAL_GUIDANCE_TERMS = (
+    "invest",
+    "investment",
+    "investing",
+    "mutual fund",
+    "mutual funds",
+    "sip",
+    "systematic investment",
+    "stock",
+    "stocks",
+    "share",
+    "shares",
+    "bond",
+    "bonds",
+    "etf",
+    "fixed deposit",
+    "fd",
+    "recurring deposit",
+    "rd",
+    "ppf",
+    "nps",
+    "savings",
+    "saving money",
+    "budget",
+)
+
+FINANCIAL_GUIDANCE_ACTION_TERMS = (
+    "failed",
+    "failure",
+    "pending",
+    "blocked",
+    "block",
+    "lost",
+    "stolen",
+    "fraud",
+    "scam",
+    "unauthorized",
+    "unauthorised",
+    "dispute",
+    "refund",
+    "transfer",
+    "transaction",
+    "payment",
+    "withdraw",
+    "withdrawal",
+    "card",
+    "account balance",
+    "complaint",
+)
+
+
+def _is_financial_guidance_query(text: str) -> bool:
+    """Recognize clearly informational financial guidance queries."""
+
+    normalized = " ".join(
+        str(text).strip().lower().split()
+    )
+
+    if not normalized:
+        return False
+
+    has_guidance_term = any(
+        term in normalized
+        for term in FINANCIAL_GUIDANCE_TERMS
+    )
+
+    if not has_guidance_term:
+        return False
+
+    has_action_term = any(
+        term in normalized
+        for term in FINANCIAL_GUIDANCE_ACTION_TERMS
+    )
+
+    if has_action_term:
+        return False
+
+    return True
+
+
 class FinAIRouterGate:
 
     def __init__(
@@ -91,6 +173,24 @@ class FinAIRouterGate:
                 "risk_level": "low",
                 "requires_clarification": False,
                 "reason": ood_reason,
+                "top_k": [],
+            }
+
+        # The trained classifier contains the existing 50 intents.
+        # Obvious informational investment/finance questions that are
+        # outside that trained intent set use a deterministic knowledge
+        # fallback instead of being misclassified as a banking action.
+        if _is_financial_guidance_query(text):
+            return {
+                "intent": "FINANCIAL_GUIDANCE",
+                "raw_prediction": None,
+                "confidence": 1.0,
+                "margin": 1.0,
+                "decision": "ROUTE",
+                "risk_level": "low",
+                "requires_clarification": False,
+                "reason": "financial_guidance_rule",
+                "confidence_source": "deterministic_rule",
                 "top_k": [],
             }
 
