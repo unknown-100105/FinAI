@@ -324,27 +324,21 @@ class FinAIDomainRouter:
                 "deterministic_domain_rule",
             )
 
-        # Calculations are separated from educational questions.
-        if _contains_any(normalized, CALCULATION_TERMS):
-            return _build_result(
-                DOMAIN_CALCULATION,
-                "calculation_term",
-                "deterministic_domain_rule",
-            )
-
-        # Product queries such as card/account eligibility or benefits.
-        if _contains_any(normalized, PRODUCT_TERMS):
-            return _build_result(
-                DOMAIN_PRODUCT_COMPARISON,
-                "product_term",
-                "deterministic_domain_rule",
-            )
-
-        # Market terminology gets a dedicated domain.
+        # Market-specific requests take precedence over generic
+        # calculation terms. For example, "calculate NIFTY volatility"
+        # is a market-data operation whose calculation uses market data.
         if _contains_any(normalized, MARKET_TERMS):
             return _build_result(
                 DOMAIN_MARKET_DATA,
                 "market_term",
+                "deterministic_domain_rule",
+            )
+
+        # Calculations that are not tied to a market instrument.
+        if _contains_any(normalized, CALCULATION_TERMS):
+            return _build_result(
+                DOMAIN_CALCULATION,
+                "calculation_term",
                 "deterministic_domain_rule",
             )
 

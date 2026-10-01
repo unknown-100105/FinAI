@@ -54,10 +54,35 @@ def plan_market_operations(text: str) -> MarketOperationPlan:
         for term in ANALYTICS_TERMS
     )
 
-    wants_history = any(
+    # Temporal words such as "last", "past", and "previous" describe
+    # the analysis window by themselves. They should not automatically
+    # create a HISTORY operation when the user only asks for analytics.
+    explicit_history = any(
         term in normalized
-        for term in HISTORY_TERMS
+        for term in (
+            "history",
+            "historical",
+            "price history",
+            "historical data",
+        )
     )
+
+    show_history = (
+        "show" in normalized
+        and any(
+            term in normalized
+            for term in (
+                "last ",
+                "past ",
+                "previous ",
+                "over the last",
+                "for the last",
+            )
+        )
+        and not explicit_history
+    )
+
+    wants_history = explicit_history or show_history
 
     if wants_analytics and wants_history:
         return MarketOperationPlan(
