@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 
 from orchestrator.engine import FinAIOrchestrator
 from orchestrator.finance_dispatcher import FinanceDispatcher
@@ -215,6 +215,46 @@ class FinAIHybridEngine:
                     "timestamp": datetime.now().isoformat(),
                 }
 
+            # ---------------------------------------------------------
+            # Optional response-generation path.
+            #
+            # Retrieval remains authoritative. The response model only
+            # explains the retrieved evidence.
+            # ---------------------------------------------------------
+
+            response_result = None
+
+            if generate_response:
+
+                from llm.response_service import ResponseService
+
+                service = (
+                    self.response_service
+                    or ResponseService()
+                )
+
+                verified_evidence = {
+                    "query": user_text,
+                    "evidence_count": len(formatted_documents),
+                    "documents": formatted_documents,
+                }
+
+                response_result = service.generate(
+                    user_text=user_text,
+                    intent=intent,
+                    verified_result=verified_evidence,
+                    source="retrieval_evidence",
+                    language=language,
+                    persona=persona,
+                    max_new_tokens=max_new_tokens,
+                )
+
+            final_response = (
+                response_result["response"]
+                if response_result
+                else "Supporting evidence retrieved successfully."
+            )
+
             return {
                 "stage": "rag",
                 "status": "RETRIEVED",
@@ -240,8 +280,9 @@ class FinAIHybridEngine:
                     "evidence_count": len(formatted_documents),
                 },
                 "tool": None,
-                "message": "Supporting evidence retrieved successfully.",
-                "response": "Supporting evidence retrieved successfully.",
+                "message": final_response,
+                "response": final_response,
+                "response_generation": response_result,
                 "timestamp": datetime.now().isoformat(),
             }
 
