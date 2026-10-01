@@ -81,6 +81,7 @@ class XAISessionOrchestrator:
 
             trace.record_router(result.get("router"))
             trace.record_policy(result.get("policy"))
+            trace.record_rag(result.get("rag"))
             trace.record_response_generation(
                 result.get("response_generation")
             )
@@ -180,6 +181,7 @@ class XAISessionOrchestrator:
 
             trace.record_router(result.get("router"))
             trace.record_policy(result.get("policy"))
+            trace.record_rag(result.get("rag"))
             trace.record_response_generation(
                 result.get("response_generation")
             )
@@ -260,6 +262,7 @@ class XAISessionOrchestrator:
 
         trace.record_router(result.get("router"))
         trace.record_policy(result.get("policy"))
+        trace.record_rag(result.get("rag"))
         trace.record_response_generation(
             result.get("response_generation")
         )
