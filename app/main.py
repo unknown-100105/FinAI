@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 
 from orchestrator.session_xai import XAISessionOrchestrator
 
+from market_data.service import MarketDataService
+
 
 APP_VERSION = "0.1.0"
 
@@ -36,6 +38,29 @@ app.add_middleware(
 
 
 _orchestrator: Optional[XAISessionOrchestrator] = None
+_market_data_service: Optional[MarketDataService] = None
+
+
+def get_market_data_service() -> MarketDataService:
+    """
+    Create the shared market-data service lazily.
+
+    The provider itself is imported and registered only when market
+    data is first requested, keeping normal API startup lightweight.
+    """
+    global _market_data_service
+
+    if _market_data_service is None:
+        from market_data.providers.yfinance_provider import YFinanceProvider
+
+        _market_data_service = MarketDataService(
+            providers={
+                "yfinance": YFinanceProvider(),
+            },
+            default_provider="yfinance",
+        )
+
+    return _market_data_service
 
 
 def get_orchestrator() -> XAISessionOrchestrator:
@@ -97,10 +122,17 @@ class ChatRequest(BaseModel):
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
+    market_data = get_market_data_service()
+
     return {
         "status": "ok",
         "service": "finai-api",
         "version": APP_VERSION,
+        "market_data": {
+            "status": "configured",
+            "default_provider": market_data.default_provider,
+            "providers": sorted(market_data.providers.keys()),
+        },
     }
 
 
@@ -174,3 +206,4 @@ if __name__ == "__main__":
         port=8000,
         reload=False,
     )
+
