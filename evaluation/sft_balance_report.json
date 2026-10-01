@@ -1,0 +1,1062 @@
+{
+  "dataset": "C:\\Users\\roghe\\FinAI\\data\\sft_final\\train.jsonl",
+  "taxonomy": "C:\\Users\\roghe\\FinAI\\data\\intent_taxonomy.json",
+  "dataset_records": 16000,
+  "taxonomy_intents": 50,
+  "dataset_intents": 50,
+  "zero_example_intents": [],
+  "extra_dataset_intents": [],
+  "underrepresented_intents": [],
+  "intent_stats": {
+    "ACCOUNT_BALANCE": {
+      "description": "User asks for their current account balance.",
+      "category": "account_kyc",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "te": 64,
+        "ml": 64,
+        "en": 64,
+        "kn": 64
+      },
+      "tools": {
+        "get_account_balance": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 83.35,
+      "duplicate_rate": 0.0
+    },
+    "ACCOUNT_COMPROMISED": {
+      "description": "User believes their account credentials or access may have been compromised.",
+      "category": "fraud_security",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "kn": 64,
+        "en": 64,
+        "ta": 64,
+        "ml": 64
+      },
+      "tools": {
+        "secure_account": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 88.33,
+      "duplicate_rate": 0.0
+    },
+    "ACCOUNT_LOCKED": {
+      "description": "User cannot access their account because it appears locked.",
+      "category": "account_kyc",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "kn": 64,
+        "te": 64,
+        "ml": 64,
+        "en": 64,
+        "ta": 64
+      },
+      "tools": {
+        "get_account_status": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 80.14,
+      "duplicate_rate": 0.0
+    },
+    "BANK_TRANSFER_FAILED": {
+      "description": "A bank transfer failed.",
+      "category": "upi_transfers",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "kn": 64,
+        "ml": 64,
+        "ta": 64,
+        "en": 64,
+        "te": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 88.39,
+      "duplicate_rate": 0.0
+    },
+    "BANK_TRANSFER_PENDING": {
+      "description": "A bank transfer is pending.",
+      "category": "upi_transfers",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "kn": 64,
+        "en": 64,
+        "ml": 64,
+        "te": 64,
+        "ta": 64
+      },
+      "tools": {
+        "get_transaction_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 91.53,
+      "duplicate_rate": 0.0
+    },
+    "BANK_TRANSFER_STATUS": {
+      "description": "User wants the current status of a bank transfer.",
+      "category": "upi_transfers",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "en": 64,
+        "ml": 64,
+        "te": 64,
+        "ta": 64,
+        "kn": 64
+      },
+      "tools": {
+        "get_transaction_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 88.78,
+      "duplicate_rate": 0.0
+    },
+    "BENEFICIARY_ISSUE": {
+      "description": "User has a problem adding, selecting, or transferring to a beneficiary.",
+      "category": "upi_transfers",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "te": 64,
+        "en": 64,
+        "kn": 64,
+        "ml": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 84.22,
+      "duplicate_rate": 0.0
+    },
+    "CARD_ACTIVATION": {
+      "description": "User asks how to activate a payment card.",
+      "category": "cards",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "ml": 64,
+        "en": 64,
+        "kn": 64,
+        "te": 64,
+        "ta": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 92.48,
+      "duplicate_rate": 0.0
+    },
+    "CARD_BLOCK": {
+      "description": "User wants to block a payment card.",
+      "category": "cards",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "te": 64,
+        "kn": 64,
+        "ml": 64,
+        "en": 64
+      },
+      "tools": {
+        "block_card": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 89.59,
+      "duplicate_rate": 0.0
+    },
+    "CARD_LOST": {
+      "description": "User has lost their payment card.",
+      "category": "cards",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "en": 64,
+        "ml": 64,
+        "te": 64,
+        "kn": 64,
+        "ta": 64
+      },
+      "tools": {
+        "block_card": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 77.33,
+      "duplicate_rate": 0.0
+    },
+    "CARD_PAYMENT_FAILED": {
+      "description": "A card payment failed.",
+      "category": "cards",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "en": 64,
+        "ta": 64,
+        "kn": 64,
+        "ml": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 90.47,
+      "duplicate_rate": 0.0
+    },
+    "CARD_STOLEN": {
+      "description": "User reports that their payment card was stolen.",
+      "category": "cards",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "en": 64,
+        "kn": 64,
+        "te": 64,
+        "ml": 64
+      },
+      "tools": {
+        "block_card": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 79.74,
+      "duplicate_rate": 0.0
+    },
+    "CARD_UNBLOCK": {
+      "description": "User wants to unblock a payment card.",
+      "category": "cards",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "kn": 64,
+        "te": 64,
+        "en": 64,
+        "ta": 64,
+        "ml": 64
+      },
+      "tools": {
+        "unblock_card": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 94.91,
+      "duplicate_rate": 0.0
+    },
+    "CASH_WITHDRAWAL_FAILED": {
+      "description": "A cash withdrawal attempt failed.",
+      "category": "upi_transfers",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "en": 64,
+        "kn": 64,
+        "te": 64,
+        "ta": 64,
+        "ml": 64
+      },
+      "tools": {
+        "get_cash_withdrawal_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 88.67,
+      "duplicate_rate": 0.0
+    },
+    "CASH_WITHDRAWAL_STATUS": {
+      "description": "User wants the status of a cash withdrawal.",
+      "category": "upi_transfers",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "en": 64,
+        "ml": 64,
+        "kn": 64,
+        "ta": 64
+      },
+      "tools": {
+        "get_cash_withdrawal_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 88.88,
+      "duplicate_rate": 0.0
+    },
+    "DISPUTE_TRANSACTION": {
+      "description": "User wants to dispute a financial transaction.",
+      "category": "refunds_disputes",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "kn": 64,
+        "ml": 64,
+        "te": 64,
+        "en": 64,
+        "ta": 64
+      },
+      "tools": {
+        "create_dispute": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 88.61,
+      "duplicate_rate": 0.0
+    },
+    "DUPLICATE_TRANSACTION": {
+      "description": "The same transaction appears to have occurred more than once.",
+      "category": "payments",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "kn": 64,
+        "ml": 64,
+        "en": 64,
+        "te": 64
+      },
+      "tools": {
+        "get_transaction_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 88.33,
+      "duplicate_rate": 0.0
+    },
+    "EMI_QUERY": {
+      "description": "User asks about their EMI.",
+      "category": "loans",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "en": 64,
+        "kn": 64,
+        "ta": 64,
+        "ml": 64
+      },
+      "tools": {
+        "get_loan_details": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 70.76,
+      "duplicate_rate": 0.0
+    },
+    "FRAUD_REPORT": {
+      "description": "User reports suspected financial fraud.",
+      "category": "fraud_security",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "kn": 64,
+        "te": 64,
+        "ta": 64,
+        "ml": 64,
+        "en": 64
+      },
+      "tools": {
+        "report_fraud": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 94.12,
+      "duplicate_rate": 0.0
+    },
+    "INTEREST_QUERY": {
+      "description": "User asks about an applicable loan interest rate.",
+      "category": "loans",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "kn": 64,
+        "en": 64,
+        "ml": 64,
+        "ta": 64,
+        "te": 64
+      },
+      "tools": {
+        "get_loan_details": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 85.21,
+      "duplicate_rate": 0.0
+    },
+    "KYC_DOCUMENTS": {
+      "description": "User asks about documents required for KYC.",
+      "category": "account_kyc",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "ml": 64,
+        "ta": 64,
+        "en": 64,
+        "te": 64,
+        "kn": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "low": 320
+      },
+      "avg_prompt_length": 75.86,
+      "duplicate_rate": 0.0
+    },
+    "KYC_FAILED": {
+      "description": "User's KYC verification failed.",
+      "category": "account_kyc",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "kn": 64,
+        "en": 64,
+        "te": 64,
+        "ml": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 86.62,
+      "duplicate_rate": 0.0
+    },
+    "KYC_STATUS": {
+      "description": "User asks about the status of KYC verification.",
+      "category": "account_kyc",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "ml": 64,
+        "kn": 64,
+        "ta": 64,
+        "en": 64
+      },
+      "tools": {
+        "check_kyc_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 76.8,
+      "duplicate_rate": 0.0
+    },
+    "KYC_UPDATE": {
+      "description": "User wants to update or complete KYC information.",
+      "category": "account_kyc",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "en": 64,
+        "ml": 64,
+        "ta": 64,
+        "kn": 64
+      },
+      "tools": {
+        "update_kyc": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 93.52,
+      "duplicate_rate": 0.0
+    },
+    "LIMIT_QUERY": {
+      "description": "User asks about a transaction or account limit.",
+      "category": "payments",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "kn": 64,
+        "en": 64,
+        "ml": 64,
+        "ta": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "low": 320
+      },
+      "avg_prompt_length": 82.57,
+      "duplicate_rate": 0.0
+    },
+    "LOAN_ELIGIBILITY": {
+      "description": "User asks about general loan eligibility.",
+      "category": "loans",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "ml": 64,
+        "ta": 64,
+        "en": 64,
+        "te": 64,
+        "kn": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 76.04,
+      "duplicate_rate": 0.0
+    },
+    "LOAN_STATUS": {
+      "description": "User asks about the status of an existing loan application.",
+      "category": "loans",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "en": 64,
+        "kn": 64,
+        "ml": 64,
+        "te": 64,
+        "ta": 64
+      },
+      "tools": {
+        "get_loan_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 88.15,
+      "duplicate_rate": 0.0
+    },
+    "MERCHANT_NOT_CREDITED": {
+      "description": "User was debited but the merchant says they did not receive the payment.",
+      "category": "payments",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "kn": 64,
+        "ta": 64,
+        "en": 64,
+        "ml": 64
+      },
+      "tools": {
+        "get_transaction_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 95.53,
+      "duplicate_rate": 0.0
+    },
+    "PASSWORD_RESET": {
+      "description": "User needs to reset account authentication credentials.",
+      "category": "account_kyc",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "kn": 64,
+        "en": 64,
+        "ml": 64,
+        "ta": 64
+      },
+      "tools": {
+        "initiate_password_reset": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 93.2,
+      "duplicate_rate": 0.0
+    },
+    "PAYMENT_CANCEL_REQUEST": {
+      "description": "User asks whether a payment can be cancelled.",
+      "category": "payments",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "kn": 64,
+        "en": 64,
+        "te": 64,
+        "ml": 64
+      },
+      "tools": {
+        "cancel_payment": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 88.95,
+      "duplicate_rate": 0.0
+    },
+    "PAYMENT_FAILED": {
+      "description": "A payment did not complete successfully.",
+      "category": "payments",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "ta": 64,
+        "ml": 64,
+        "kn": 64,
+        "en": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 83.72,
+      "duplicate_rate": 0.0
+    },
+    "PAYMENT_LIMIT": {
+      "description": "User asks about applicable payment limits.",
+      "category": "payments",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "en": 64,
+        "ml": 64,
+        "te": 64,
+        "kn": 64,
+        "ta": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "low": 320
+      },
+      "avg_prompt_length": 80.87,
+      "duplicate_rate": 0.0
+    },
+    "PAYMENT_PENDING": {
+      "description": "A payment is still pending.",
+      "category": "payments",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "kn": 64,
+        "ml": 64,
+        "en": 64,
+        "ta": 64
+      },
+      "tools": {
+        "get_transaction_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 86.85,
+      "duplicate_rate": 0.0
+    },
+    "PAYMENT_SUCCESS": {
+      "description": "User wants to know whether a payment was successful.",
+      "category": "payments",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "ml": 64,
+        "ta": 64,
+        "kn": 64,
+        "en": 64
+      },
+      "tools": {
+        "get_transaction_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 98.83,
+      "duplicate_rate": 0.0
+    },
+    "PIN_FAILED": {
+      "description": "User's card PIN attempt failed or PIN access is blocked.",
+      "category": "cards",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "en": 64,
+        "ml": 64,
+        "te": 64,
+        "ta": 64,
+        "kn": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 81.53,
+      "duplicate_rate": 0.0
+    },
+    "PROFILE_UPDATE": {
+      "description": "User wants to update account profile information.",
+      "category": "account_kyc",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "ml": 64,
+        "kn": 64,
+        "te": 64,
+        "en": 64,
+        "ta": 64
+      },
+      "tools": {
+        "update_profile": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 91.41,
+      "duplicate_rate": 0.0
+    },
+    "REFUND_AMOUNT_WRONG": {
+      "description": "The amount refunded appears incorrect.",
+      "category": "refunds_disputes",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "ta": 64,
+        "kn": 64,
+        "ml": 64,
+        "en": 64
+      },
+      "tools": {
+        "get_refund_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 88.84,
+      "duplicate_rate": 0.0
+    },
+    "REFUND_FAILED": {
+      "description": "A refund attempt failed.",
+      "category": "refunds_disputes",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "ml": 64,
+        "te": 64,
+        "kn": 64,
+        "ta": 64,
+        "en": 64
+      },
+      "tools": {
+        "get_refund_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 84.27,
+      "duplicate_rate": 0.0
+    },
+    "REFUND_PENDING": {
+      "description": "A refund has not yet been received.",
+      "category": "refunds_disputes",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "en": 64,
+        "ta": 64,
+        "te": 64,
+        "ml": 64,
+        "kn": 64
+      },
+      "tools": {
+        "get_refund_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 86.63,
+      "duplicate_rate": 0.0
+    },
+    "REFUND_RECEIVED": {
+      "description": "User wants to confirm or understand a received refund.",
+      "category": "refunds_disputes",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "ml": 64,
+        "kn": 64,
+        "ta": 64,
+        "te": 64,
+        "en": 64
+      },
+      "tools": {
+        "get_refund_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 83.68,
+      "duplicate_rate": 0.0
+    },
+    "SUPPORT_REQUEST": {
+      "description": "User requests help with a financial service problem.",
+      "category": "support",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "kn": 64,
+        "ta": 64,
+        "ml": 64,
+        "en": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "low": 320
+      },
+      "avg_prompt_length": 98.57,
+      "duplicate_rate": 0.0
+    },
+    "SUSPICIOUS_ACTIVITY": {
+      "description": "User reports suspicious account or transaction activity.",
+      "category": "fraud_security",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "te": 64,
+        "ml": 64,
+        "en": 64,
+        "kn": 64
+      },
+      "tools": {
+        "report_fraud": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 94.58,
+      "duplicate_rate": 0.0
+    },
+    "TRANSACTION_HISTORY": {
+      "description": "User asks to view recent account transactions.",
+      "category": "account_kyc",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "ml": 64,
+        "kn": 64,
+        "en": 64,
+        "te": 64
+      },
+      "tools": {
+        "get_transaction_history": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 84.35,
+      "duplicate_rate": 0.0
+    },
+    "TRANSACTION_REVERSED": {
+      "description": "A transaction was reversed or automatically returned.",
+      "category": "payments",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "kn": 64,
+        "ml": 64,
+        "ta": 64,
+        "te": 64,
+        "en": 64
+      },
+      "tools": {
+        "get_transaction_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 86.35,
+      "duplicate_rate": 0.0
+    },
+    "UNKNOWN_TRANSACTION": {
+      "description": "User does not recognize a transaction.",
+      "category": "fraud_security",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "en": 64,
+        "ta": 64,
+        "ml": 64,
+        "te": 64,
+        "kn": 64
+      },
+      "tools": {
+        "get_transaction_status": 320
+      },
+      "risk_levels": {
+        "high": 320
+      },
+      "avg_prompt_length": 80.7,
+      "duplicate_rate": 0.0
+    },
+    "UPI_COLLECT_REQUEST": {
+      "description": "User asks about receiving or handling a UPI collect request.",
+      "category": "upi_transfers",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "ml": 64,
+        "en": 64,
+        "kn": 64,
+        "te": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 83.61,
+      "duplicate_rate": 0.0
+    },
+    "UPI_ID_ISSUE": {
+      "description": "User has a problem with their UPI ID or UPI address.",
+      "category": "upi_transfers",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "te": 64,
+        "ml": 64,
+        "en": 64,
+        "ta": 64,
+        "kn": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 78.55,
+      "duplicate_rate": 0.0
+    },
+    "UPI_PAYMENT_FAILED": {
+      "description": "A UPI payment failed.",
+      "category": "upi_transfers",
+      "taxonomy_requires_tool": false,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "te": 64,
+        "ml": 64,
+        "en": 64,
+        "kn": 64
+      },
+      "tools": {
+        "none": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 88.16,
+      "duplicate_rate": 0.0
+    },
+    "UPI_PENDING": {
+      "description": "A UPI transaction is pending.",
+      "category": "upi_transfers",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "ta": 64,
+        "en": 64,
+        "kn": 64,
+        "te": 64,
+        "ml": 64
+      },
+      "tools": {
+        "get_transaction_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 90.08,
+      "duplicate_rate": 0.0
+    },
+    "WRONG_AMOUNT": {
+      "description": "The amount charged or transferred appears incorrect.",
+      "category": "payments",
+      "taxonomy_requires_tool": true,
+      "examples": 320,
+      "languages": {
+        "en": 64,
+        "ta": 64,
+        "ml": 64,
+        "kn": 64,
+        "te": 64
+      },
+      "tools": {
+        "get_transaction_status": 320
+      },
+      "risk_levels": {
+        "medium": 320
+      },
+      "avg_prompt_length": 88.36,
+      "duplicate_rate": 0.0
+    }
+  }
+}

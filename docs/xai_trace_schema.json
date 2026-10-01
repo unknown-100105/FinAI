@@ -1,0 +1,131 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FinAI XAI Trace",
+  "type": "object",
+  "required": [
+    "trace_id",
+    "session_id",
+    "started_at",
+    "completed_at",
+    "user_input",
+    "router",
+    "policy",
+    "session",
+    "tool",
+    "claims",
+    "final"
+  ],
+  "properties": {
+    "trace_id": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": ["string", "null"]
+    },
+    "completed_at": {
+      "type": ["string", "null"]
+    },
+    "user_input": {
+      "type": ["string", "null"]
+    },
+    "router": {
+      "type": "object",
+      "properties": {
+        "intent": {},
+        "raw_prediction": {},
+        "confidence": {
+          "type": ["number", "null"]
+        },
+        "margin": {
+          "type": ["number", "null"]
+        },
+        "decision": {},
+        "reason": {},
+        "top_k": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "status": {},
+        "risk_level": {},
+        "authentication_required": {
+          "type": "boolean"
+        },
+        "confirmation_required": {
+          "type": "boolean"
+        },
+        "tool": {}
+      },
+      "additionalProperties": true
+    },
+    "session": {
+      "type": "object",
+      "properties": {
+        "authenticated": {
+          "type": "boolean"
+        },
+        "awaiting_authentication": {
+          "type": "boolean"
+        },
+        "awaiting_confirmation": {
+          "type": "boolean"
+        },
+        "pending_intent": {},
+        "pending_tool": {}
+      },
+      "additionalProperties": true
+    },
+    "tool": {
+      "type": "object",
+      "properties": {
+        "name": {},
+        "executed": {
+          "type": "boolean"
+        },
+        "success": {
+          "type": ["boolean", "null"]
+        },
+        "message": {},
+        "data": {}
+      },
+      "additionalProperties": true
+    },
+    "claims": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array"
+        },
+        "total_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "authoritative_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "all_verified": {
+          "type": ["boolean", "null"]
+        }
+      },
+      "additionalProperties": true
+    },
+    "final": {
+      "type": "object",
+      "properties": {
+        "stage": {},
+        "status": {},
+        "message": {}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

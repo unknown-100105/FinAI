@@ -1,0 +1,94 @@
+{
+  "benchmark": "FinAI RAG Retrieval Gold Set",
+  "version": "v1",
+  "type": "curated_high_confidence",
+  "total_cases": 10,
+  "metrics": [
+    "Recall@5",
+    "Recall@10",
+    "MRR",
+    "latency_seconds"
+  ],
+  "cases": [
+    {
+      "case_id": "RAG-001",
+      "query": "What did RBI require payment system operators to do with payment transaction data?",
+      "gold_document_ids": [
+        210522
+      ],
+      "topic": "payment_data_storage"
+    },
+    {
+      "case_id": "RAG-002",
+      "query": "Why did PayU acquire Wibmo and what was Wibmo known for?",
+      "gold_document_ids": [
+        79011
+      ],
+      "topic": "digital_payment_security"
+    },
+    {
+      "case_id": "RAG-003",
+      "query": "What should someone consider before choosing a personal loan?",
+      "gold_document_ids": [
+        126817
+      ],
+      "topic": "personal_loans"
+    },
+    {
+      "case_id": "RAG-004",
+      "query": "Under what circumstances might a personal loan be used for a business?",
+      "gold_document_ids": [
+        12537
+      ],
+      "topic": "personal_loan_business_use"
+    },
+    {
+      "case_id": "RAG-005",
+      "query": "What did RBI do to address fraud in payment systems?",
+      "gold_document_ids": [
+        140404
+      ],
+      "topic": "payment_fraud"
+    },
+    {
+      "case_id": "RAG-006",
+      "query": "What action did RBI take against lenders for SWIFT compliance problems?",
+      "gold_document_ids": [
+        54435
+      ],
+      "topic": "swift_compliance"
+    },
+    {
+      "case_id": "RAG-007",
+      "query": "How many major fraud cases involving cards and internet banking were reported in 2018?",
+      "gold_document_ids": [
+        152480
+      ],
+      "topic": "banking_fraud_statistics"
+    },
+    {
+      "case_id": "RAG-008",
+      "query": "How does soundwave technology support digital payments, including on phones without internet?",
+      "gold_document_ids": [
+        16774
+      ],
+      "topic": "soundwave_payments"
+    },
+    {
+      "case_id": "RAG-009",
+      "query": "What did CBDT say about charges on electronic payment modes such as RuPay and BHIM-UPI?",
+      "gold_document_ids": [
+        324037
+      ],
+      "topic": "electronic_payment_charges"
+    },
+    {
+      "case_id": "RAG-010",
+      "query": "What happens to stock exchange trading hours when there is a technical outage?",
+      "gold_document_ids": [
+        8471
+      ],
+      "topic": "stock_exchange_outage"
+    }
+  ]
+}

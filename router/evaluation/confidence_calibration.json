@@ -1,0 +1,121 @@
+[
+  {
+    "threshold": 0.1,
+    "accepted": 998,
+    "coverage": 0.998,
+    "accuracy": 0.9919839679358717,
+    "macro_f1": 0.9919416411573023
+  },
+  {
+    "threshold": 0.15000000000000002,
+    "accepted": 994,
+    "coverage": 0.994,
+    "accuracy": 0.993963782696177,
+    "macro_f1": 0.993669572894824
+  },
+  {
+    "threshold": 0.20000000000000004,
+    "accepted": 990,
+    "coverage": 0.99,
+    "accuracy": 0.9949494949494949,
+    "macro_f1": 0.9944663690668736
+  },
+  {
+    "threshold": 0.25000000000000006,
+    "accepted": 982,
+    "coverage": 0.982,
+    "accuracy": 0.9959266802443992,
+    "macro_f1": 0.9954076561008526
+  },
+  {
+    "threshold": 0.30000000000000004,
+    "accepted": 968,
+    "coverage": 0.968,
+    "accuracy": 0.996900826446281,
+    "macro_f1": 0.9961771173397037
+  },
+  {
+    "threshold": 0.3500000000000001,
+    "accepted": 951,
+    "coverage": 0.951,
+    "accuracy": 0.9978969505783386,
+    "macro_f1": 0.9979987492182615
+  },
+  {
+    "threshold": 0.40000000000000013,
+    "accepted": 924,
+    "coverage": 0.924,
+    "accuracy": 0.9989177489177489,
+    "macro_f1": 0.9989993746091307
+  },
+  {
+    "threshold": 0.45000000000000007,
+    "accepted": 907,
+    "coverage": 0.907,
+    "accuracy": 0.9988974641675854,
+    "macro_f1": 0.9989716545814108
+  },
+  {
+    "threshold": 0.5000000000000001,
+    "accepted": 854,
+    "coverage": 0.854,
+    "accuracy": 1.0,
+    "macro_f1": 1.0
+  },
+  {
+    "threshold": 0.5500000000000002,
+    "accepted": 775,
+    "coverage": 0.775,
+    "accuracy": 1.0,
+    "macro_f1": 1.0
+  },
+  {
+    "threshold": 0.6000000000000002,
+    "accepted": 645,
+    "coverage": 0.645,
+    "accuracy": 1.0,
+    "macro_f1": 1.0
+  },
+  {
+    "threshold": 0.6500000000000001,
+    "accepted": 496,
+    "coverage": 0.496,
+    "accuracy": 1.0,
+    "macro_f1": 1.0
+  },
+  {
+    "threshold": 0.7000000000000002,
+    "accepted": 330,
+    "coverage": 0.33,
+    "accuracy": 1.0,
+    "macro_f1": 1.0
+  },
+  {
+    "threshold": 0.7500000000000002,
+    "accepted": 175,
+    "coverage": 0.175,
+    "accuracy": 1.0,
+    "macro_f1": 1.0
+  },
+  {
+    "threshold": 0.8000000000000002,
+    "accepted": 76,
+    "coverage": 0.076,
+    "accuracy": 1.0,
+    "macro_f1": 1.0
+  },
+  {
+    "threshold": 0.8500000000000002,
+    "accepted": 23,
+    "coverage": 0.023,
+    "accuracy": 1.0,
+    "macro_f1": 1.0
+  },
+  {
+    "threshold": 0.9000000000000002,
+    "accepted": 3,
+    "coverage": 0.003,
+    "accuracy": 1.0,
+    "macro_f1": 1.0
+  }
+]

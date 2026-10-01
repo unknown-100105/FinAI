@@ -1,0 +1,160 @@
+{
+  "examples": 1000,
+  "intents": 50,
+  "accuracy": 0.98,
+  "macro_precision": 0.9847611832611832,
+  "macro_recall": 0.98,
+  "macro_f1": 0.9775808799672727,
+  "thresholds": [
+    {
+      "threshold": 0.1,
+      "accepted": 997,
+      "coverage": 0.997,
+      "accuracy": 0.9829488465396189
+    },
+    {
+      "threshold": 0.15000000000000002,
+      "accepted": 983,
+      "coverage": 0.983,
+      "accuracy": 0.9898270600203459
+    },
+    {
+      "threshold": 0.20000000000000004,
+      "accepted": 966,
+      "coverage": 0.966,
+      "accuracy": 0.9927536231884058
+    },
+    {
+      "threshold": 0.25000000000000006,
+      "accepted": 951,
+      "coverage": 0.951,
+      "accuracy": 0.9957939011566772
+    },
+    {
+      "threshold": 0.30000000000000004,
+      "accepted": 925,
+      "coverage": 0.925,
+      "accuracy": 0.9978378378378379
+    },
+    {
+      "threshold": 0.3500000000000001,
+      "accepted": 901,
+      "coverage": 0.901,
+      "accuracy": 0.9988901220865705
+    },
+    {
+      "threshold": 0.40000000000000013,
+      "accepted": 866,
+      "coverage": 0.866,
+      "accuracy": 0.9988452655889145
+    },
+    {
+      "threshold": 0.45000000000000007,
+      "accepted": 829,
+      "coverage": 0.829,
+      "accuracy": 1.0
+    },
+    {
+      "threshold": 0.5000000000000001,
+      "accepted": 790,
+      "coverage": 0.79,
+      "accuracy": 1.0
+    },
+    {
+      "threshold": 0.5500000000000002,
+      "accepted": 744,
+      "coverage": 0.744,
+      "accuracy": 1.0
+    },
+    {
+      "threshold": 0.6000000000000002,
+      "accepted": 673,
+      "coverage": 0.673,
+      "accuracy": 1.0
+    },
+    {
+      "threshold": 0.6500000000000001,
+      "accepted": 604,
+      "coverage": 0.604,
+      "accuracy": 1.0
+    },
+    {
+      "threshold": 0.7000000000000002,
+      "accepted": 529,
+      "coverage": 0.529,
+      "accuracy": 1.0
+    },
+    {
+      "threshold": 0.7500000000000002,
+      "accepted": 438,
+      "coverage": 0.438,
+      "accuracy": 1.0
+    },
+    {
+      "threshold": 0.8000000000000002,
+      "accepted": 327,
+      "coverage": 0.327,
+      "accuracy": 1.0
+    },
+    {
+      "threshold": 0.8500000000000002,
+      "accepted": 197,
+      "coverage": 0.197,
+      "accuracy": 1.0
+    },
+    {
+      "threshold": 0.9000000000000002,
+      "accepted": 79,
+      "coverage": 0.079,
+      "accuracy": 1.0
+    },
+    {
+      "threshold": 0.9500000000000003,
+      "accepted": 8,
+      "coverage": 0.008,
+      "accuracy": 1.0
+    }
+  ],
+  "top_confusions": [
+    {
+      "actual": "PAYMENT_FAILED",
+      "predicted": "CARD_PAYMENT_FAILED",
+      "count": 12
+    },
+    {
+      "actual": "PAYMENT_PENDING",
+      "predicted": "REFUND_PENDING",
+      "count": 2
+    },
+    {
+      "actual": "PAYMENT_PENDING",
+      "predicted": "INTEREST_QUERY",
+      "count": 1
+    },
+    {
+      "actual": "PAYMENT_FAILED",
+      "predicted": "PAYMENT_PENDING",
+      "count": 1
+    },
+    {
+      "actual": "PAYMENT_FAILED",
+      "predicted": "MERCHANT_NOT_CREDITED",
+      "count": 1
+    },
+    {
+      "actual": "LIMIT_QUERY",
+      "predicted": "PAYMENT_SUCCESS",
+      "count": 1
+    },
+    {
+      "actual": "FRAUD_REPORT",
+      "predicted": "CARD_UNBLOCK",
+      "count": 1
+    },
+    {
+      "actual": "CARD_UNBLOCK",
+      "predicted": "CARD_ACTIVATION",
+      "count": 1
+    }
+  ]
+}

@@ -1,0 +1,451 @@
+﻿from datetime import datetime
+
+from orchestrator.engine import FinAIOrchestrator
+from orchestrator.finance_dispatcher import FinanceDispatcher
+from orchestrator.risk_controller import RiskCapabilityController
+
+
+class FinAIHybridEngine:
+
+    def __init__(self, response_service=None, rag_retriever=None):
+        self.base_engine = FinAIOrchestrator()
+        self.finance = FinanceDispatcher()
+        self.controller = RiskCapabilityController()
+        self.response_service = response_service
+
+        # Inject a retriever in tests; construct the production retriever lazily.
+        # This prevents GPU model loading during normal engine initialization.
+        self.rag_retriever = rag_retriever
+
+    def _get_rag_retriever(self):
+        if self.rag_retriever is None:
+            from rag.hybrid_retriever import HybridRetriever
+            from llm.qwen_embedding_adapter import QwenEmbeddingAdapter
+
+            embedding_adapter = QwenEmbeddingAdapter(
+                device="cuda",
+                max_seq_length=640,
+            )
+
+            self.rag_retriever = HybridRetriever(
+                db_path="data/rag/finai_rag.db",
+                faiss_index_path="data/rag/embeddings/finai_rag.faiss",
+                document_ids_path="data/rag/embeddings/document_ids.npy",
+                embedding_adapter=embedding_adapter,
+            )
+
+        return self.rag_retriever
+
+    @staticmethod
+    def _format_rag_documents(documents):
+        return [
+            {
+                "document_id": int(doc.document_id),
+                "title": doc.title,
+                "source": doc.source,
+                "date": doc.date,
+                "text": doc.text,
+                "lexical_score": doc.lexical_score,
+                "semantic_score": doc.semantic_score,
+                "fused_score": doc.fused_score,
+            }
+            for doc in documents
+        ]
+
+    def _plan_to_dict(self, plan):
+        return {
+            "intent": plan.intent,
+            "decision": plan.decision,
+            "risk_level": plan.risk_level,
+            "category": plan.category,
+            "capability": plan.capability,
+            "execution_class": plan.execution_class,
+            "authority_class": plan.authority_class,
+            "authority_source": plan.authority_source,
+            "allowed_components": list(
+                plan.allowed_components
+            ),
+            "authentication_required": (
+                plan.authentication_required
+            ),
+            "confirmation_required": (
+                plan.confirmation_required
+            ),
+            "tool": plan.tool,
+            "llm_role": plan.llm_role,
+            "verification_mode": plan.verification_mode,
+        }
+
+    def process(
+        self,
+        user_text: str,
+        authenticated: bool = False,
+        confirmed: bool = False,
+        account_id: str = "ACC1001",
+        card_id: str = "CARD1001",
+        transaction_id: str = "TXN002",
+        upi_id: str = "UPI1001",
+        transfer_id: str = "TRF1001",
+        refund_id: str = "REF1001",
+        generate_response: bool = False,
+        language: str = "English",
+        persona: str = "neutral",
+        max_new_tokens: int = 256,
+    ):
+
+        # ---------------------------------------------------------
+        # Existing router/policy/session pipeline.
+        # ---------------------------------------------------------
+
+        base_result = self.base_engine.process(
+            user_text=user_text,
+            authenticated=authenticated,
+            confirmed=confirmed,
+            account_id=account_id,
+            card_id=card_id,
+            transaction_id=transaction_id,
+            upi_id=upi_id,
+            transfer_id=transfer_id,
+            refund_id=refund_id,
+        )
+
+        router = base_result.get("router") or {}
+
+        intent = router.get("intent")
+        router_decision = router.get(
+            "decision",
+            "REJECT",
+        )
+
+        # ---------------------------------------------------------
+        # NEW: Risk / Capability execution planning.
+        #
+        # This layer plans the execution path.
+        # It does NOT execute tools or models.
+        # ---------------------------------------------------------
+
+        plan = self.controller.build_plan(
+            intent=intent,
+            router_decision=router_decision,
+        )
+
+        execution_plan = self._plan_to_dict(plan)
+
+        # ---------------------------------------------------------
+        # RAG / retrieved-knowledge path.
+        #
+        # The router and authority controller decide that the request
+        # requires retrieved evidence. The retriever supplies evidence;
+        # the LLM does not become the authority.
+        # ---------------------------------------------------------
+        if (
+            plan.decision == "EXECUTE"
+            and plan.capability == "rag"
+        ):
+            try:
+                retriever = self._get_rag_retriever()
+                documents = retriever.retrieve(
+                    user_text,
+                    top_k=5,
+                )
+            except Exception as exc:
+                return {
+                    "stage": "rag",
+                    "status": "RAG_ERROR",
+                    "user_text": user_text,
+                    "router": router,
+                    "execution_plan": execution_plan,
+                    "policy": {
+                        "status": "ALLOWED",
+                        "risk_level": plan.risk_level,
+                        "authentication_required": (
+                            plan.authentication_required
+                        ),
+                        "confirmation_required": (
+                            plan.confirmation_required
+                        ),
+                        "tool": plan.tool,
+                    },
+                    "rag": {
+                        "query": user_text,
+                        "retrieval_method": "hybrid_rrf",
+                        "documents": [],
+                        "error": str(exc),
+                    },
+                    "tool": None,
+                    "message": "Knowledge retrieval is currently unavailable.",
+                    "response": "Knowledge retrieval is currently unavailable.",
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+            formatted_documents = self._format_rag_documents(documents)
+
+            if not formatted_documents:
+                return {
+                    "stage": "rag",
+                    "status": "NO_EVIDENCE",
+                    "user_text": user_text,
+                    "router": router,
+                    "execution_plan": execution_plan,
+                    "policy": {
+                        "status": "ALLOWED",
+                        "risk_level": plan.risk_level,
+                        "authentication_required": (
+                            plan.authentication_required
+                        ),
+                        "confirmation_required": (
+                            plan.confirmation_required
+                        ),
+                        "tool": plan.tool,
+                    },
+                    "rag": {
+                        "query": user_text,
+                        "retrieval_method": "hybrid_rrf",
+                        "documents": [],
+                    },
+                    "tool": None,
+                    "message": (
+                        "I could not retrieve supporting evidence "
+                        "for this request."
+                    ),
+                    "response": (
+                        "I could not retrieve supporting evidence "
+                        "for this request."
+                    ),
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+            return {
+                "stage": "rag",
+                "status": "RETRIEVED",
+                "user_text": user_text,
+                "router": router,
+                "execution_plan": execution_plan,
+                "policy": {
+                    "status": "ALLOWED",
+                    "risk_level": plan.risk_level,
+                    "authentication_required": (
+                        plan.authentication_required
+                    ),
+                    "confirmation_required": (
+                        plan.confirmation_required
+                    ),
+                    "tool": plan.tool,
+                },
+                "rag": {
+                    "query": user_text,
+                    "retrieval_method": "hybrid_rrf",
+                    "top_k": 5,
+                    "documents": formatted_documents,
+                    "evidence_count": len(formatted_documents),
+                },
+                "tool": None,
+                "message": "Supporting evidence retrieved successfully.",
+                "response": "Supporting evidence retrieved successfully.",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # ---------------------------------------------------------
+        # Finance-specific deterministic path.
+        # ---------------------------------------------------------
+
+        if (
+            plan.decision == "EXECUTE"
+            and plan.capability == "finance_engine"
+        ):
+
+            finance_result = self.finance.dispatch(
+                intent=intent,
+                user_text=user_text,
+            )
+
+            if finance_result["handled"]:
+
+                calculation = finance_result["result"]
+
+                response_result = None
+
+                if (
+                    generate_response
+                    and calculation["status"] == "CALCULATED"
+                ):
+                    from llm.response_service import ResponseService
+
+                    service = (
+                        self.response_service
+                        or ResponseService()
+                    )
+
+                    response_result = service.generate(
+                        user_text=user_text,
+                        intent=intent,
+                        verified_result=calculation["result"],
+                        source="deterministic_finance_engine",
+                        language=language,
+                        persona=persona,
+                        max_new_tokens=max_new_tokens,
+                    )
+
+                return {
+                    "stage": "finance_engine",
+                    "status": calculation["status"],
+                    "user_text": user_text,
+
+                    "router": router,
+
+                    "execution_plan": execution_plan,
+
+                    "policy": {
+                        "status": "ALLOWED",
+                        "risk_level": plan.risk_level,
+                        "authentication_required": (
+                            plan.authentication_required
+                        ),
+                        "confirmation_required": (
+                            plan.confirmation_required
+                        ),
+                        "tool": plan.tool,
+                    },
+
+                    "finance": {
+                        "operation": finance_result["operation"],
+                        "status": calculation["status"],
+                        "parameters": calculation["parameters"],
+                        "missing": calculation["missing"],
+                        "result": calculation["result"],
+                        "source": (
+                            "deterministic_finance_engine"
+                        ),
+                    },
+
+                    "tool": None,
+
+                    "message": calculation["message"],
+
+                    "response": (
+                        response_result["response"]
+                        if response_result
+                        else calculation["message"]
+                    ),
+
+                    "response_generation": response_result,
+
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+        # ---------------------------------------------------------
+        # Existing banking/tool pipeline.
+        #
+        # Preserve its behavior, but expose the execution plan.
+        # ---------------------------------------------------------
+
+        result = dict(base_result)
+
+        result["execution_plan"] = execution_plan
+
+        return result
+
+
+if __name__ == "__main__":
+
+    engine = FinAIHybridEngine()
+
+    tests = [
+        {
+            "name": "Complete EMI",
+            "text": (
+                "Calculate EMI for ₹10 lakh at "
+                "8.5% for 20 years"
+            ),
+        },
+        {
+            "name": "Incomplete EMI",
+            "text": "Calculate my EMI",
+        },
+        {
+            "name": "Account balance",
+            "text": "How much is my account balance?",
+        },
+        {
+            "name": "UPI failure",
+            "text": "My UPI payment failed",
+        },
+        {
+            "name": "Ambiguous payment",
+            "text": "The payment failed",
+        },
+        {
+            "name": "Lost card",
+            "text": "My card is lost",
+        },
+    ]
+
+    print("=" * 80)
+    print("FINAI HYBRID ENGINE + RISK CONTROLLER")
+    print("=" * 80)
+
+    for test in tests:
+
+        print()
+        print("-" * 80)
+        print(test["name"])
+        print("-" * 80)
+
+        result = engine.process(
+            user_text=test["text"],
+            authenticated=True,
+            confirmed=False,
+        )
+
+        print("USER:", test["text"])
+        print("STATUS:", result["status"])
+        print("STAGE:", result["stage"])
+
+        print(
+            "INTENT:",
+            result.get("router", {}).get("intent")
+        )
+
+        print(
+            "EXECUTION PLAN:",
+            result.get("execution_plan")
+        )
+
+        if result.get("finance"):
+
+            print(
+                "FINANCE OPERATION:",
+                result["finance"]["operation"]
+            )
+
+            print(
+                "FINANCE STATUS:",
+                result["finance"]["status"]
+            )
+
+            print(
+                "FINANCE RESULT:",
+                result["finance"]["result"]
+            )
+
+            print(
+                "FINANCE SOURCE:",
+                result["finance"]["source"]
+            )
+
+        if result.get("tool"):
+
+            print(
+                "TOOL:",
+                result["tool"]["tool"]
+            )
+
+            print(
+                "TOOL SUCCESS:",
+                result["tool"]["success"]
+            )
+
+        print("MESSAGE:", result["message"])
+
+
+

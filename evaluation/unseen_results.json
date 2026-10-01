@@ -1,0 +1,122 @@
+[
+  {
+    "language": "en",
+    "expected_intent": "MERCHANT_NOT_CREDITED",
+    "text": "The money was deducted from my account but the shopkeeper did not receive it.",
+    "model_output": "### User:\nThe money was deducted from my account but the shopkeeper did not receive it.\n\n### Assistant:\nThis may be a case of your authenticated account or transaction details being displayed on the official website, and you can check this by checking your authenticated account or transaction details on the official website. "
+  },
+  {
+    "language": "en",
+    "expected_intent": "UNKNOWN_TRANSACTION",
+    "text": "I see a transaction in my account that I do not recognize.",
+    "model_output": "### User:\nI see a transaction in my account that I do not recognize.\n\n### Assistant:\nThis may be an error on your part, and you can check the authenticated account or transaction details through the official financial service. "
+  },
+  {
+    "language": "en",
+    "expected_intent": "CARD_LOST",
+    "text": "I lost my debit card and need to secure it.",
+    "model_output": "### User:\nI lost my debit card and need to secure it.\n\n### Assistant:\nThis may require checking your authenticated account or transaction details through the official financial service. "
+  },
+  {
+    "language": "en",
+    "expected_intent": "KYC_STATUS",
+    "text": "How can I check whether my KYC verification is complete?",
+    "model_output": "### User:\nHow can I check whether my KYC verification is complete?\n\n### Assistant:\nThis may require checking your authenticated account or transaction details through the official financial service. "
+  },
+  {
+    "language": "ta",
+    "expected_intent": "MERCHANT_NOT_CREDITED",
+    "text": "என் கணக்கிலிருந்து பணம் கழிந்துவிட்டது ஆனால் கடைக்காரருக்கு பணம் வரவில்லை.",
+    "model_output": "### User:\nஎன் கணக்கிலிருந்து பணம் கழிந்துவிட்டது ஆனால் கடைக்காரருக்கு பணம் வரவில்லை.\n\n### Assistant:\n இதற்கு உங்கள் அதிகாரப்பூர்வ நிதி சேவையில் அங்கீகரிக்கப்பட்ட கணக்கு அல்லது பரிவர்த்தனை விவரங்களைச் சரிபார்க்க வேண்டியிருக்கலாம். "
+  },
+  {
+    "language": "ta",
+    "expected_intent": "UNKNOWN_TRANSACTION",
+    "text": "எனக்கு தெரியாத ஒரு பரிவர்த்தனை என் கணக்கில் இருக்கிறது.",
+    "model_output": "### User:\nஎனக்கு தெரியாத ஒரு பரிவர்த்தனை என் கணக்கில் இருக்கிறது.\n\n### Assistant:\n இதற்கு உங்கள் அதிகாரப்பூர்வ நிதி சேவையில் அங்கீகரிக்கப்பட்ட கணக்கு அல்லது பரிவர்த்தனை விவரங்களைச் சரிபார்க்க வேண்டியிருக்கலாம். "
+  },
+  {
+    "language": "ta",
+    "expected_intent": "CARD_LOST",
+    "text": "எனது டெபிட் கார்டை தொலைத்துவிட்டேன், அதை பாதுகாக்க வேண்டும்.",
+    "model_output": "### User:\nஎனது டெபிட் கார்டை தொலைத்துவிட்டேன், அதை பாதுகாக்க வேண்டும்.\n\n### Assistant:\n இதற்கு உங்கள் அதிகாரப்பூர்வ நிதி சேவையில் அங்கீகரிக்கப்பட்ட கணக்கு அல்லது பரிவர்த்தனை விவரங்களைச் சரிபார்க்க வேண்டியிருக்கலாம். "
+  },
+  {
+    "language": "ta",
+    "expected_intent": "KYC_STATUS",
+    "text": "எனது KYC சரிபார்ப்பு முடிந்ததா என்பதை எப்படி தெரிந்து கொள்வது?",
+    "model_output": "### User:\nஎனது KYC சரிபார்ப்பு முடிந்ததா என்பதை எப்படி தெரிந்து கொள்வது?\n\n### Assistant:\n உங்கள் KYC சரிபார்ப்பு முடிந்துவிட்டதா என்பதை அறிய, அதிகாரப்பூர்வ நிதி சேவையில் உங்கள் கணக்கு அல்லது பரிவர்த்தனை விவரங்களைச் சரிபார்க்கவும். "
+  },
+  {
+    "language": "te",
+    "expected_intent": "MERCHANT_NOT_CREDITED",
+    "text": "నా ఖాతా నుంచి డబ్బు కట్ అయింది కానీ షాపుదారుడికి డబ్బు అందలేదు.",
+    "model_output": "### User:\nనా ఖాతా నుంచి డబ్బు కట్ అయింది కానీ షాపుదారుడికి డబ్బు అందలేదు.\n\n### Assistant:\n దీనికి అధికారిక ఆర్థిక సేవలో మీ ధృవీకరించబడిన ఖాతా లేదా లావాదేవీ వివరాలను తనిఖీ చేయాల్సి ఉండవచ్చు. "
+  },
+  {
+    "language": "te",
+    "expected_intent": "UNKNOWN_TRANSACTION",
+    "text": "నాకు తెలియని ఒక లావాదేవీ నా ఖాతాలో కనిపిస్తోంది.",
+    "model_output": "### User:\nనాకు తెలియని ఒక లావాదేవీ నా ఖాతాలో కనిపిస్తోంది.\n\n### Assistant:\nఈ లావాదేవీ గురించి మీ ఖాతా లేదా ఆర్థిక సేవలో తనిఖీ చేయండి. "
+  },
+  {
+    "language": "te",
+    "expected_intent": "CARD_LOST",
+    "text": "నా డెబిట్ కార్డు పోయింది, దాన్ని సురక్షితం చేయాలి.",
+    "model_output": "### User:\nనా డెబిట్ కార్డు పోయింది, దాన్ని సురక్షితం చేయాలి.\n\n### Assistant:\n దీనికి అధికారిక ఆర్థిక సేవలో మీ ధృవీకరించబడిన ఖాతా లేదా లావాదేవీ వివరాలను తనిఖీ చేయాల్సి ఉండవచ్చు. "
+  },
+  {
+    "language": "te",
+    "expected_intent": "KYC_STATUS",
+    "text": "నా KYC వెరిఫికేషన్ పూర్తయిందో లేదో ఎలా తెలుసుకోవాలి?",
+    "model_output": "### User:\nనా KYC వెరిఫికేషన్ పూర్తయిందో లేదో ఎలా తెలుసుకోవాలి?\n\n### Assistant:\n దీనికి అధికారిక ఆర్థిక సేవలో మీ ధృవీకరించబడిన ఖాతా లేదా లావాదేవీ వివరాలను తనిఖీ చేయాల్సి ఉండవచ్చు. "
+  },
+  {
+    "language": "kn",
+    "expected_intent": "MERCHANT_NOT_CREDITED",
+    "text": "ನನ್ನ ಖಾತೆಯಿಂದ ಹಣ ಕಡಿತವಾಗಿದೆ ಆದರೆ ಅಂಗಡಿಕಾರರಿಗೆ ಹಣ ಬಂದಿಲ್ಲ.",
+    "model_output": "### User:\nನನ್ನ ಖಾತೆಯಿಂದ ಹಣ ಕಡಿತವಾಗಿದೆ ಆದರೆ ಅಂಗಡಿಕಾರರಿಗೆ ಹಣ ಬಂದಿಲ್ಲ.\n\n### Assistant:\n ಇದಕ್ಕಾಗಿ ಅಧಿಕೃತ ಹಣಕಾಸು ಸೇವೆಯಲ್ಲಿ ನಿಮ್ಮ ದೃಢೀಕರಿಸಿದ ಖಾತೆ ಅಥವಾ ವಹಿವಾಟಿನ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಬೇಕಾಗಬಹುದು. "
+  },
+  {
+    "language": "kn",
+    "expected_intent": "UNKNOWN_TRANSACTION",
+    "text": "ನನ್ನ ಖಾತೆಯಲ್ಲಿ ನನಗೆ ತಿಳಿಯದ ಒಂದು ವಹಿವಾಟು ಕಾಣಿಸುತ್ತಿದೆ.",
+    "model_output": "### User:\nನನ್ನ ಖಾತೆಯಲ್ಲಿ ನನಗೆ ತಿಳಿಯದ ಒಂದು ವಹಿವಾಟು ಕಾಣಿಸುತ್ತಿದೆ.\n\n### Assistant:\n ಇದಕ್ಕಾಗಿ ಅಧಿಕೃತ ಹಣಕಾಸು ಸೇವೆಯಲ್ಲಿ ನಿಮ್ಮ ದೃಢೀಕರಿಸಿದ ಖಾತೆ ಅಥವಾ ವಹಿವಾಟಿನ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಬೇಕಾಗಬಹುದು. "
+  },
+  {
+    "language": "kn",
+    "expected_intent": "CARD_LOST",
+    "text": "ನನ್ನ ಡೆಬಿಟ್ ಕಾರ್ಡ್ ಕಳೆದುಹೋಗಿದೆ, ಅದನ್ನು ಸುರಕ್ಷಿತಗೊಳಿಸಬೇಕು.",
+    "model_output": "### User:\nನನ್ನ ಡೆಬಿಟ್ ಕಾರ್ಡ್ ಕಳೆದುಹೋಗಿದೆ, ಅದನ್ನು ಸುರಕ್ಷಿತಗೊಳಿಸಬೇಕು.\n\n### Assistant:\n ಇದಕ್ಕಾಗಿ ಅಧಿಕೃತ ಹಣಕಾಸು ಸೇವೆಯಲ್ಲಿ ನಿಮ್ಮ ದೃಢೀಕರಿಸಿದ ಖಾತೆ ಅಥವಾ ವಹಿವಾಟಿನ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಬೇಕಾಗಬಹುದು. "
+  },
+  {
+    "language": "kn",
+    "expected_intent": "KYC_STATUS",
+    "text": "ನನ್ನ KYC ಪರಿಶೀಲನೆ ಪೂರ್ಣಗೊಂಡಿದೆಯೇ ಎಂದು ಹೇಗೆ ತಿಳಿಯುವುದು?",
+    "model_output": "### User:\nನನ್ನ KYC ಪರಿಶೀಲನೆ ಪೂರ್ಣಗೊಂಡಿದೆಯೇ ಎಂದು ಹೇಗೆ ತಿಳಿಯುವುದು?\n\n### Assistant:\n ಇದಕ್ಕಾಗಿ ಅಧಿಕೃತ ಹಣಕಾಸು ಸೇವೆಯಲ್ಲಿ ನಿಮ್ಮ ದೃಢೀಕರಿಸಿದ ಖಾತೆ ಅಥವಾ ವಹಿವಾಟಿನ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಬೇಕಾಗಬಹುದು. "
+  },
+  {
+    "language": "ml",
+    "expected_intent": "MERCHANT_NOT_CREDITED",
+    "text": "എന്റെ അക്കൗണ്ടിൽ നിന്ന് പണം പോയി, പക്ഷേ കടക്കാരന് പണം ലഭിച്ചിട്ടില്ല.",
+    "model_output": "### User:\nഎന്റെ അക്കൗണ്ടിൽ നിന്ന് പണം പോയി, പക്ഷേ കടക്കാരന് പണം ലഭിച്ചിട്ടില്ല.\n\n### Assistant:\n ഇതിന് ഔദ്യോഗിക സാമ്പത്തിക സേവനത്തിലെ നിങ്ങളുടെ അംഗീകരിച്ച അക്കൗണ്ട് അല്ലെങ്കിൽ ഇടപാട് വിവരങ്ങൾ പരിശോധിക്കേണ്ടി വരാം. "
+  },
+  {
+    "language": "ml",
+    "expected_intent": "UNKNOWN_TRANSACTION",
+    "text": "എന്റെ അക്കൗണ്ടിൽ എനിക്ക് പരിചയമില്ലാത്ത ഒരു ഇടപാട് കാണുന്നു.",
+    "model_output": "### User:\nഎന്റെ അക്കൗണ്ടിൽ എനിക്ക് പരിചയമില്ലാത്ത ഒരു ഇടപാട് കാണുന്നു.\n\n### Assistant:\n ഇതിന് ഔദ്യോഗിക സാമ്പത്തിക സേവനത്തിലെ നിങ്ങളുടെ അംഗീകരിച്ച അക്കൗണ്ട് അല്ലെങ്കിൽ ഇടപാട് വിവരങ്ങൾ പരിശോധിക്കേണ്ടി വരാം. "
+  },
+  {
+    "language": "ml",
+    "expected_intent": "CARD_LOST",
+    "text": "എന്റെ ഡെബിറ്റ് കാർഡ് നഷ്ടപ്പെട്ടു, അത് സുരക്ഷിതമാക്കണം.",
+    "model_output": "### User:\nഎന്റെ ഡെബിറ്റ് കാർഡ് നഷ്ടപ്പെട്ടു, അത് സുരക്ഷിതമാക്കണം.\n\n### Assistant:\n ഇതിന് ഔദ്യോഗിക സാമ്പത്തിക സേവനത്തിലെ നിങ്ങളുടെ അംഗീകരിച്ച അക്കൗണ്ട് അല്ലെങ്കിൽ ഇടപാട് വിവരങ്ങൾ പരിശോധിക്കേണ്ടി വരാം. "
+  },
+  {
+    "language": "ml",
+    "expected_intent": "KYC_STATUS",
+    "text": "എന്റെ KYC പരിശോധന പൂർത്തിയായോ എന്ന് എങ്ങനെ പരിശോധിക്കാം?",
+    "model_output": "### User:\nഎന്റെ KYC പരിശോധന പൂർത്തിയായോ എന്ന് എങ്ങനെ പരിശോധിക്കാം?\n\n### Assistant:\n ഇതിന് ഔദ്യോഗിക സാമ്പത്തിക സേവനത്തിലെ നിങ്ങളുടെ അംഗീകരിച്ച അക്കൗണ്ട് അല്ലെങ്കിൽ ഇടപാട് വിവരങ്ങൾ പരിശോധിക്കേണ്ടി വരാം. "
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "language": "en",
+    "expected_intent": "MERCHANT_NOT_CREDITED",
+    "text": "The money was deducted from my account but the shopkeeper did not receive it.",
+    "predicted_intent": "DONATION_FAILED",
+    "correct": false,
+    "model_output": "INTENT: DONATION_FAILED\nRISK_LEVEL: medium\nREQUIRES_TOOL: false\nTOOL: none\nRESPONSE: I can provide general information and guidance about this financial issue. "
+  },
+  {
+    "language": "en",
+    "expected_intent": "UNKNOWN_TRANSACTION",
+    "text": "I see a transaction in my account that I do not recognize.",
+    "predicted_intent": "UNKNOWN_TRANSACTION",
+    "correct": true,
+    "model_output": "INTENT: UNKNOWN_TRANSACTION\nRISK_LEVEL: high\nREQUIRES_TOOL: true\nTOOL: get_transaction_status\nRESPONSE: This may require checking your authenticated account or transaction details through the official financial service. "
+  },
+  {
+    "language": "en",
+    "expected_intent": "CARD_LOST",
+    "text": "I lost my debit card and need to secure it.",
+    "predicted_intent": "DONT_SHARE",
+    "correct": false,
+    "model_output": "INTENT: DONT_SHARE\nRISK_LEVEL: high\nREQUIRES_TOOL: true\nTOOL: block_card\nRESPONSE: This may require checking your authenticated account or transaction details through the official financial service. "
+  },
+  {
+    "language": "en",
+    "expected_intent": "KYC_STATUS",
+    "text": "How can I check whether my KYC verification is complete?",
+    "predicted_intent": "KYC_COMPLETED",
+    "correct": false,
+    "model_output": "INTENT: KYC_COMPLETED\nRISK_LEVEL: medium\nREQUIRES_TOOL: true\nTOOL: get_kyc_status\nRESPONSE: This may require checking your authenticated account or transaction details through the official financial service. "
+  },
+  {
+    "language": "ta",
+    "expected_intent": "MERCHANT_NOT_CREDITED",
+    "text": "என் கணக்கிலிருந்து பணம் கழிந்துவிட்டது ஆனால் கடைக்காரருக்கு பணம் வரவில்லை.",
+    "predicted_intent": "CASH_WITHDRAWAL_FAILED",
+    "correct": false,
+    "model_output": "INTENT: CASH_WITHDRAWAL_FAILED\nRISK_LEVEL: medium\nREQUIRES_TOOL: true\nTOOL: get_cash_withdrawal_status\nRESPONSE: இதற்கு உங்கள் அதிகாரப்பூர்வ நிதி சேவையில் அங்கீகரிக்கப்பட்ட கணக்கு அல்லது பரிவர்த்தனை விவரங்களைச் சரிபார்க்க வேண்டியிருக்கலாம். "
+  },
+  {
+    "language": "ta",
+    "expected_intent": "UNKNOWN_TRANSACTION",
+    "text": "எனக்கு தெரியாத ஒரு பரிவர்த்தனை என் கணக்கில் இருக்கிறது.",
+    "predicted_intent": "UNKNOWN_TRANSACTION",
+    "correct": true,
+    "model_output": "INTENT: UNKNOWN_TRANSACTION\nRISK_LEVEL: high\nREQUIRES_TOOL: true\nTOOL: get_transaction_status\nRESPONSE: இதற்கு உங்கள் அதிகாரப்பூர்வ நிதி சேவையில் அங்கீகரிக்கப்பட்ட கணக்கு அல்லது பரிவர்த்தனை விவரங்களைச் சரிபார்க்க வேண்டியிருக்கலாம். "
+  },
+  {
+    "language": "ta",
+    "expected_intent": "CARD_LOST",
+    "text": "எனது டெபிட் கார்டை தொலைத்துவிட்டேன், அதை பாதுகாக்க வேண்டும்.",
+    "predicted_intent": "CARD_STOLEN",
+    "correct": false,
+    "model_output": "INTENT: CARD_STOLEN\nRISK_LEVEL: high\nREQUIRES_TOOL: true\nTOOL: block_card\nRESPONSE: இதற்கு உங்கள் அதிகாரப்பூர்வ நிதி சேவையில் அங்கீகரிக்கப்பட்ட கணக்கு அல்லது பரிவர்த்தனை விவரங்களைச் சரிபார்க்க வேண்டியிருக்கலாம். "
+  },
+  {
+    "language": "ta",
+    "expected_intent": "KYC_STATUS",
+    "text": "எனது KYC சரிபார்ப்பு முடிந்ததா என்பதை எப்படி தெரிந்து கொள்வது?",
+    "predicted_intent": "KYC_COMPLETED",
+    "correct": false,
+    "model_output": "INTENT: KYC_COMPLETED\nRISK_LEVEL: medium\nREQUIRES_TOOL: true\nTOOL: check_kyc_status\nRESPONSE: இதற்கு உங்கள் அதிகாரப்பூர்வ நிதி சேவையில் அங்கீகரிக்கப்பட்ட கணக்கு அல்லது பரிவர்த்தனை விவரங்களைச் சரிபார்க்க வேண்டியிருக்கலாம். "
+  },
+  {
+    "language": "te",
+    "expected_intent": "MERCHANT_NOT_CREDITED",
+    "text": "నా ఖాతా నుంచి డబ్బు కట్ అయింది కానీ షాపుదారుడికి డబ్బు అందలేదు.",
+    "predicted_intent": "CASH_CUT_FAILED",
+    "correct": false,
+    "model_output": "INTENT: CASH_CUT_FAILED\nRISK_LEVEL: medium\nREQUIRES_TOOL: true\nTOOL: get_cash_cut_status\nRESPONSE: దీనికి అధికారిక ఆర్థిక సేవలో మీ ధృవీకరించబడిన ఖాతా లేదా లావాదేవీ వివరాలను తనిఖీ చేయాల్సి ఉండవచ్చు. "
+  },
+  {
+    "language": "te",
+    "expected_intent": "UNKNOWN_TRANSACTION",
+    "text": "నాకు తెలియని ఒక లావాదేవీ నా ఖాతాలో కనిపిస్తోంది.",
+    "predicted_intent": "UNKNOWN_TRANSACTION",
+    "correct": true,
+    "model_output": "INTENT: UNKNOWN_TRANSACTION\nRISK_LEVEL: medium\nREQUIRES_TOOL: true\nTOOL: get_transaction_status\nRESPONSE: దీనికి అధికారిక ఆర్థిక సేవలో మీ ధృవీకరించబడిన ఖాతా లేదా లావాదేవీ వివరాలను తనిఖీ చేయాల్సి ఉండవచ్చు. "
+  },
+  {
+    "language": "te",
+    "expected_intent": "CARD_LOST",
+    "text": "నా డెబిట్ కార్డు పోయింది, దాన్ని సురక్షితం చేయాలి.",
+    "predicted_intent": "CARD_LOST",
+    "correct": true,
+    "model_output": "INTENT: CARD_LOST\nRISK_LEVEL: high\nREQUIRES_TOOL: true\nTOOL: block_card\nRESPONSE: దీనికి అధికారిక ఆర్థిక సేవలో మీ ధృవీకరించబడిన ఖాతా లేదా లావాదేవీ వివరాలను తనిఖీ చేయాల్సి ఉండవచ్చు. "
+  },
+  {
+    "language": "te",
+    "expected_intent": "KYC_STATUS",
+    "text": "నా KYC వెరిఫికేషన్ పూర్తయిందో లేదో ఎలా తెలుసుకోవాలి?",
+    "predicted_intent": "KYC_VERIFICATION",
+    "correct": false,
+    "model_output": "INTENT: KYC_VERIFICATION\nRISK_LEVEL: medium\nREQUIRES_TOOL: true\nTOOL: check_kyc_status\nRESPONSE: దీనికి అధికారిక ఆర్థిక సేవలో మీ ధృవీకరించబడిన ఖాతా లేదా లావాదేవీ వివరాలను తనిఖీ చేయాల్సి ఉండవచ్చు. "
+  },
+  {
+    "language": "kn",
+    "expected_intent": "MERCHANT_NOT_CREDITED",
+    "text": "ನನ್ನ ಖಾತೆಯಿಂದ ಹಣ ಕಡಿತವಾಗಿದೆ ಆದರೆ ಅಂಗಡಿಕಾರರಿಗೆ ಹಣ ಬಂದಿಲ್ಲ.",
+    "predicted_intent": "CASH_WITHDRAWAL_FAILED",
+    "correct": false,
+    "model_output": "INTENT: CASH_WITHDRAWAL_FAILED\nRISK_LEVEL: medium\nREQUIRES_TOOL: true\nTOOL: get_cash_withdrawal_status\nRESPONSE: ಇದಕ್ಕಾಗಿ ಅಧಿಕೃತ ಹಣಕಾಸು ಸೇವೆಯಲ್ಲಿ ನಿಮ್ಮ ದೃಢೀಕರಿಸಿದ ಖಾತೆ ಅಥವಾ ವಹಿವಾಟಿನ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಬೇಕಾಗಬಹುದು. "
+  },
+  {
+    "language": "kn",
+    "expected_intent": "UNKNOWN_TRANSACTION",
+    "text": "ನನ್ನ ಖಾತೆಯಲ್ಲಿ ನನಗೆ ತಿಳಿಯದ ಒಂದು ವಹಿವಾಟು ಕಾಣಿಸುತ್ತಿದೆ.",
+    "predicted_intent": "UNKNOWN_TRANSACTION",
+    "correct": true,
+    "model_output": "INTENT: UNKNOWN_TRANSACTION\nRISK_LEVEL: high\nREQUIRES_TOOL: true\nTOOL: get_transaction_status\nRESPONSE: ಇದಕ್ಕಾಗಿ ಅಧಿಕೃತ ಹಣಕಾಸು ಸೇವೆಯಲ್ಲಿ ನಿಮ್ಮ ದೃಢೀಕರಿಸಿದ ಖಾತೆ ಅಥವಾ ವಹಿವಾಟಿನ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಬೇಕಾಗಬಹುದು. "
+  },
+  {
+    "language": "kn",
+    "expected_intent": "CARD_LOST",
+    "text": "ನನ್ನ ಡೆಬಿಟ್ ಕಾರ್ಡ್ ಕಳೆದುಹೋಗಿದೆ, ಅದನ್ನು ಸುರಕ್ಷಿತಗೊಳಿಸಬೇಕು.",
+    "predicted_intent": "CARD_LOST",
+    "correct": true,
+    "model_output": "INTENT: CARD_LOST\nRISK_LEVEL: high\nREQUIRES_TOOL: true\nTOOL: block_card\nRESPONSE: ಇದಕ್ಕಾಗಿ ಅಧಿಕೃತ ಹಣಕಾಸು ಸೇವೆಯಲ್ಲಿ ನಿಮ್ಮ ದೃಢೀಕರಿಸಿದ ಖಾತೆ ಅಥವಾ ವಹಿವಾಟಿನ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಬೇಕಾಗಬಹುದು. "
+  },
+  {
+    "language": "kn",
+    "expected_intent": "KYC_STATUS",
+    "text": "ನನ್ನ KYC ಪರಿಶೀಲನೆ ಪೂರ್ಣಗೊಂಡಿದೆಯೇ ಎಂದು ಹೇಗೆ ತಿಳಿಯುವುದು?",
+    "predicted_intent": "KYC_COMPLETED",
+    "correct": false,
+    "model_output": "INTENT: KYC_COMPLETED\nRISK_LEVEL: medium\nREQUIRES_TOOL: true\nTOOL: check_kyc_complete\nRESPONSE: ಇದಕ್ಕಾಗಿ ಅಧಿಕೃತ ಹಣಕಾಸು ಸೇವೆಯಲ್ಲಿ ನಿಮ್ಮ ದೃಢೀಕರಿಸಿದ ಖಾತೆ ಅಥವಾ ವಹಿವಾಟಿನ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಬೇಕಾಗಬಹುದು. "
+  },
+  {
+    "language": "ml",
+    "expected_intent": "MERCHANT_NOT_CREDITED",
+    "text": "എന്റെ അക്കൗണ്ടിൽ നിന്ന് പണം പോയി, പക്ഷേ കടക്കാരന് പണം ലഭിച്ചിട്ടില്ല.",
+    "predicted_intent": "CASH_PAYOUT_FAILED",
+    "correct": false,
+    "model_output": "INTENT: CASH_PAYOUT_FAILED\nRISK_LEVEL: medium\nREQUIRES_TOOL: false\nTOOL: none\nRESPONSE: ഈ സാമ്പത്തിക വിഷയത്തെക്കുറിച്ച് പൊതുവായ വിവരവും മാർഗനിർദേശവും നൽകാം. "
+  },
+  {
+    "language": "ml",
+    "expected_intent": "UNKNOWN_TRANSACTION",
+    "text": "എന്റെ അക്കൗണ്ടിൽ എനിക്ക് പരിചയമില്ലാത്ത ഒരു ഇടപാട് കാണുന്നു.",
+    "predicted_intent": "UNKNOWN_TRANSACTION",
+    "correct": true,
+    "model_output": "INTENT: UNKNOWN_TRANSACTION\nRISK_LEVEL: high\nREQUIRES_TOOL: true\nTOOL: get_transaction_status\nRESPONSE: ഇതിന് ഔദ്യോഗിക സാമ്പത്തിക സേവനത്തിലെ നിങ്ങളുടെ അംഗീകരിച്ച അക്കൗണ്ട് അല്ലെങ്കിൽ ഇടപാട് വിവരങ്ങൾ പരിശോധിക്കേണ്ടി വരാം. "
+  },
+  {
+    "language": "ml",
+    "expected_intent": "CARD_LOST",
+    "text": "എന്റെ ഡെബിറ്റ് കാർഡ് നഷ്ടപ്പെട്ടു, അത് സുരക്ഷിതമാക്കണം.",
+    "predicted_intent": "CARD_LOST",
+    "correct": true,
+    "model_output": "INTENT: CARD_LOST\nRISK_LEVEL: high\nREQUIRES_TOOL: true\nTOOL: block_card\nRESPONSE: ഇതിന് ഔദ്യോഗിക സാമ്പത്തിക സേവനത്തിലെ നിങ്ങളുടെ അംഗീകരിച്ച അക്കൗണ്ട് അല്ലെങ്കിൽ ഇടപാട് വിവരങ്ങൾ പരിശോധിക്കേണ്ടി വരാം. "
+  },
+  {
+    "language": "ml",
+    "expected_intent": "KYC_STATUS",
+    "text": "എന്റെ KYC പരിശോധന പൂർത്തിയായോ എന്ന് എങ്ങനെ പരിശോധിക്കാം?",
+    "predicted_intent": "KYC_COMPLETED",
+    "correct": false,
+    "model_output": "INTENT: KYC_COMPLETED\nRISK_LEVEL: medium\nREQUIRES_TOOL: true\nTOOL: check_kyc_complete\nRESPONSE: ഇതിന് ഔദ്യോഗിക സാമ്പത്തിക സേവനത്തിലെ നിങ്ങളുടെ അംഗീകരിച്ച അക്കൗണ്ട് അല്ലെങ്കിൽ ഇടപാട് വിവരങ്ങൾ പരിശോധിക്കേണ്ടി വരാം. "
+  }
+]

@@ -1,0 +1,58 @@
+{
+  "model": "TFIDF_WORD_CHAR_LOGISTIC_REGRESSION",
+  "model_path": "router\\models\\finai_router_tfidf.joblib",
+  "eval_path": "data\\sft_v3_work\\finai_v3_router_eval_v3.jsonl",
+  "examples": 1000,
+  "num_intents": 50,
+  "accuracy": 0.99,
+  "macro_precision": 0.9903088023088022,
+  "macro_recall": 0.99,
+  "macro_f1": 0.9899642445701496,
+  "top_confusions": [
+    {
+      "actual": "PAYMENT_FAILED",
+      "predicted": "CARD_PAYMENT_FAILED",
+      "count": 2
+    },
+    {
+      "actual": "BANK_TRANSFER_FAILED",
+      "predicted": "BANK_TRANSFER_PENDING",
+      "count": 1
+    },
+    {
+      "actual": "BANK_TRANSFER_PENDING",
+      "predicted": "BANK_TRANSFER_STATUS",
+      "count": 1
+    },
+    {
+      "actual": "CARD_PAYMENT_FAILED",
+      "predicted": "PAYMENT_FAILED",
+      "count": 1
+    },
+    {
+      "actual": "CARD_UNBLOCK",
+      "predicted": "CARD_ACTIVATION",
+      "count": 1
+    },
+    {
+      "actual": "FRAUD_REPORT",
+      "predicted": "ACCOUNT_BALANCE",
+      "count": 1
+    },
+    {
+      "actual": "LIMIT_QUERY",
+      "predicted": "ACCOUNT_BALANCE",
+      "count": 1
+    },
+    {
+      "actual": "PAYMENT_FAILED",
+      "predicted": "PAYMENT_PENDING",
+      "count": 1
+    },
+    {
+      "actual": "PAYMENT_PENDING",
+      "predicted": "INTEREST_QUERY",
+      "count": 1
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "model": "rllm-finqa-4b",
+  "total_cases": 6,
+  "passed_cases": 6,
+  "failed_cases": 0,
+  "accuracy": 1.0,
+  "semantic_grounding_score": 1.0,
+  "completion_rate": 1.0,
+  "results": [
+    {
+      "id": "emi_grounded",
+      "intent": "EMI_QUERY",
+      "status": "GENERATED",
+      "passed": true,
+      "required_value_checks": {
+        "8678.23": true,
+        "2082775.76": true,
+        "1082775.76": true
+      },
+      "semantic_numeric_pass": true,
+      "exact_formatting_pass": true,
+      "action_violation": false,
+      "truncated_or_incomplete": false,
+      "elapsed_seconds": 45.345,
+      "metrics": {
+        "load_seconds": 18.744770899997093,
+        "generation_seconds": 24.747984300018288,
+        "generated_tokens": 292,
+        "tokens_per_second": 11.79894073230781,
+        "vram_allocated_gb": 2.502234935760498
+      },
+      "response": "Certainly. Here's a clear explanation of the EMI result based on the provided financial data:\n\n- **Principal Amount**: ₹1,000,000  \n  This is the total loan amount you are borrowing.\n\n- **Annual Interest Rate**: 8.5%  \n  The interest rate applied annually on the loan, which is compounded monthly.\n\n- **Tenure**: 240 months (20 years)  \n  The loan will be repaid over a period of 20 years.\n\n- **Monthly EMI**: ₹8,678.23  \n  This is the fixed amount you need to pay each month to repay the loan, including both principal and interest.\n\n- **Total Payment Over Tenure**: ₹2,082,775.76  \n  This is the sum of all monthly EMIs paid over the 240 months.\n\n- **Total Interest Paid**: ₹1,082,775.76  \n  This is the total interest accumulated over the life of the loan. It is the difference between the total payment and the principal amount.\n\nIn summary, you will repay ₹1,000,000 over 20 years with a monthly payment of ₹8,678.23, and you will pay ₹1,082,775.76 in interest during that time."
+    },
+    {
+      "id": "emi_no_recalculation",
+      "intent": "EMI_QUERY",
+      "status": "GENERATED",
+      "passed": true,
+      "required_value_checks": {
+        "10624.55": true,
+        "637473.00": true,
+        "137473.00": true
+      },
+      "semantic_numeric_pass": true,
+      "exact_formatting_pass": false,
+      "action_violation": false,
+      "truncated_or_incomplete": false,
+      "elapsed_seconds": 18.137,
+      "metrics": {
+        "load_seconds": 18.744770899997093,
+        "generation_seconds": 18.135428500012495,
+        "generated_tokens": 231,
+        "tokens_per_second": 12.737498868573237,
+        "vram_allocated_gb": 2.50223445892334
+      },
+      "response": "The supplied EMI result is based on the following parameters:\n\n- Principal loan amount: ₹500,000  \n- Annual interest rate: 10.0%  \n- Tenure: 60 months (5 years)  \n- Monthly EMI: ₹10,624.55  \n- Total payment over tenure: ₹637,473.0  \n- Total interest paid: ₹137,473.0  \n\nThe monthly EMI of ₹10,624.55 is calculated such that it covers both the principal and the interest over the 60-month period. The total payment of ₹637,473.0 is the sum of all monthly EMIs paid over the tenure. The total interest of ₹137,473.0 is the difference between the total payment and the principal amount (₹637,473.0 – ₹500,000).  \n\nNo recalculation or modification of the provided values has been performed. The result is deterministic and verified."
+    },
+    {
+      "id": "interest_grounded",
+      "intent": "INTEREST_QUERY",
+      "status": "GENERATED",
+      "passed": true,
+      "required_value_checks": {
+        "148984.57": true,
+        "48984.57": true
+      },
+      "semantic_numeric_pass": true,
+      "exact_formatting_pass": true,
+      "action_violation": false,
+      "truncated_or_incomplete": false,
+      "elapsed_seconds": 25.104,
+      "metrics": {
+        "load_seconds": 18.744770899997093,
+        "generation_seconds": 25.102433699998073,
+        "generated_tokens": 350,
+        "tokens_per_second": 13.942871204556827,
+        "vram_allocated_gb": 2.5022354125976562
+      },
+      "response": "The supplied compound-interest result calculates the future value of a principal amount of $100,000 invested at an annual interest rate of 8.0%, compounded monthly over a tenure of 5 years.\n\nKey details:\n\n- **Principal**: $100,000  \n- **Annual interest rate**: 8.0% (or 0.08 as a decimal)  \n- **Compounding frequency**: Monthly (12 times per year)  \n- **Tenure**: 5 years  \n- **Final amount**: $148,984.57  \n- **Interest earned**: $48,984.57  \n\nThe interest is earned through compounding, meaning that each month, interest is calculated on the current balance (including previously earned interest), leading to exponential growth over time.\n\nThe formula used is:  \nFinal Amount = P × (1 + r/n)^(n×t)  \nWhere:  \nP = 100,000  \nr = 0.08 (annual rate)  \nn = 12 (monthly compounding)  \nt = 5 (years)\n\nSubstituting:  \nFinal Amount = 100,000 × (1 + 0.08/12)^(12×5) = $148,984.57  \n\nThus, the interest earned is $148,984.57 − $100,000 = $48,984.57.\n\nThis result is deterministic and verified by the financial engine. No assumptions or approximations are applied beyond the provided inputs."
+    },
+    {
+      "id": "numerical_preservation",
+      "intent": "EMI_QUERY",
+      "status": "GENERATED",
+      "passed": true,
+      "required_value_checks": {
+        "22826.41": true,
+        "4108753.80": true,
+        "1608753.80": true
+      },
+      "semantic_numeric_pass": true,
+      "exact_formatting_pass": false,
+      "action_violation": false,
+      "truncated_or_incomplete": false,
+      "elapsed_seconds": 9.014,
+      "metrics": {
+        "load_seconds": 18.744770899997093,
+        "generation_seconds": 9.012989500071853,
+        "generated_tokens": 114,
+        "tokens_per_second": 12.648411495330286,
+        "vram_allocated_gb": 2.5022335052490234
+      },
+      "response": "The verified result shows the following financial details:\n\n- Principal amount: 2,500,000  \n- Annual interest rate: 7.25%  \n- Tenure: 180 months (15 years)  \n- Monthly EMI: 22,826.41  \n- Total payment over tenure: 4,108,753.8  \n- Total interest paid: 1,608,753.8  \n\nAll financial values are as verified and unchanged."
+    },
+    {
+      "id": "missing_value_non_invention",
+      "intent": "EMI_QUERY",
+      "status": "GENERATED",
+      "passed": true,
+      "required_value_checks": {
+        "10133.70": true
+      },
+      "semantic_numeric_pass": true,
+      "exact_formatting_pass": true,
+      "action_violation": false,
+      "truncated_or_incomplete": false,
+      "elapsed_seconds": 13.844,
+      "metrics": {
+        "load_seconds": 18.744770899997093,
+        "generation_seconds": 13.84207819995936,
+        "generated_tokens": 174,
+        "tokens_per_second": 12.570366782100022,
+        "vram_allocated_gb": 2.5022339820861816
+      },
+      "response": "The provided EMI information is as follows:\n\n- Principal loan amount: ₹800,000  \n- Annual interest rate: 9.0%  \n- Tenure: 120 months (10 years)  \n- Monthly EMI: ₹10,133.70  \n\nThis EMI is calculated based on a fixed interest rate of 9% per annum, applied to a principal of ₹800,000, over a period of 120 months. The monthly installment of ₹10,133.70 includes both principal and interest components, with the interest portion decreasing over time and the principal portion increasing, as is typical in an amortizing loan.  \n\nNo additional financial values or assumptions are required or supplied in the request. The result is deterministic and fully verified."
+    },
+    {
+      "id": "persona_facts",
+      "intent": "EMI_QUERY",
+      "status": "GENERATED",
+      "passed": true,
+      "required_value_checks": {
+        "8678.23": true,
+        "2082775.76": true,
+        "1082775.76": true
+      },
+      "semantic_numeric_pass": true,
+      "exact_formatting_pass": true,
+      "action_violation": false,
+      "truncated_or_incomplete": false,
+      "elapsed_seconds": 34.318,
+      "metrics": {
+        "load_seconds": 18.744770899997093,
+        "generation_seconds": 34.31616419996135,
+        "generated_tokens": 419,
+        "tokens_per_second": 12.209989367065447,
+        "vram_allocated_gb": 2.5022358894348145
+      },
+      "response": "🔥 **FINANCIAL HYPE MAN MODE: ACTIVATED!** 🔥  \n\nHey future financial legends! Let’s break down this EMI result like it’s a *financial explosion* — clean, sharp, and 100% verified by the deterministic finance engine!  \n\nYou’re looking at a **₹10,00,000** (yes, one million!) principal loan — think of it as your financial starting line.  \n\nNow, the interest rate? **8.5% per year** — not bad, not brutal, just *real* and *realistic*.  \n\nBut here’s where the *fire* comes in: you’re paying it back over **240 months** — that’s *20 years*! So, you’re not just paying off a loan — you’re building a *financial legacy*.  \n\n🎯 The monthly EMI? **₹8,678.23** — that’s your monthly financial dose. It’s not a lot, but it’s *consistent*, and it’s *non-negotiable*.  \n\nNow, the *real* drama?  \n👉 **Total payment? ₹20,82,775.76**  \n👉 **Total interest? ₹10,82,775.76**  \n\nThat’s right — over 20 years, you’re *paying ₹10.82 lakh in interest*! That’s not a typo. That’s *math*. That’s *finance*. That’s *you* — paying for the privilege of borrowing.  \n\nSo, if you want to *own* your future, don’t just take a loan — *understand* it. Because every ₹8,678.23 you pay, you’re not just paying interest — you’re *building financial discipline*.  \n\n🔥 The numbers are real. The math is solid. The future? *Yours to shape*.  \n\nNow go out there and *own* your EMI! 💥"
+    }
+  ]
+}
