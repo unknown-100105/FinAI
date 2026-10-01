@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import sys
 import time
 from pathlib import Path
 from statistics import mean, median
@@ -13,6 +14,8 @@ import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 DEFAULT_GOLD = ROOT / "evaluation" / "rag_retrieval_gold_v1.json"
 DEFAULT_DB = ROOT / "data" / "rag" / "finai_rag.db"
 DEFAULT_INDEX = ROOT / "data" / "rag" / "embeddings" / "finai_rag.faiss"
