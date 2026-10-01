@@ -161,6 +161,16 @@ def build_test_faiss(tmp_path: Path):
     return index_path, ids_path
 
 
+def test_fts_query_handles_punctuation():
+    query = HybridRetriever._build_fts5_query(
+        "What did RBI require payment data?"
+    )
+
+    assert "?" not in query
+    assert '"RBI"' in query
+    assert '"data"' in query
+
+
 def test_fts_search(tmp_path):
 
     db_path = build_test_database(
