@@ -70,6 +70,12 @@ python -m pytest -q
 
 Do not treat a passing test suite as proof that external services, generated model artifacts, or production credentials are available.
 
+The dedicated TF-IDF router model at
+`router/models/finai_router_tfidf.joblib` is a generated artifact and is not
+tracked in Git. Build or restore that artifact before running the complete
+end-to-end regression suite. GitHub CI runs the full suite when the artifact is
+available; otherwise it runs the artifact-independent regression coverage.
+
 ## RAG setup
 
 The repository contains the RAG builders, but large source corpora and generated FAISS/SQLite artifacts are intentionally not tracked.

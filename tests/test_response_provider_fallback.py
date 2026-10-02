@@ -87,7 +87,7 @@ def test_primary_failure_falls_back_to_openrouter():
     assert len(openrouter.calls) == 1
 
 
-def test_primary_and_openrouter_failure_fall_back_to_rllm():
+def test_primary_and_openrouter_failure_fall_back_to_rllm_for_financial_qa():
     primary = FakeAdapter(
         "gemini",
         error=RuntimeError("Gemini unavailable"),
@@ -104,7 +104,7 @@ def test_primary_and_openrouter_failure_fall_back_to_rllm():
 
     result = service.generate(
         user_text="Explain digital payments.",
-        intent="SUPPORT_REQUEST",
+        intent="EMI_QUERY",
         verified_result={},
         source="support_system",
     )
@@ -174,3 +174,58 @@ def test_explicit_model_selection_does_not_fallback():
 
     assert len(primary.calls) == 1
     assert len(openrouter.calls) == 0
+
+
+def test_programming_value_error_does_not_trigger_fallback():
+    primary = FakeAdapter(
+        "gemini",
+        error=ValueError("invalid internal state"),
+    )
+    openrouter = FakeAdapter("openrouter")
+
+    service = make_service(primary)
+    service._fallback_adapters["openrouter-cloud"] = openrouter
+
+    with pytest.raises(
+        ValueError,
+        match="invalid internal state",
+    ):
+        service.generate(
+            user_text="Explain digital payments.",
+            intent="SUPPORT_REQUEST",
+            verified_result={},
+            source="support_system",
+        )
+
+    assert len(primary.calls) == 1
+    assert len(openrouter.calls) == 0
+
+
+def test_rllm_is_not_used_for_generic_response_generation():
+    primary = FakeAdapter(
+        "gemini",
+        error=RuntimeError("Gemini unavailable"),
+    )
+    openrouter = FakeAdapter(
+        "openrouter",
+        error=RuntimeError("OpenRouter unavailable"),
+    )
+    rllm = FakeAdapter("rllm")
+
+    service = make_service(primary)
+    service._fallback_adapters["openrouter-cloud"] = openrouter
+    service._fallback_adapters["rllm-finqa-4b"] = rllm
+
+    with pytest.raises(
+        RuntimeError,
+        match="All configured LLM providers failed",
+    ):
+        service.generate(
+            user_text="Explain digital payments.",
+            intent="SUPPORT_REQUEST",
+            verified_result={},
+            source="support_system",
+        )
+
+    assert len(openrouter.calls) == 1
+    assert len(rllm.calls) == 0

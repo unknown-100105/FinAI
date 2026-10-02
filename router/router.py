@@ -4,7 +4,11 @@ from pathlib import Path
 import joblib
 
 
-MODEL_PATH = Path("router/models/finai_router_tfidf.joblib")
+MODEL_PATH = (
+    Path(__file__).resolve().parent
+    / "models"
+    / "finai_router_tfidf.joblib"
+)
 
 
 class FinAIRouter:

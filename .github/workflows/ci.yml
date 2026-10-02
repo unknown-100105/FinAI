@@ -25,8 +25,55 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Run tests
+      - name: Check for router model artifact
+        id: router_artifact
+        shell: bash
+        run: |
+          if [ -f "router/models/finai_router_tfidf.joblib" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run full regression tests when router artifact is present
+        if: steps.router_artifact.outputs.present == 'true'
         run: python -m pytest -q
+
+      - name: Run artifact-independent regression tests
+        if: steps.router_artifact.outputs.present != 'true'
+        run: >
+          python -m pytest -q
+          tests/test_domain_router.py
+          tests/test_finance_engine.py
+          tests/test_finance_services.py
+          tests/test_financial_parameters.py
+          tests/test_interest_service_natural.py
+          tests/test_investment_parameters.py
+          tests/test_market_domain_precedence.py
+          tests/test_market_data_dispatcher.py
+          tests/test_market_data_models.py
+          tests/test_market_date_parser.py
+          tests/test_market_operation_planner.py
+          tests/test_market_policy.py
+          tests/test_market_quote_contract.py
+          tests/test_response_adapter.py
+          tests/test_response_adapter_verification.py
+          tests/test_response_engine.py
+          tests/test_response_provider_fallback.py
+          tests/test_response_service.py
+          tests/test_response_verifier.py
+          tests/test_risk_controller.py
+          tests/test_authority_contract.py
+          tests/test_claim_contract.py
+          tests/test_claim_extractor.py
+          tests/test_claim_verifier.py
+          tests/test_model_gateway.py
+          tests/test_model_registry.py
+          tests/test_openrouter_provider.py
+          tests/test_gemini_provider.py
+          tests/test_gemini_adapter.py
+          tests/test_qwen_embedding_adapter.py
+          tests/test_sarvam_lazy_loading.py
 
   frontend:
     name: Frontend build

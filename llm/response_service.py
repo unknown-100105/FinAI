@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 
 from llm.model_gateway import ModelGateway
-from llm.model_registry import enabled_models
+from llm.model_registry import MODEL_REGISTRY, enabled_models
 from llm.response_verifier import FinancialResponseVerifier
 from response_engine.financial import FinancialResponseEngine
 from xai.claim_extractor import FinancialClaimExtractor
@@ -28,10 +28,15 @@ class ResponseService:
         "sarvam-1": SarvamResponseAdapter,
     }
 
-    FALLBACK_MODEL_IDS = (
-        "openrouter-cloud",
-        "rllm-finqa-4b",
-    )
+    FALLBACK_MODEL_IDS_BY_CAPABILITY = {
+        "response_generation": (
+            "openrouter-cloud",
+        ),
+        "financial_qa": (
+            "openrouter-cloud",
+            "rllm-finqa-4b",
+        ),
+    }
 
     REQUIRED_CLAIM_FIELDS = {
         "EMI_QUERY": (
@@ -156,8 +161,9 @@ class ResponseService:
         language: str,
         persona: str,
         max_new_tokens: int,
+        capability: str,
     ) -> Dict[str, Any]:
-        """Generate with the selected provider and automatic fallbacks."""
+        """Generate with capability-compatible provider fallbacks."""
 
         try:
             result = self.gateway.generate(
@@ -179,7 +185,7 @@ class ResponseService:
 
             return result
 
-        except Exception as primary_error:
+        except (RuntimeError, OSError) as primary_error:
 
             # Explicit model selection remains deterministic.
             if explicit_model:
@@ -187,14 +193,25 @@ class ResponseService:
 
             attempted = [selected_model]
 
-            for fallback_model_id in self.FALLBACK_MODEL_IDS:
+            fallback_candidates = (
+                self.FALLBACK_MODEL_IDS_BY_CAPABILITY.get(
+                    capability,
+                    (),
+                )
+            )
+
+            for fallback_model_id in fallback_candidates:
 
                 if fallback_model_id == selected_model:
                     continue
 
-                adapter = self._get_fallback_adapter(
-                    fallback_model_id
-                )
+                try:
+                    adapter = self._get_fallback_adapter(
+                        fallback_model_id
+                    )
+                except Exception:
+                    attempted.append(fallback_model_id)
+                    continue
 
                 if adapter is None:
                     continue
@@ -379,6 +396,7 @@ class ResponseService:
         result = self._generate_with_provider_fallback(
             selected_model=selected_model,
             explicit_model=model_id is not None,
+            capability=capability,
             user_text=user_text,
             intent=intent,
             verified_result=verified_result,

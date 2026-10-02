@@ -47,6 +47,7 @@ MODEL_REGISTRY = {
         model_name="rLLM/rLLM-FinQA-4B",
         role="financial_qa",
         capabilities=(
+            "response_generation",
             "financial_qa",
             "financial_reasoning",
             "financial_explanation",

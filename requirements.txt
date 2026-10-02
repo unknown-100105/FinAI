@@ -17,6 +17,7 @@ faiss-cpu
 torch
 transformers
 peft
+bitsandbytes
 accelerate
 sentence-transformers
 sentencepiece
