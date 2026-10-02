@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 
 from llm.model_gateway import ModelGateway
-from llm.model_registry import MODEL_REGISTRY, enabled_models
+from llm.model_registry import enabled_models
 from llm.response_verifier import FinancialResponseVerifier
 from response_engine.financial import FinancialResponseEngine
 from xai.claim_extractor import FinancialClaimExtractor

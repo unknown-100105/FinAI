@@ -1,3 +1,9 @@
+"""Legacy router retained for compatibility.
+
+The active API uses orchestrator + hybrid routing. This module is not part
+of the current end-to-end request path.
+"""
+
 import re
 from dataclasses import dataclass
 from typing import Optional
@@ -331,7 +337,7 @@ def execute_demo_tool(
         }
 
     # Import authorization check.
-    from safety import check_tool_authorization
+    from .safety import check_tool_authorization
 
     authorization = check_tool_authorization(
         tool_name=route.tool_name,
