@@ -103,8 +103,8 @@ def test_primary_and_openrouter_failure_fall_back_to_rllm_for_financial_qa():
     service._fallback_adapters["rllm-finqa-4b"] = rllm
 
     result = service.generate(
-        user_text="Explain digital payments.",
-        intent="EMI_QUERY",
+        user_text="How does loan interest work?",
+        intent="INTEREST_QUERY",
         verified_result={},
         source="support_system",
     )
@@ -229,3 +229,4 @@ def test_rllm_is_not_used_for_generic_response_generation():
 
     assert len(openrouter.calls) == 1
     assert len(rllm.calls) == 0
+}
