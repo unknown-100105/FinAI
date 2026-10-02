@@ -229,4 +229,3 @@ def test_rllm_is_not_used_for_generic_response_generation():
 
     assert len(openrouter.calls) == 1
     assert len(rllm.calls) == 0
-}
