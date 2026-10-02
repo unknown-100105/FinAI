@@ -176,3 +176,17 @@ def test_controller_normalizes_numpy_like_intent_values():
     assert plan.intent == "EMI_QUERY"
     assert type(plan.decision) is str
     assert plan.decision == "EXECUTE"
+
+
+def test_loan_eligibility_uses_retrieved_criteria_until_rule_engine_exists():
+    controller = RiskCapabilityController()
+
+    plan = controller.build_plan(
+        intent="LOAN_ELIGIBILITY",
+        router_decision="ROUTE",
+    )
+
+    assert plan.capability == "rag"
+    assert plan.execution_class == "RETRIEVE"
+    assert plan.authority_class == "RETRIEVED_KNOWLEDGE"
+    assert plan.authority_source == "retrieval_evidence"

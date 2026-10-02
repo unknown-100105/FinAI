@@ -102,23 +102,6 @@ def _build_non_tool_contract(intent: str) -> AuthorityContract:
             execution_class="RETRIEVE",
         )
 
-    if intent in _RULE_ENGINE_INTENTS:
-
-        return AuthorityContract(
-            intent=intent,
-            risk_level=policy.risk_level,
-            category=policy.category,
-            authority_class="RULE_ENGINE",
-            authority_source="financial_rules_engine",
-            allowed_components=(
-                "financial_rules_engine",
-                "response_verifier",
-            ),
-            llm_role="EXPLAIN_ONLY",
-            verification_mode="RULE_CONSISTENCY",
-            execution_class="COMPUTE",
-        )
-
     # Conservative fallback:
     # no tool + no dedicated authority mapping
     # must use retrieval rather than LLM memory.

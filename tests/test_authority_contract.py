@@ -211,3 +211,13 @@ def test_profile_update_is_an_action():
     )
 
     assert contract.execution_class == "ACT"
+
+
+def test_loan_eligibility_is_retrieval_authoritative():
+    contract = get_authority_contract("LOAN_ELIGIBILITY")
+
+    assert contract is not None
+    assert contract.authority_class == "RETRIEVED_KNOWLEDGE"
+    assert contract.authority_source == "retrieval_evidence"
+    assert contract.execution_class == "RETRIEVE"
+    assert contract.llm_role == "EVIDENCE_GROUNDED_EXPLANATION"
