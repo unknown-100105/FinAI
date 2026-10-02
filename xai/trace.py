@@ -85,6 +85,13 @@ class XAITrace:
                 "all_verified": False,
             },
 
+            "verification": {
+                "applicable": False,
+                "passed": True,
+                "response": {},
+                "claims": {},
+            },
+
             "rag": {
                 "query": None,
                 "retrieval_method": None,
@@ -338,6 +345,56 @@ class XAITrace:
         trace_claims = self._clean_value(
             claims
         )
+
+        response_verification = (
+            response_generation.get("verification")
+            or {}
+        )
+
+        response_applicable = bool(
+            response_verification.get(
+                "applicable",
+                False,
+            )
+        )
+
+        response_passed = bool(
+            response_verification.get(
+                "passed",
+                True,
+            )
+        )
+
+        claims_applicable = bool(
+            claim_verification.get(
+                "applicable",
+                False,
+            )
+        )
+
+        claims_passed = bool(
+            claim_verification.get(
+                "passed",
+                True,
+            )
+        )
+
+        self.data["verification"] = {
+            "applicable": (
+                response_applicable
+                or claims_applicable
+            ),
+            "passed": (
+                response_passed
+                and claims_passed
+            ),
+            "response": self._clean_value(
+                response_verification
+            ),
+            "claims": self._clean_value(
+                claim_verification
+            ),
+        }
 
         if verification_passed:
             for claim in trace_claims:

@@ -139,3 +139,29 @@ def test_xai_trace_saves_claims():
 
     assert path.exists()
     assert path.suffix == ".json"
+
+
+def test_xai_trace_records_response_verification_summary():
+
+    trace = XAITrace("verification-summary-session")
+
+    trace.record_response_generation({
+        "model_id": "test-model",
+        "verification": {
+            "applicable": True,
+            "passed": True,
+            "missing_values": [],
+            "semantic_errors": [],
+        },
+        "claim_verification": {
+            "applicable": True,
+            "passed": True,
+            "report": {},
+            "claims": [],
+        },
+    })
+
+    assert trace.data["verification"]["applicable"] is True
+    assert trace.data["verification"]["passed"] is True
+    assert trace.data["verification"]["response"]["passed"] is True
+    assert trace.data["verification"]["claims"]["passed"] is True

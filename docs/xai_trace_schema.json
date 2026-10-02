@@ -203,6 +203,24 @@
         }
       },
       "additionalProperties": true
+    },
+    "verification": {
+      "type": "object",
+      "properties": {
+        "applicable": {
+          "type": "boolean"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "response": {
+          "type": "object"
+        },
+        "claims": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true

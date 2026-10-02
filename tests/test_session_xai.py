@@ -57,6 +57,8 @@ class FakeEngine:
                 "decision": "EXECUTE",
                 "capability": "finance_engine",
                 "execution_class": "COMPUTE",
+                "authority_class": "DETERMINISTIC_COMPUTATION",
+                "authority_source": "deterministic_finance_engine",
             },
             "response": "Verified EMI response.",
             "response_generation": {
@@ -175,3 +177,33 @@ def test_session_trace_can_record_model_response():
     trace = app.engine
     assert trace is fake
     assert trace.calls
+
+
+def test_session_trace_records_authority_and_execution():
+
+    fake = FakeEngine()
+    app = XAISessionOrchestrator()
+    app.engine = fake
+
+    result = app.handle_message(
+        session_id="execution-xai-test",
+        user_text="Calculate EMI",
+    )
+
+    trace_path = result["trace_path"]
+
+    from pathlib import Path
+    import json
+
+    trace = json.loads(
+        Path(trace_path).read_text(encoding="utf-8")
+    )
+
+    assert trace["authority"]["authority_class"] == (
+        "DETERMINISTIC_COMPUTATION"
+    )
+    assert trace["authority"]["authority_source"] == (
+        "deterministic_finance_engine"
+    )
+    assert trace["execution"]["execution_class"] == "COMPUTE"
+    assert trace["execution"]["capability"] == "finance_engine"
