@@ -1,0 +1,26 @@
+# FinAI Python runtime and test dependencies
+# GPU-specific PyTorch builds can be installed from the official
+# PyTorch selector when the local environment requires a specific CUDA build.
+
+fastapi
+uvicorn
+pydantic
+requests
+
+numpy
+pandas
+scikit-learn
+joblib
+yfinance
+faiss-cpu
+
+torch
+transformers
+peft
+accelerate
+sentence-transformers
+sentencepiece
+
+jsonschema
+pytest
+httpx

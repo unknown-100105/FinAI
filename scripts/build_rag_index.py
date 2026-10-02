@@ -186,19 +186,19 @@ def main():
 
     total = 0
 
+    missing_inputs = []
+
     for input_file in INPUT_FILES:
 
         print("\nProcessing:")
         print(input_file)
 
         if not input_file.exists():
-
+            missing_inputs.append(input_file)
             print(
                 "WARNING: File not found:"
             )
-
             print(input_file)
-
             continue
 
         count = insert_file(
@@ -211,6 +211,21 @@ def main():
         print(
             f"Completed {input_file.name}: "
             f"{count} chunks"
+        )
+
+    if total == 0:
+        connection.close()
+
+        missing = "\n".join(
+            str(path)
+            for path in missing_inputs
+        )
+
+        raise RuntimeError(
+            "No RAG source chunks were indexed. "
+            "Provide the required domain chunk files before "
+            "building the RAG database."
+            + (f"\nMissing inputs:\n{missing}" if missing else "")
         )
 
     rebuild_fts(connection)

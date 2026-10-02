@@ -3,7 +3,11 @@ import joblib
 import re
 
 
-MODEL_PATH = Path("router/models/finai_router_tfidf.joblib")
+MODEL_PATH = (
+    Path(__file__).resolve().parent
+    / "models"
+    / "finai_router_tfidf.joblib"
+)
 
 
 # These intents are safety-sensitive and should never trigger

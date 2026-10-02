@@ -16,13 +16,15 @@ import numpy as np
 from llm.qwen_embedding_adapter import QwenEmbeddingAdapter
 
 
-DB_PATH = Path("data/rag/finai_rag.db")
+DB_PATH = ROOT / "data" / "rag" / "finai_rag.db"
 OUT_DIR = Path(
     os.getenv(
         "FINAI_RAG_OUT_DIR",
-        "data/rag/embeddings",
+        str(ROOT / "data" / "rag" / "embeddings"),
     )
-)
+).expanduser()
+if not OUT_DIR.is_absolute():
+    OUT_DIR = ROOT / OUT_DIR
 
 INDEX_PATH = OUT_DIR / "finai_rag.faiss"
 IDS_PATH = OUT_DIR / "document_ids.npy"

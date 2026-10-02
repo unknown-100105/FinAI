@@ -1,4 +1,5 @@
 ﻿from datetime import datetime, timedelta
+from pathlib import Path
 
 from orchestrator.engine import FinAIOrchestrator
 from router.domain_router import FinAIDomainRouter
@@ -12,6 +13,9 @@ from orchestrator.market_operation_planner import (
     plan_market_operations,
 )
 from orchestrator.risk_controller import RiskCapabilityController
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class FinAIHybridEngine:
@@ -42,9 +46,21 @@ class FinAIHybridEngine:
             )
 
             self.rag_retriever = HybridRetriever(
-                db_path="data/rag/finai_rag.db",
-                faiss_index_path="data/rag/embeddings/finai_rag.faiss",
-                document_ids_path="data/rag/embeddings/document_ids.npy",
+                db_path=ROOT / "data" / "rag" / "finai_rag.db",
+                faiss_index_path=(
+                    ROOT
+                    / "data"
+                    / "rag"
+                    / "embeddings"
+                    / "finai_rag.faiss"
+                ),
+                document_ids_path=(
+                    ROOT
+                    / "data"
+                    / "rag"
+                    / "embeddings"
+                    / "document_ids.npy"
+                ),
                 embedding_adapter=embedding_adapter,
             )
 
