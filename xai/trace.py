@@ -39,6 +39,19 @@ class XAITrace:
                 "tool": None,
             },
 
+            "authority": {
+                "authority_class": None,
+                "authority_source": None,
+            },
+
+            "execution": {
+                "execution_class": None,
+                "capability": None,
+                "component": None,
+                "tool": None,
+                "status": None,
+            },
+
             "session": {
                 "authenticated": False,
                 "awaiting_authentication": False,
@@ -150,6 +163,53 @@ class XAITrace:
             ),
             "tool": self._safe_value(
                 policy_result.get("tool")
+            ),
+        }
+
+    def record_execution_plan(
+        self,
+        execution_plan: Optional[Dict[str, Any]],
+    ):
+        """Record the authority and execution decision made by the controller."""
+
+        if not execution_plan:
+            return
+
+        capability = self._safe_value(
+            execution_plan.get("capability")
+        )
+
+        component_by_capability = {
+            "finance_engine": "finance_engine",
+            "financial_rules_engine": "financial_rules_engine",
+            "rag": "rag",
+            "market_data": "market_data",
+            "tool_engine": "tool_engine",
+        }
+
+        self.data["authority"] = {
+            "authority_class": self._safe_value(
+                execution_plan.get("authority_class")
+            ),
+            "authority_source": self._safe_value(
+                execution_plan.get("authority_source")
+            ),
+        }
+
+        self.data["execution"] = {
+            "execution_class": self._safe_value(
+                execution_plan.get("execution_class")
+            ),
+            "capability": capability,
+            "component": component_by_capability.get(
+                capability,
+                capability,
+            ),
+            "tool": self._safe_value(
+                execution_plan.get("tool")
+            ),
+            "status": self._safe_value(
+                execution_plan.get("decision")
             ),
         }
 

@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "FinAI XAI Trace",
   "type": "object",
@@ -23,13 +23,22 @@
       "type": "string"
     },
     "started_at": {
-      "type": ["string", "null"]
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "completed_at": {
-      "type": ["string", "null"]
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "user_input": {
-      "type": ["string", "null"]
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "router": {
       "type": "object",
@@ -37,10 +46,16 @@
         "intent": {},
         "raw_prediction": {},
         "confidence": {
-          "type": ["number", "null"]
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "margin": {
-          "type": ["number", "null"]
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "decision": {},
         "reason": {},
@@ -90,7 +105,10 @@
           "type": "boolean"
         },
         "success": {
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "message": {},
         "data": {}
@@ -112,7 +130,10 @@
           "minimum": 0
         },
         "all_verified": {
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       },
       "additionalProperties": true
@@ -123,6 +144,63 @@
         "stage": {},
         "status": {},
         "message": {}
+      },
+      "additionalProperties": true
+    },
+    "authority": {
+      "type": "object",
+      "properties": {
+        "authority_class": {},
+        "authority_source": {}
+      },
+      "additionalProperties": true
+    },
+    "execution": {
+      "type": "object",
+      "properties": {
+        "execution_class": {},
+        "capability": {},
+        "component": {},
+        "tool": {},
+        "status": {}
+      },
+      "additionalProperties": true
+    },
+    "model": {
+      "type": "object",
+      "properties": {
+        "model_id": {},
+        "status": {},
+        "capability": {},
+        "source": {},
+        "language": {},
+        "persona": {},
+        "metrics": {}
+      },
+      "additionalProperties": true
+    },
+    "rag": {
+      "type": "object",
+      "properties": {
+        "query": {},
+        "retrieval_method": {},
+        "top_k": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "documents": {
+          "type": "array"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       },
       "additionalProperties": true
     }

@@ -15,6 +15,12 @@ class XAIIntegration:
     def record_policy(self, policy_result: Optional[Dict[str, Any]]):
         self.trace.record_policy(policy_result)
 
+    def record_execution_plan(
+        self,
+        execution_plan: Optional[Dict[str, Any]],
+    ):
+        self.trace.record_execution_plan(execution_plan)
+
     def record_session(self, session_result: Optional[Dict[str, Any]]):
         self.trace.record_session(session_result)
 
