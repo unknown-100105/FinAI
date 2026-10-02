@@ -106,6 +106,29 @@ def test_credit_card_query_maps_to_product_comparison():
     assert result["domain"] == DOMAIN_PRODUCT_COMPARISON
 
 
+
+def test_product_query_overrides_conflicting_known_banking_intent():
+    router = FinAIDomainRouter()
+
+    result = router.route(
+        "What credit cards have airport lounge benefits?",
+        classified_intent="ACCOUNT_BALANCE",
+    )
+
+    assert result["domain"] == DOMAIN_PRODUCT_COMPARISON
+    assert result["source"] == "deterministic_domain_rule"
+
+
+def test_credit_card_payment_failure_stays_banking():
+    router = FinAIDomainRouter()
+
+    result = router.route(
+        "My credit card payment failed",
+        classified_intent="CARD_PAYMENT_FAILED",
+    )
+
+    assert result["domain"] == DOMAIN_BANKING
+
 def test_investment_education_maps_to_financial_knowledge():
     router = FinAIDomainRouter()
 

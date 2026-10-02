@@ -199,6 +199,37 @@ PRODUCT_TERMS = (
     "forex fee",
 )
 
+# Operational markers keep banking actions ahead of product-comparison
+# routing. For example, "my credit card payment failed" is banking,
+# while "what credit cards have lounge benefits?" is a product query.
+PRODUCT_OPERATION_TERMS = (
+    "failed",
+    "failure",
+    "pending",
+    "blocked",
+    "block",
+    "lost",
+    "stolen",
+    "fraud",
+    "scam",
+    "unauthorized",
+    "unauthorised",
+    "dispute",
+    "refund",
+    "transfer",
+    "transaction",
+    "payment",
+    "withdraw",
+    "withdrawal",
+    "balance",
+    "outstanding",
+    "due",
+    "pin",
+    "otp",
+    "activate",
+    "activation",
+)
+
 
 CALCULATION_TERMS = (
     "calculate",
@@ -264,6 +295,13 @@ def _contains_any(text: str, terms) -> bool:
     return any(term in text for term in terms)
 
 
+def _is_product_query(text: str) -> bool:
+    return (
+        _contains_any(text, PRODUCT_TERMS)
+        and not _contains_any(text, PRODUCT_OPERATION_TERMS)
+    )
+
+
 def _build_result(
     domain: str,
     reason: str,
@@ -298,6 +336,16 @@ class FinAIDomainRouter:
                 DOMAIN_UNKNOWN,
                 "empty_input",
                 "domain_router",
+            )
+
+        # Product/comparison signals are more specific than a possibly
+        # conflicting classifier label, but only when the text does not
+        # describe an operational banking event.
+        if _is_product_query(normalized):
+            return _build_result(
+                DOMAIN_PRODUCT_COMPARISON,
+                "product_term",
+                "deterministic_domain_rule",
             )
 
         if classified_intent:

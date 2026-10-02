@@ -186,7 +186,7 @@ if __name__ == "__main__":
     for intent, decision in tests:
 
         plan = controller.build_plan(
-            intent=normalized_intent,
+            intent=intent,
             router_decision=decision,
         )
 

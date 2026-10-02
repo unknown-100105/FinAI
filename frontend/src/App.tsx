@@ -70,6 +70,16 @@ function extractResponse(data: any): string {
 
 function extractTrace(data: any): TraceState {
   const root = data?.result ?? data;
+  const executionPlan = root?.execution_plan ?? {};
+  const responseGeneration = root?.response_generation ?? {};
+
+  const verificationPassed =
+    root?.verification?.passed === true ||
+    root?.claim_verification?.passed === true ||
+    responseGeneration?.verification?.passed === true ||
+    responseGeneration?.claim_verification?.passed === true ||
+    responseGeneration?.fallback_verification?.passed === true ||
+    responseGeneration?.fallback_claim_verification?.passed === true;
 
   return {
     intent:
@@ -77,26 +87,28 @@ function extractTrace(data: any): TraceState {
       root?.intent ??
       "Completed",
     policy:
-      root?.policy?.decision ??
+      executionPlan?.decision ??
       root?.policy?.status ??
       "Processed",
     authority:
+      executionPlan?.authority_source ??
       root?.authority?.source ??
       root?.authority?.decision ??
       "Processed",
     execution:
+      executionPlan?.execution_class ??
+      executionPlan?.capability ??
       root?.execution?.type ??
-      root?.execution_plan?.type ??
       root?.execution?.engine ??
       "Completed",
     model:
+      responseGeneration?.model_id ??
+      responseGeneration?.selection?.actual_model_id ??
       root?.model?.model_id ??
       root?.model_id ??
-      root?.response_generation?.model_id ??
       "Cloud LLM",
     verification:
-      root?.verification?.passed === true ||
-      root?.claim_verification?.passed === true
+      verificationPassed
         ? "Verified"
         : "Completed",
   };
