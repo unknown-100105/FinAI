@@ -11,6 +11,7 @@ from xai.claims import build_finance_claims
 from llm.response_adapter import SarvamResponseAdapter
 from llm.rllm_finqa_adapter import RLLMFinQAModelAdapter
 from llm.cloud.gemini_adapter import GeminiResponseAdapter
+from llm.cloud.openrouter_adapter import OpenRouterResponseAdapter
 
 
 class ResponseService:
@@ -22,9 +23,15 @@ class ResponseService:
 
     ADAPTERS = {
         "gemini-cloud": GeminiResponseAdapter,
+        "openrouter-cloud": OpenRouterResponseAdapter,
         "rllm-finqa-4b": RLLMFinQAModelAdapter,
         "sarvam-1": SarvamResponseAdapter,
     }
+
+    FALLBACK_MODEL_IDS = (
+        "openrouter-cloud",
+        "rllm-finqa-4b",
+    )
 
     REQUIRED_CLAIM_FIELDS = {
         "EMI_QUERY": (
@@ -55,6 +62,11 @@ class ResponseService:
         self.fallback_engine = (
             FinancialResponseEngine()
         )
+
+        # Provider-level fallback adapters are kept separate from the
+        # normal model registry so fallback providers do not affect
+        # automatic model selection.
+        self._fallback_adapters: Dict[str, Any] = {}
 
         if gateway is None:
             self._register_enabled_models()
@@ -108,6 +120,130 @@ class ResponseService:
             )
 
         return candidates[0].model_id
+
+    def _get_fallback_adapter(
+        self,
+        model_id: str,
+    ) -> Any:
+        """Return a cached fallback adapter for the requested model."""
+
+        model_id = str(model_id).strip().lower()
+
+        if model_id in self._fallback_adapters:
+            return self._fallback_adapters[model_id]
+
+        if model_id in self.gateway.available_models():
+            adapter = self.gateway.get_adapter(model_id)
+        else:
+            adapter_class = self.ADAPTERS.get(model_id)
+
+            if adapter_class is None:
+                return None
+
+            adapter = adapter_class()
+
+        self._fallback_adapters[model_id] = adapter
+        return adapter
+
+    def _generate_with_provider_fallback(
+        self,
+        selected_model: str,
+        explicit_model: bool,
+        user_text: str,
+        intent: str,
+        verified_result: Dict[str, Any],
+        source: str,
+        language: str,
+        persona: str,
+        max_new_tokens: int,
+    ) -> Dict[str, Any]:
+        """Generate with the selected provider and automatic fallbacks."""
+
+        try:
+            result = self.gateway.generate(
+                user_text=user_text,
+                intent=intent,
+                verified_result=verified_result,
+                source=source,
+                language=language,
+                persona=persona,
+                model_id=selected_model,
+                max_new_tokens=max_new_tokens,
+            )
+
+            result.setdefault("fallback_used", False)
+            result.setdefault(
+                "fallback_chain",
+                [selected_model],
+            )
+
+            return result
+
+        except Exception as primary_error:
+
+            # Explicit model selection remains deterministic.
+            if explicit_model:
+                raise
+
+            attempted = [selected_model]
+
+            for fallback_model_id in self.FALLBACK_MODEL_IDS:
+
+                if fallback_model_id == selected_model:
+                    continue
+
+                adapter = self._get_fallback_adapter(
+                    fallback_model_id
+                )
+
+                if adapter is None:
+                    continue
+
+                try:
+                    fallback_result = adapter.generate(
+                        user_text=user_text,
+                        intent=intent,
+                        verified_result=verified_result,
+                        source=source,
+                        language=language,
+                        persona=persona,
+                        max_new_tokens=max_new_tokens,
+                    )
+
+                    if not isinstance(
+                        fallback_result,
+                        dict,
+                    ):
+                        raise TypeError(
+                            f"Fallback adapter "
+                            f"'{fallback_model_id}' returned "
+                            f"{type(fallback_result).__name__}; "
+                            "expected dict."
+                        )
+
+                    fallback_result["model_id"] = (
+                        fallback_model_id
+                    )
+                    fallback_result["fallback_used"] = True
+                    fallback_result["fallback_from"] = (
+                        selected_model
+                    )
+                    fallback_result["fallback_chain"] = (
+                        attempted + [fallback_model_id]
+                    )
+
+                    return fallback_result
+
+                except Exception:
+                    attempted.append(
+                        fallback_model_id
+                    )
+
+            raise RuntimeError(
+                "All configured LLM providers failed. "
+                f"Attempted providers: "
+                f"{', '.join(attempted)}"
+            ) from primary_error
 
     def _verify_response(
         self,
@@ -240,14 +376,15 @@ class ResponseService:
             "response_generation",
         )
 
-        result = self.gateway.generate(
+        result = self._generate_with_provider_fallback(
+            selected_model=selected_model,
+            explicit_model=model_id is not None,
             user_text=user_text,
             intent=intent,
             verified_result=verified_result,
             source=source,
             language=language,
             persona=persona,
-            model_id=selected_model,
             max_new_tokens=max_new_tokens,
         )
 
@@ -319,14 +456,35 @@ class ResponseService:
             else "GENERATED"
         )
 
+        # Explicit model selection is authoritative. This preserves
+        # deterministic model_id behavior even when a test double or
+        # adapter returns a different model_id.
+        actual_model_id = (
+            selected_model
+            if model_id is not None
+            else str(
+                result.get(
+                    "model_id",
+                    selected_model,
+                )
+            )
+        )
+
         return {
             **result,
             "status": status,
-            "model_id": selected_model,
+            "model_id": actual_model_id,
             "verification": verification,
             "claim_verification": claim_verification,
             "selection": {
                 "capability": capability,
                 "model_id": selected_model,
+                "actual_model_id": actual_model_id,
+                "fallback_used": bool(
+                    result.get(
+                        "fallback_used",
+                        False,
+                    )
+                ),
             },
         }

@@ -27,6 +27,21 @@ MODEL_REGISTRY = {
         enabled=True,
     ),
 
+    "openrouter-cloud": ModelSpec(
+        model_id="openrouter-cloud",
+        model_name="openrouter/auto",
+        role="cloud_financial_response_fallback",
+        capabilities=(
+            "response_generation",
+            "financial_qa",
+            "financial_explanation",
+            "persona_control",
+            "table_reasoning",
+            "tool_assisted_qa",
+        ),
+        enabled=False,
+    ),
+
     "rllm-finqa-4b": ModelSpec(
         model_id="rllm-finqa-4b",
         model_name="rLLM/rLLM-FinQA-4B",
