@@ -130,6 +130,23 @@ class IncrementalIntervalState:
         for node in self.order:
             self._recompute_node(node)
 
+    def apply_change(self, node: str, value: float) -> dict[str, Any]:
+        """Persist one intervention and recompute only its descendant cone."""
+        node = str(node)
+        value = float(value)
+        if node not in self.bounds or not math.isfinite(value):
+            raise ValueError("node must exist and value must be finite")
+        self.fixed[node] = value
+        affected = self._descendants_in_order(node)
+        for changed in affected:
+            self._recompute_node(changed)
+        return {
+            "intervals": dict(self.intervals),
+            "reachable_interval": self.intervals.get(node),
+            "node_evaluations": len(affected),
+            "affected_nodes": list(affected),
+        }
+
     def preview_change(self, node: str, value: float) -> dict[str, Any]:
         node = str(node)
         value = float(value)
