@@ -77,8 +77,7 @@ function buildSolidity(
     features.capped && 'import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";',
     features.permit && 'import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";',
     (features.pausable || features.capped || features.mintable) && 'import "@openzeppelin/contracts/access/Ownable.sol";',
-  ].filter(Boolean).join("
-");
+  ].filter(Boolean).join("\n");
 
   const parents = [
     "ERC20",
@@ -97,8 +96,7 @@ function buildSolidity(
     " {",
     `        _mint(msg.sender, ${supply} * 10 ** ${decimals});`,
     "    }",
-  ].join("
-");
+  ].join("\n");
 
   const mintFunction = features.mintable
     ? `
@@ -326,8 +324,7 @@ export function TokenGeneratorHub() {
               </div>
             </div>
             <div className="token-editor">
-              <div className="token-editor-bar"><span>Solidity</span><span>OpenZeppelin extensions</span><span>{code.split("
-").length} lines</span></div>
+              <div className="token-editor-bar"><span>Solidity</span><span>OpenZeppelin extensions</span><span>{code.split("\n").length} lines</span></div>
               <pre className="code-window token-code-window">{code}</pre>
             </div>
           </section>
