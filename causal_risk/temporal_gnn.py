@@ -14,6 +14,24 @@ class TemporalEdgeBatch:
     target: Tensor
     time_delta: Tensor
 
+def _resolve_device(device: str) -> torch.device:
+    requested = str(device).lower()
+    if requested == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if requested not in {"cpu", "cuda"}:
+        raise ValueError("device must be 'cpu', 'cuda', or 'auto'")
+    if requested == "cuda" and not torch.cuda.is_available():
+        raise ValueError("cuda device requested but CUDA is unavailable")
+    return torch.device(requested)
+
+
+def _move_edges(edges: TemporalEdgeBatch, device: torch.device) -> TemporalEdgeBatch:
+    return TemporalEdgeBatch(
+        source=edges.source.to(device),
+        target=edges.target.to(device),
+        time_delta=edges.time_delta.to(device),
+    )
+
 
 class TemporalGraphAttention(nn.Module):
     """Compact TGAT-style continuous-time attention layer."""
@@ -126,6 +144,7 @@ def train_temporal_risk_model(
     epochs: int = 100,
     learning_rate: float = 1e-3,
     seed: int = 42,
+    device: str = "auto",
 ) -> dict[str, Any]:
     """Train the temporal risk model on a single graph snapshot.
 
@@ -143,12 +162,22 @@ def train_temporal_risk_model(
     if epochs < 1 or epochs > 5000:
         raise ValueError("epochs must be between 1 and 5000")
     torch.manual_seed(seed)
+    np.random.seed(seed)
+    resolved_device = _resolve_device(device)
+    if resolved_device.type == "cuda":
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
     model = TemporalRiskGNN(
         X.shape[1],
         hidden_features=hidden_features,
         heads=heads,
     )
+    model.to(resolved_device)
+    X = X.to(resolved_device)
+    y = y.to(resolved_device)
+    edges = _move_edges(edges, resolved_device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     losses: list[float] = []
 
@@ -172,6 +201,8 @@ def train_temporal_risk_model(
         "seed": seed,
         "final_train_mse": round(losses[-1], 8),
         "train_mae": round(mae, 8),
+        "device": str(resolved_device),
+        "predictions": [round(float(value), 8) for value in prediction.detach().cpu().numpy()],
         "model": model,
     }
 
@@ -186,4 +217,140 @@ def architecture_metadata() -> dict[str, object]:
         "inputs": ["node_features", "directed_temporal_edges", "time_delta"],
         "outputs": ["temporal_node_embeddings", "node_risk_score"],
         "evaluation_boundary": "Training on a snapshot does not establish out-of-sample temporal validity; future-held-out evaluation is required.",
+    }
+
+
+@dataclass(frozen=True)
+class TemporalSnapshot:
+    """One point-in-time graph used by the chronological evaluator."""
+
+    node_features: Tensor
+    target: Tensor
+    edges: TemporalEdgeBatch
+
+
+def train_temporal_sequence_model(
+    snapshots: Sequence[TemporalSnapshot],
+    *,
+    hidden_features: int = 32,
+    heads: int = 4,
+    epochs: int = 100,
+    learning_rate: float = 1e-3,
+    train_fraction: float = 0.8,
+    seed: int = 42,
+    device: str = "auto",
+) -> dict[str, Any]:
+    """Train on past graph snapshots and evaluate only on future snapshots."""
+    if len(snapshots) < 5:
+        raise ValueError("at least 5 temporal snapshots are required")
+    if not 0.6 <= float(train_fraction) < 1.0:
+        raise ValueError("train_fraction must be between 0.6 and 1.0")
+    split = int(np.floor(len(snapshots) * float(train_fraction)))
+    split = min(max(split, 3), len(snapshots) - 1)
+
+    prepared = []
+    node_count = None
+    feature_count = None
+    for index, snapshot in enumerate(snapshots):
+        X = snapshot.node_features.float()
+        y = snapshot.target.float()
+        if X.ndim != 2 or y.ndim != 1 or X.shape[0] != y.shape[0]:
+            raise ValueError(f"snapshot {index} has misaligned node features/target")
+        if not torch.isfinite(X).all() or not torch.isfinite(y).all():
+            raise ValueError(f"snapshot {index} contains non-finite values")
+        if node_count is None:
+            node_count, feature_count = int(X.shape[0]), int(X.shape[1])
+        if X.shape != (node_count, feature_count):
+            raise ValueError("all snapshots must share node and feature dimensions")
+        prepared.append((X, y, snapshot.edges))
+
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    resolved_device = _resolve_device(device)
+    if resolved_device.type == "cuda":
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+    model = TemporalRiskGNN(
+        int(feature_count),
+        hidden_features=hidden_features,
+        heads=heads,
+    ).to(resolved_device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    train_losses: list[float] = []
+
+    for _ in range(epochs):
+        model.train()
+        losses = []
+        for X, y, edges in prepared[:split]:
+            X = X.to(resolved_device)
+            y = y.to(resolved_device)
+            edges = _move_edges(edges, resolved_device)
+            prediction = model(X, edges)
+            losses.append(torch.mean((prediction - y) ** 2))
+        loss = torch.stack(losses).mean()
+        optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
+        optimizer.step()
+        train_losses.append(float(loss.detach().cpu()))
+
+    model.eval()
+    test_abs_errors = []
+    test_predictions: list[list[float]] = []
+    with torch.no_grad():
+        for X, y, edges in prepared[split:]:
+            prediction = model(
+                X.to(resolved_device),
+                _move_edges(edges, resolved_device),
+            )
+            error = prediction - y.to(resolved_device)
+            test_abs_errors.extend(torch.abs(error).detach().cpu().numpy().tolist())
+            test_predictions.append(
+                [round(float(value), 8) for value in prediction.detach().cpu().numpy()]
+            )
+
+    test_mae = float(np.mean(test_abs_errors)) if test_abs_errors else 0.0
+    return {
+        "status": "TGAT_TEMPORAL_HOLDOUT_VALIDATION_READY",
+        "estimator": "TGAT-style TemporalRiskGNN",
+        "snapshots": len(prepared),
+        "train_snapshots": split,
+        "test_snapshots": len(prepared) - split,
+        "chronological_holdout": True,
+        "train_epochs": epochs,
+        "train_final_mse": round(float(train_losses[-1]), 8),
+        "future_holdout_mae": round(test_mae, 8),
+        "device": str(resolved_device),
+        "future_predictions": test_predictions,
+        "evaluation_boundary": (
+            "This validates a future snapshot holdout. It does not establish "
+            "causal identification or guarantee regime stability beyond the supplied sample."
+        ),
+        "model": model,
+    }
+
+
+def run_temporal_inference(
+    model: TemporalRiskGNN,
+    node_features: Sequence[Sequence[float]],
+    edges: TemporalEdgeBatch,
+    *,
+    device: str = "auto",
+) -> dict[str, Any]:
+    """Run inference with an already-trained temporal risk model."""
+    resolved_device = _resolve_device(device)
+    X = torch.tensor(np.asarray(node_features, dtype=np.float32), device=resolved_device)
+    if X.ndim != 2 or X.shape[0] < 1:
+        raise ValueError("node_features must be a non-empty 2-D matrix")
+    model = model.to(resolved_device)
+    model.eval()
+    with torch.no_grad():
+        prediction = model(X, _move_edges(edges, resolved_device))
+    return {
+        "status": "TGAT_INFERENCE_READY",
+        "device": str(resolved_device),
+        "node_count": int(X.shape[0]),
+        "risk_scores": [round(float(value), 8) for value in prediction.detach().cpu().numpy()],
     }
