@@ -27,5 +27,6 @@ class MarketDataProvider(ABC):
         start: datetime,
         end: datetime,
         exchange: Optional[str] = None,
+        interval: str = "1d",
     ) -> List[MarketBar]:
         raise NotImplementedError
