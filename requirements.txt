@@ -26,3 +26,4 @@ jsonschema
 pytest
 httpx
 ccxt>=4,<5
+openai>=2,<3
