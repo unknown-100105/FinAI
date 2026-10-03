@@ -72,3 +72,46 @@ export async function scanCryptoArbitrage(
 
   return response.json();
 }
+
+export function getCryptoConnectors() {
+  return fetch(API_BASE_URL + "/api/v1/crypto/connectors").then(async (response) => {
+    if (!response.ok) throw new Error("Crypto connector error " + response.status + ": " + await response.text());
+    return response.json();
+  });
+}
+
+export function getCryptoMarkets(exchange: string, quote = "USDT", search = "", limit = 500, offset = 0) {
+  const params = new URLSearchParams({
+    exchange,
+    quote,
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (search) params.set("search", search);
+  return fetch(API_BASE_URL + "/api/v1/crypto/markets?" + params.toString()).then(async (response) => {
+    if (!response.ok) throw new Error("Crypto market universe error " + response.status + ": " + await response.text());
+    return response.json();
+  });
+}
+
+export function scanAllCryptoPairs(request: {
+  exchanges: string[];
+  quote: string;
+  capital_quote: number;
+  buy_fee_percent?: number;
+  sell_fee_percent?: number;
+  buy_slippage_percent?: number;
+  sell_slippage_percent?: number;
+  transfer_cost_quote?: number;
+  tax_rate_percent?: number;
+  top_n?: number;
+}) {
+  return fetch(API_BASE_URL + "/api/v1/crypto/arbitrage/scan-all", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  }).then(async (response) => {
+    if (!response.ok) throw new Error("All-pairs arbitrage error " + response.status + ": " + await response.text());
+    return response.json();
+  });
+}
