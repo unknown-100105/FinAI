@@ -8,6 +8,60 @@ from statistics import median
 from typing import Any, Dict, List
 from market_data.models import MarketBar
 
+
+def build_scenario(candle: Dict[str, Any], previous: Dict[str, Any] | None, sma20: float | None = None, sma50: float | None = None) -> Dict[str, Any]:
+    close = float(candle["close"])
+    rsi = None
+    if previous and previous.get("rsi_14") is not None:
+        rsi = float(previous["rsi_14"])
+
+    bullish_conditions = [
+        candle["direction"] == "bullish",
+        candle["trend_last_5"] == "rising",
+        sma20 is None or close >= sma20,
+    ]
+    bearish_conditions = [
+        candle["direction"] == "bearish",
+        candle["trend_last_5"] == "falling",
+        sma50 is None or close <= sma50,
+    ]
+
+    scenarios = []
+    if sum(bullish_conditions) >= 2:
+        scenarios.append({
+            "name": "continuation-upside scenario",
+            "conditions_to_watch": [
+                "subsequent closes remain above the selected candle's close",
+                "buying volume remains supportive",
+                "price remains above relevant short-term trend references",
+            ],
+            "not_a_prediction": True,
+        })
+    if sum(bearish_conditions) >= 2:
+        scenarios.append({
+            "name": "continuation-downside scenario",
+            "conditions_to_watch": [
+                "subsequent closes remain below the selected candle's close",
+                "selling volume remains elevated",
+                "price remains below relevant short-term trend references",
+            ],
+            "not_a_prediction": True,
+        })
+    scenarios.append({
+        "name": "reversal-or-range scenario",
+        "conditions_to_watch": [
+            "follow-through fails in the current direction",
+            "price returns into the candle range",
+            "volume contracts or reverses",
+        ],
+        "not_a_prediction": True,
+    })
+    return {
+        "scenarios": scenarios,
+        "selection_basis": "Observed candle direction, recent 5-candle trend and available trend references.",
+        "forecast_note": "Scenarios describe conditions to monitor; they are not probability forecasts or guaranteed future outcomes.",
+    }
+
 def analyze_candles(bars: List[MarketBar], news: List[Dict[str, Any]] | None = None) -> Dict[str, Any]:
     if not bars:
         return {"count": 0, "candles": [], "summary": "No candles available."}
@@ -65,9 +119,13 @@ def analyze_candles(bars: List[MarketBar], news: List[Dict[str, Any]] | None = N
             "news_candidates": news[:5] if news else [],
             "causality_note": "Possible drivers are hypotheses to investigate; candle anatomy alone does not establish cause.",
         })
+    latest = output[-1]
+    scenario = build_scenario(latest)
+
     return {
         "count": len(output),
         "candles": output,
+        "scenario": scenario,
         "summary": {
             "first_timestamp": output[0]["timestamp"],
             "last_timestamp": output[-1]["timestamp"],
