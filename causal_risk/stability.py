@@ -86,6 +86,7 @@ def _edge_statistics(
             "edge": key,
             "selection_frequency": round(frequency, 3),
             "windows_selected": int(count),
+            "mean_weight": round(float(np.mean(values)), 6),
             "mean_abs_weight": round(float(np.mean(np.abs(values))), 6),
             "std_weight": round(float(np.std(values)), 6),
             "sign_consistency": round(abs(float(np.sum(np.sign(values)))) / len(values), 3),

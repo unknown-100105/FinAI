@@ -169,3 +169,70 @@ def test_stability_flags_reciprocal_direction_conflicts():
     assert stats["consensus_eligible_edges"] == 0
     assert len(stats["direction_conflicts"]) == 1
     assert all(item["direction_conflict"] for item in stats["ranked_edges"])
+
+
+def test_consensus_gate_rejects_conflicting_stable_directions():
+    from causal_risk.consensus import build_consensus_graph
+
+    stability = {
+        "contemporaneous": {
+            "direction_conflicts": [{"pair": ["usd->oil", "oil->usd"]}],
+            "ranked_edges": [
+                {
+                    "edge": "usd->oil",
+                    "selection_frequency": 1.0,
+                    "sign_consistency": 1.0,
+                    "mean_weight": 0.12,
+                    "mean_abs_weight": 0.12,
+                    "stable": True,
+                    "direction_conflict": True,
+                    "consensus_eligible": False,
+                },
+                {
+                    "edge": "oil->usd",
+                    "selection_frequency": 1.0,
+                    "sign_consistency": 1.0,
+                    "mean_weight": 0.10,
+                    "mean_abs_weight": 0.10,
+                    "stable": True,
+                    "direction_conflict": True,
+                    "consensus_eligible": False,
+                },
+            ],
+        },
+        "temporal": {"direction_conflicts": [], "ranked_edges": []},
+        "consensus": {"direction_conflicts": 1},
+    }
+    result = build_consensus_graph(stability)
+    assert result["status"] == "NO_CONSENSUS_EDGES"
+    assert result["edge_count"] == 0
+    assert result["rejected_edge_count"] == 2
+    assert result["direction_conflicts"] == 1
+
+
+def test_consensus_gate_preserves_stable_signed_edge():
+    from causal_risk.consensus import build_consensus_graph
+
+    stability = {
+        "contemporaneous": {
+            "direction_conflicts": [],
+            "ranked_edges": [{
+                "edge": "rates->credit",
+                "selection_frequency": 1.0,
+                "sign_consistency": 1.0,
+                "mean_weight": -0.21,
+                "mean_abs_weight": 0.21,
+                "stable": True,
+                "direction_conflict": False,
+                "consensus_eligible": True,
+            }],
+        },
+        "temporal": {"direction_conflicts": [], "ranked_edges": []},
+        "consensus": {"direction_conflicts": 0},
+    }
+    result = build_consensus_graph(stability)
+    assert result["status"] == "CONSENSUS_RESEARCH_GRAPH_READY"
+    assert result["edge_count"] == 1
+    assert result["edges"][0]["source"] == "rates"
+    assert result["edges"][0]["target"] == "credit"
+    assert result["edges"][0]["weight"] == -0.21
