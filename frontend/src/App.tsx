@@ -16,6 +16,7 @@ import {
   Send,
   ShieldCheck,
   ArrowRightLeft,
+  BookOpen,
   Sparkles,
   WalletCards,
 } from "lucide-react";
@@ -31,6 +32,7 @@ import { InvestmentHub } from "./components/InvestmentHub";
 import { NewsHub } from "./components/NewsHub";
 import { TaxFormsHub } from "./components/TaxFormsHub";
 import { CryptoArbitrageHub } from "./components/CryptoArbitrageHub";
+import { KnowledgeHub } from "./components/KnowledgeHub";
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
@@ -50,6 +52,7 @@ const navigation = [
   { id: "news", label: "News", icon: Newspaper },
   { id: "forms", label: "Tax & Forms", icon: FileText },
   { id: "arbitrage", label: "Crypto Arbitrage", icon: ArrowRightLeft },
+  { id: "knowledge", label: "Knowledge", icon: BookOpen },
 ] as const;
 
 type Section = (typeof navigation)[number]["id"];
@@ -506,6 +509,7 @@ function App() {
     news: <NewsHub />,
     forms: <TaxFormsHub />,
     arbitrage: <CryptoArbitrageHub />,
+    knowledge: <KnowledgeHub />,
   }[section];
 
   return (
