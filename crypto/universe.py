@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from threading import Lock
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, Iterable, List, Optional
 
 REGULATORY_SOURCE = "Government of India, Lok Sabha AU5805, 30-03-2026"
@@ -325,15 +326,26 @@ def scan_all_pairs(
 
     snapshots: Dict[str, List[Dict[str, Any]]] = {}
     errors: Dict[str, str] = {}
+    requested = list(dict.fromkeys(
+        str(item).strip().lower() for item in exchanges if str(item).strip()
+    ))
 
-    for exchange_id in dict.fromkeys(str(item).strip().lower() for item in exchanges if str(item).strip()):
+    def load_exchange(exchange_id: str):
         if exchange_id not in connector_map:
-            errors[exchange_id] = "Exchange is not in the FIU-registered public-connector snapshot."
-            continue
+            return exchange_id, None, "Exchange is not in the FIU-registered public-connector snapshot."
         try:
-            snapshots[exchange_id] = all_exchange_tickers(exchange_id, quote=quote)
+            return exchange_id, all_exchange_tickers(exchange_id, quote=quote), None
         except Exception as exc:
-            errors[exchange_id] = str(exc)
+            return exchange_id, None, str(exc)
+
+    with ThreadPoolExecutor(max_workers=min(6, max(1, len(requested)))) as executor:
+        futures = [executor.submit(load_exchange, exchange_id) for exchange_id in requested]
+        for future in as_completed(futures):
+            exchange_id, tickers, error = future.result()
+            if error:
+                errors[exchange_id] = error
+            else:
+                snapshots[exchange_id] = tickers or []
 
     per_symbol: Dict[str, List[Dict[str, Any]]] = {}
     for exchange_id, tickers in snapshots.items():
