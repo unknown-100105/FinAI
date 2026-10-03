@@ -44,6 +44,10 @@ class RiskCalibrationRequest(BaseModel):
 @router.post("/risk-calibration")
 def risk_calibration(request: RiskCalibrationRequest):
     try:
+        if request.samples and len(request.samples) * len(request.samples[0]) > 250_000:
+            raise ValueError("calibration input exceeds the maximum of 250000 cells")
+        if len(request.target) != len(request.samples):
+            raise ValueError("target must align with samples")
         return calibrate_risk_target(
             request.samples,
             request.target,
@@ -154,7 +158,7 @@ def gfnets_train(request: GFlowTrainRequest):
 
 class GFlowGenerateRequest(BaseModel):
     registry_key: str = Field(min_length=3, max_length=128)
-    center: Dict[str, float]
+    center: Dict[str, float] = Field(min_length=1, max_length=20)
     draws: int = Field(default=64, ge=1, le=5000)
     seed: int = Field(default=42, ge=0, le=10_000_000)
     scale: float = Field(default=0.35, gt=0, le=2)
@@ -305,6 +309,7 @@ class TemporalTrainRequest(BaseModel):
 def temporal_gnn_train(request: TemporalTrainRequest):
     try:
         snapshots = []
+        total_cells = 0
         for index, item in enumerate(request.snapshots):
             if len(item.node_features) != len(item.target):
                 raise ValueError(f"snapshot {index} target length must match node count")
@@ -314,6 +319,8 @@ def temporal_gnn_train(request: TemporalTrainRequest):
                 == len(item.time_deltas)
             ):
                 raise ValueError(f"snapshot {index} edge arrays must have equal lengths")
+            if item.node_features:
+                total_cells += len(item.node_features) * len(item.node_features[0])
             snapshots.append(
                 TemporalSnapshot(
                     node_features=np.asarray(item.node_features, dtype=np.float32),
@@ -325,6 +332,8 @@ def temporal_gnn_train(request: TemporalTrainRequest):
                     ),
                 )
             )
+        if total_cells > 250_000:
+            raise ValueError("temporal training input exceeds the maximum of 250000 cells")
         result = train_temporal_sequence_model(
             snapshots,
             hidden_features=request.hidden_features,
@@ -352,6 +361,10 @@ class RegimeBenchmarkRequest(BaseModel):
 @router.post("/regime-benchmark")
 def regime_benchmark(request: RegimeBenchmarkRequest):
     try:
+        if request.samples and len(request.samples) * len(request.samples[0]) > 250_000:
+            raise ValueError("regime benchmark input exceeds the maximum of 250000 cells")
+        if len(request.y_true) != len(request.samples) or len(request.y_pred) != len(request.samples):
+            raise ValueError("prediction arrays must align with samples")
         regimes = assign_regimes(
             request.samples,
             volatility_window=request.volatility_window,
@@ -401,8 +414,8 @@ def research_status():
 
 
 class ResearchCounterfactualRequest(BaseModel):
-    shock: Dict[str, float]
-    allocation: Dict[str, float]
+    shock: Dict[str, float] = Field(min_length=1, max_length=100)
+    allocation: Dict[str, float] = Field(min_length=1, max_length=100)
     nodes: List[str] = Field(min_length=1, max_length=100)
     edges: List[Dict[str, Any]] = Field(max_length=1000)
     approved: bool = False
