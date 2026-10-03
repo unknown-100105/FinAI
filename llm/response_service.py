@@ -409,6 +409,13 @@ class ResponseService:
                 )
 
             retried["model_id"] = selected_model
+            for metadata_key in (
+                "fallback_used",
+                "fallback_from",
+                "fallback_chain",
+            ):
+                if metadata_key in result:
+                    retried[metadata_key] = result[metadata_key]
             retried["retry_after_truncation"] = True
             retried["retry_max_new_tokens"] = retry_tokens
 
@@ -589,6 +596,28 @@ class ResponseService:
         )
 
         if response_failed or claims_failed:
+
+            if source == "retrieval_evidence":
+                return {
+                    **result,
+                    "status": "VERIFICATION_FAILED",
+                    "model_id": actual_model_id,
+                    "response": (
+                        "I couldn't verify the generated explanation "
+                        "against the retrieved evidence."
+                    ),
+                    "original_response": response,
+                    "verification": verification,
+                    "claim_verification": claim_verification,
+                    "selection": {
+                        "capability": capability,
+                        "model_id": selected_model,
+                        "actual_model_id": actual_model_id,
+                        "fallback_used": bool(
+                            result.get("fallback_used", False)
+                        ),
+                    },
+                }
 
             fallback = self._build_verified_fallback(
                 user_text=user_text,
