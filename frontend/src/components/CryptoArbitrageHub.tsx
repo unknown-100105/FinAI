@@ -6,6 +6,7 @@ import {
   getCryptoTickers,
   scanAllCryptoPairs,
   getBitcoinMiningSnapshot,
+  getCryptoOHLCV,
   type ArbitrageEstimateRequest,
 } from "../api/crypto";
 import { getMarketHistory, getMarketQuote, type MarketBar, type MarketQuote } from "../api/market";
@@ -66,10 +67,15 @@ export function CryptoArbitrageHub() {
   const [chartSymbol, setChartSymbol] = useState("BTC");
   const [chartRange, setChartRange] = useState("1D");
   const [chartBars, setChartBars] = useState<MarketBar[]>([]);
+  const [sellChartBars, setSellChartBars] = useState<MarketBar[]>([]);
   const [chartQuote, setChartQuote] = useState<MarketQuote | null>(null);
+  const [chartBuyVenue, setChartBuyVenue] = useState("binance");
+  const [chartSellVenue, setChartSellVenue] = useState("bybit");
+  const [chartTimeframe, setChartTimeframe] = useState("15m");
   const [chartError, setChartError] = useState("");
 
   const chartConfig = chartRanges.find((item) => item.id === chartRange) ?? chartRanges[0];
+  const chartLimit = chartConfig.id === "1D" ? 96 : chartConfig.id === "7D" ? 168 : chartConfig.id === "30D" ? 240 : 200;
   const chartPoints = useMemo(() => {
     if (chartBars.length < 2) return "";
     const values = chartBars.map((bar) => bar.close);
@@ -85,16 +91,38 @@ export function CryptoArbitrageHub() {
 
   const loadChart = async () => {
     setChartError("");
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - chartConfig.days);
     try {
-      const [quote, history] = await Promise.all([
+      const symbol = chartSymbol + "/" + "USDT";
+      const [quote, buyHistory, sellHistory] = await Promise.all([
         getMarketQuote(chartSymbol),
-        getMarketHistory(chartSymbol, start.toISOString(), end.toISOString(), chartConfig.interval),
+        getCryptoOHLCV(chartBuyVenue, symbol, chartTimeframe, chartLimit),
+        getCryptoOHLCV(chartSellVenue, symbol, chartTimeframe, chartLimit),
       ]);
       setChartQuote(quote.quote);
-      setChartBars(history.bars);
+      setChartBars(
+        (buyHistory.candles || []).map((row: any) => ({
+          symbol,
+          timestamp: new Date(Number(row.timestamp)).toISOString(),
+          open: Number(row.open),
+          high: Number(row.high),
+          low: Number(row.low),
+          close: Number(row.close),
+          volume: row.volume == null ? null : Number(row.volume),
+          source: chartBuyVenue,
+        })),
+      );
+      setSellChartBars(
+        (sellHistory.candles || []).map((row: any) => ({
+          symbol,
+          timestamp: new Date(Number(row.timestamp)).toISOString(),
+          open: Number(row.open),
+          high: Number(row.high),
+          low: Number(row.low),
+          close: Number(row.close),
+          volume: row.volume == null ? null : Number(row.volume),
+          source: chartSellVenue,
+        })),
+      );
     } catch (requestError) {
       setChartQuote(null);
       setChartBars([]);
@@ -102,7 +130,7 @@ export function CryptoArbitrageHub() {
     }
   };
 
-  useEffect(() => { void loadChart(); }, [chartSymbol, chartRange]);
+  useEffect(() => { void loadChart(); }, [chartSymbol, chartRange, chartBuyVenue, chartSellVenue, chartTimeframe]);
   useEffect(() => {
     const timer = window.setInterval(() => { void loadChart(); }, 10000);
     return () => window.clearInterval(timer);
@@ -176,6 +204,8 @@ export function CryptoArbitrageHub() {
         setAsset(top.asset);
         setBuyVenue(top.buy_venue);
         setSellVenue(top.sell_venue);
+        setChartBuyVenue(top.buy_venue);
+        setChartSellVenue(top.sell_venue);
         setBuyPrice(String(top.buy_price));
         setSellPrice(String(top.sell_price));
         setChartSymbol(String(top.asset).split("/")[0]);
@@ -288,7 +318,7 @@ export function CryptoArbitrageHub() {
             <div className="opportunity-table-wrap">
               <table className="ticker-table"><thead><tr><th>Pair</th><th>Buy</th><th>Sell</th><th>Buy ask</th><th>Sell bid</th><th>Net profit</th><th>Net return</th></tr></thead>
                 <tbody>{(scan.opportunities || []).map((item: Opportunity, index: number) =>
-                  <tr key={index} onClick={() => { setAsset(item.asset); setChartSymbol(item.asset.split("/")[0]); setBuyVenue(item.buy_venue); setSellVenue(item.sell_venue); }}>
+                  <tr key={index} onClick={() => { setAsset(item.asset); setChartSymbol(item.asset.split("/")[0]); setBuyVenue(item.buy_venue); setSellVenue(item.sell_venue); setChartBuyVenue(item.buy_venue); setChartSellVenue(item.sell_venue); }}>
                     <td><strong>{item.asset}</strong></td><td>{item.buy_venue}</td><td>{item.sell_venue}</td>
                     <td>{number(item.buy_price, 8)}</td><td>{number(item.sell_price, 8)}</td>
                     <td className={Number(item.net_profit_quote) > 0 ? "market-positive" : "market-negative"}>{usd(item.net_profit_quote)}</td>
@@ -343,10 +373,20 @@ export function CryptoArbitrageHub() {
         <div className="crypto-chart-toolbar">
           <div className="market-quick-list">{["BTC","ETH","SOL","XRP","DOGE","ADA","AVAX"].map((symbol) => <button key={symbol} type="button" className={chartSymbol === symbol ? "active" : ""} onClick={() => setChartSymbol(symbol)}>{symbol}</button>)}</div>
           <div className="range-tabs">{chartRanges.map((item) => <button key={item.id} type="button" className={chartRange === item.id ? "active" : ""} onClick={() => setChartRange(item.id)}>{item.id}</button>)}</div>
+          <div className="range-tabs">{["1m","5m","15m","30m","1h","4h","1d"].map((value) => <button key={value} type="button" className={chartTimeframe === value ? "active" : ""} disabled={chartRange === "90D" && ["1m","5m","15m","30m","1h"].includes(value)} onClick={() => setChartTimeframe(value)}>{value}</button>)}</div>
+          <div className="crypto-chart-venues">
+            <label>Buy venue<select value={chartBuyVenue} onChange={(e) => setChartBuyVenue(e.target.value)}>{connectors.map((item: any) => <option key={item.exchange_id} value={item.exchange_id}>{item.trade_name}</option>)}</select></label>
+            <label>Sell venue<select value={chartSellVenue} onChange={(e) => setChartSellVenue(e.target.value)}>{connectors.map((item: any) => <option key={item.exchange_id} value={item.exchange_id}>{item.trade_name}</option>)}</select></label>
+          </div>
         </div>
         {chartError && <div className="module-error">{chartError}</div>}
         <div className="crypto-chart-meta"><span>Last {chartQuote?.price ? usd(chartQuote.price) : "—"}</span><span>{chartQuote?.timestamp ? new Date(chartQuote.timestamp).toLocaleString() : "latest available"}</span></div>
-        <div className="crypto-chart-wrap">{chartBars.length > 1 ? <svg viewBox="0 0 720 250" preserveAspectRatio="none" role="img" aria-label={chartSymbol + " crypto chart"}><polyline points={chartPoints} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke" className="chart-line-positive" /></svg> : <div className="module-empty">No chart bars returned.</div>}</div>
+        <div className="crypto-dual-chart">
+          <div><div className="dual-chart-label">BUY · {chartBuyVenue}</div><div className="crypto-chart-wrap">{chartBars.length > 1 ? <svg viewBox="0 0 720 250" preserveAspectRatio="none" role="img" aria-label={chartSymbol + " buy venue chart"}><polyline points={chartPoints} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke" className="chart-line-positive" /></svg> : <div className="module-empty">No buy-venue candles returned.</div>}</div></div>
+          <div><div className="dual-chart-label">SELL · {chartSellVenue}</div><div className="crypto-chart-wrap">{sellChartBars.length > 1 ? <svg viewBox="0 0 720 250" preserveAspectRatio="none" role="img" aria-label={chartSymbol + " sell venue chart"}><polyline points={sellChartBars.map((bar, index) => {
+            const values = sellChartBars.map((row) => row.close); const min = Math.min(...values); const max = Math.max(...values); const spread = max - min || 1; const x = (index / Math.max(1, sellChartBars.length - 1)) * 720; const y = 15 + (1 - (bar.close - min) / spread) * 220; return x.toFixed(1) + "," + y.toFixed(1);
+          }).join(" ")} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke" className="chart-line-positive" /></svg> : <div className="module-empty">No sell-venue candles returned.</div>}</div></div>
+        </div>
       </section>
     </section>
   );
