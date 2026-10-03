@@ -8,7 +8,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from causal_risk.gfnets import GFlowConfig, GFlowNetTailGenerator
+from causal_risk.stress_objectives import CausalStressReward
 from causal_risk.multimodal_graph import GraphEdge, GraphNode, MultimodalGraph
+from causal_risk.multimodal_encoder import MultimodalEncoderConfig, train_multimodal_encoder
 from causal_risk.microstructure import summarize_order_book
 from causal_risk.multimodal_ingestion import (
     build_document_nodes,
@@ -21,6 +23,11 @@ from causal_risk.risk_calibration import calibrate_risk_target
 from causal_risk.channel_calibration import fit_channel_calibration
 from causal_risk.pipeline import run_causal_research_pipeline
 from causal_risk.research_counterfactual import run_research_counterfactual
+from causal_risk.temporal_gnn import (
+    TemporalSnapshot,
+    build_temporal_edges,
+    train_temporal_sequence_model,
+)
 
 router = APIRouter(prefix="/api/v1/causal-risk", tags=["causal-risk-research"])
 
@@ -53,8 +60,12 @@ class GFlowTrainRequest(BaseModel):
     epochs: int = Field(default=150, ge=1, le=2000)
     learning_rate: float = Field(default=1e-3, gt=0, le=0.1)
     seed: int = Field(default=42, ge=0, le=10_000_000)
+    reward_mode: str = Field(default="synthetic_tail", pattern="^(synthetic_tail|causal_empirical)$")
     empirical_center: List[float] | None = Field(default=None, min_length=1, max_length=20)
     empirical_scale: List[float] | None = Field(default=None, min_length=1, max_length=20)
+    correlation_inverse: List[List[float]] | None = Field(default=None, max_length=20)
+    edge_matrix: List[List[float]] | None = Field(default=None, max_length=20)
+    portfolio_weights: List[float] | None = Field(default=None, max_length=20)
 
 
 class ChannelCalibrationRequest(BaseModel):
@@ -92,8 +103,39 @@ def gfnets_train(request: GFlowTrainRequest):
                 seed=request.seed,
             ),
         )
-        result = generator.train()
-        key = f"{request.n_factors}:{request.hidden_dim}:{request.seed}"
+        reward_fn = None
+        objective_name = "synthetic_tail_reward"
+        if request.reward_mode == "causal_empirical":
+            if request.empirical_center is None or request.empirical_scale is None:
+                raise ValueError("causal_empirical reward requires empirical_center and empirical_scale")
+            if len(request.empirical_center) != request.n_factors:
+                raise ValueError("empirical_center must match n_factors")
+            if len(request.empirical_scale) != request.n_factors:
+                raise ValueError("empirical_scale must match n_factors")
+            if request.correlation_inverse is not None:
+                inverse_shape = np.asarray(request.correlation_inverse, dtype=float).shape
+                if inverse_shape != (request.n_factors, request.n_factors):
+                    raise ValueError("correlation_inverse must match n_factors")
+            if request.edge_matrix is not None:
+                edge_shape = np.asarray(request.edge_matrix, dtype=float).shape
+                if edge_shape != (request.n_factors, request.n_factors):
+                    raise ValueError("edge_matrix must match n_factors")
+            reward_fn = CausalStressReward(
+                tuple(request.empirical_center),
+                tuple(request.empirical_scale),
+                tuple(tuple(row) for row in request.correlation_inverse)
+                if request.correlation_inverse is not None else None,
+                tuple(tuple(row) for row in request.edge_matrix)
+                if request.edge_matrix is not None else None,
+                tuple(request.portfolio_weights)
+                if request.portfolio_weights is not None else None,
+            )
+            objective_name = "causal_empirical_tail_reward"
+        result = generator.train(
+            reward_fn=reward_fn,
+            objective_name=objective_name,
+        )
+        key = f"{request.n_factors}:{request.hidden_dim}:{request.seed}:{request.reward_mode}"
         _gfn_registry[key] = generator
         return {
             **{k: v for k, v in result.items()},
@@ -129,6 +171,46 @@ def gfnets_generate(request: GFlowGenerateRequest):
             scale=request.scale,
         )
     except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class MultimodalTrainRequest(BaseModel):
+    inputs: Dict[str, List[List[float]]]
+    hidden_dim: int = Field(default=64, ge=8, le=256)
+    layers: int = Field(default=2, ge=1, le=6)
+    heads: int = Field(default=4, ge=1, le=16)
+    epochs: int = Field(default=100, ge=1, le=1000)
+    learning_rate: float = Field(default=1e-3, gt=0, le=0.1)
+    mask_probability: float = Field(default=0.25, ge=0, lt=1)
+    seed: int = Field(default=42, ge=0, le=10_000_000)
+
+
+@router.post("/multimodal/train")
+def multimodal_train(request: MultimodalTrainRequest):
+    try:
+        if not request.inputs:
+            raise ValueError("at least one modality matrix is required")
+        if len(request.inputs) > 7:
+            raise ValueError("a maximum of 7 modalities is supported")
+        total_cells = sum(
+            len(values) * (len(values[0]) if values else 0)
+            for values in request.inputs.values()
+        )
+        if total_cells > 250_000:
+            raise ValueError("multimodal training input exceeds 250000 cells")
+        return train_multimodal_encoder(
+            request.inputs,
+            config=MultimodalEncoderConfig(
+                hidden_dim=request.hidden_dim,
+                layers=request.layers,
+                heads=request.heads,
+            ),
+            epochs=request.epochs,
+            learning_rate=request.learning_rate,
+            mask_probability=request.mask_probability,
+            seed=request.seed,
+        )
+    except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
@@ -198,6 +280,65 @@ def multimodal_encode(request: MultimodalEncodeRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+class TemporalSnapshotRequest(BaseModel):
+    node_features: List[List[float]] = Field(min_length=2, max_length=100)
+    target: List[float] = Field(min_length=2, max_length=100)
+    edge_sources: List[int] = Field(max_length=1000)
+    edge_targets: List[int] = Field(max_length=1000)
+    time_deltas: List[float] = Field(max_length=1000)
+
+
+class TemporalTrainRequest(BaseModel):
+    snapshots: List[TemporalSnapshotRequest] = Field(min_length=5, max_length=120)
+    hidden_features: int = Field(default=32, ge=4, le=128)
+    heads: int = Field(default=4, ge=1, le=16)
+    epochs: int = Field(default=100, ge=1, le=1000)
+    learning_rate: float = Field(default=1e-3, gt=0, le=0.1)
+    train_fraction: float = Field(default=0.8, ge=0.6, lt=1.0)
+    seed: int = Field(default=42, ge=0, le=10_000_000)
+    device: str = Field(default="auto", pattern="^(auto|cpu|cuda)$")
+
+
+@router.post("/temporal-gnn/train")
+def temporal_gnn_train(request: TemporalTrainRequest):
+    try:
+        snapshots = []
+        for index, item in enumerate(request.snapshots):
+            if len(item.node_features) != len(item.target):
+                raise ValueError(f"snapshot {index} target length must match node count")
+            if not (
+                len(item.edge_sources)
+                == len(item.edge_targets)
+                == len(item.time_deltas)
+            ):
+                raise ValueError(f"snapshot {index} edge arrays must have equal lengths")
+            snapshots.append(
+                TemporalSnapshot(
+                    node_features=np.asarray(item.node_features, dtype=np.float32),
+                    target=np.asarray(item.target, dtype=np.float32),
+                    edges=build_temporal_edges(
+                        item.edge_sources,
+                        item.edge_targets,
+                        item.time_deltas,
+                    ),
+                )
+            )
+        result = train_temporal_sequence_model(
+            snapshots,
+            hidden_features=request.hidden_features,
+            heads=request.heads,
+            epochs=request.epochs,
+            learning_rate=request.learning_rate,
+            train_fraction=request.train_fraction,
+            seed=request.seed,
+            device=request.device,
+        )
+        result.pop("model", None)
+        return result
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 class RegimeBenchmarkRequest(BaseModel):
     samples: List[List[float]] = Field(min_length=22, max_length=5000)
     y_true: List[float] = Field(min_length=22, max_length=5000)
@@ -238,9 +379,10 @@ def research_status():
             "empirical_calibration": "implemented",
             "correlation_aware_tail_sampling": "implemented",
             "student_t_copula": "research_implemented",
-            "temporal_gnn": "trainable_research_implementation",
-            "gflownet": "trajectory_balance_research_prototype",
+            "temporal_gnn": "chronological_holdout_training_available",
+            "gflownet": "causal_empirical_reward_training_available",
             "multimodal_graph": "typed_fusion_research_implementation",
+            "multimodal_encoder": "masked_modality_training_available",
             "neuro_symbolic_rules": "deterministic_constraint_engine",
             "regime_benchmark": "implemented",
             "microstructure_features": "implemented",
