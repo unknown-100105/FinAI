@@ -69,6 +69,8 @@ def backward_target_cone(
         raise ValueError("target_node must exist in nodes")
     intervened = {str(node) for node in intervened_nodes}
     unknown_intervened = sorted(intervened - set(labels))
+    if str(target_node) in intervened:
+        raise ValueError("target_node cannot be a future intervention")
     if unknown_intervened:
         raise ValueError(f"intervened_nodes references unknown nodes: {unknown_intervened}")
 
