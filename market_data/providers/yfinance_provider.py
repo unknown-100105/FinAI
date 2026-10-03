@@ -221,15 +221,37 @@ class YFinanceProvider(MarketDataProvider):
         else:
             request_interval = interval
 
+        # Yahoo Finance imposes shorter retention windows on intraday
+        # intervals. Fetch a safe provider window, then clip locally.
+        # For a closed exchange, a "1D" stock chart should still be useful:
+        # it falls back to the most recent available session instead of
+        # rendering an empty chart.
+        intraday = interval in {
+            "1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h"
+        }
+        provider_period = None
+
+        if intraday:
+            provider_period = "7d" if interval in {"1m", "2m", "5m"} else "60d"
+
         try:
-            history = ticker.history(
-                start=start,
-                end=end,
-                interval=request_interval,
-                auto_adjust=False,
-                actions=False,
-                timeout=self.timeout,
-            )
+            if provider_period is not None:
+                history = ticker.history(
+                    period=provider_period,
+                    interval=request_interval,
+                    auto_adjust=False,
+                    actions=False,
+                    timeout=self.timeout,
+                )
+            else:
+                history = ticker.history(
+                    start=start,
+                    end=end,
+                    interval=request_interval,
+                    auto_adjust=False,
+                    actions=False,
+                    timeout=self.timeout,
+                )
         except Exception as exc:
             raise RuntimeError(
                 f"yfinance history request failed for "
@@ -239,9 +261,59 @@ class YFinanceProvider(MarketDataProvider):
         if history is None or history.empty:
             return []
 
+        # Provider timestamps can be timezone-aware. Normalize comparison
+        # bounds to the same timezone before clipping.
+        frame = history.copy()
+        try:
+            index = pd.DatetimeIndex(frame.index)
+            if index.tz is not None:
+                start_bound = pd.Timestamp(start)
+                end_bound = pd.Timestamp(end)
+                if start_bound.tzinfo is None:
+                    start_bound = start_bound.tz_localize(index.tz)
+                else:
+                    start_bound = start_bound.tz_convert(index.tz)
+                if end_bound.tzinfo is None:
+                    end_bound = end_bound.tz_localize(index.tz)
+                else:
+                    end_bound = end_bound.tz_convert(index.tz)
+                frame = frame[(index >= start_bound) & (index <= end_bound)]
+            else:
+                start_bound = pd.Timestamp(start).tz_localize(None)
+                end_bound = pd.Timestamp(end).tz_localize(None)
+                frame = frame[
+                    (pd.DatetimeIndex(frame.index) >= start_bound)
+                    & (pd.DatetimeIndex(frame.index) <= end_bound)
+                ]
+        except Exception:
+            # Keep the provider frame when timestamp clipping cannot be
+            # normalized; the conversion layer below remains defensive.
+            pass
+
+        # A stock exchange may be closed for the requested calendar day
+        # (weekend/holiday). For short intraday windows, use the most recent
+        # provider session so the user gets an honest "latest session" chart.
+        if frame.empty and intraday and asset_type.upper() in {"EQUITY", "STOCK", "ETF", "INDEX"}:
+            try:
+                provider_frame = history.dropna(
+                    subset=["Open", "High", "Low", "Close"],
+                    how="all",
+                )
+                if not provider_frame.empty:
+                    latest_session_date = provider_frame.index[-1].date()
+                    frame = provider_frame[
+                        pd.DatetimeIndex(provider_frame.index).date
+                        == latest_session_date
+                    ]
+            except Exception:
+                frame = history
+
+        if frame.empty:
+            return []
+
         bars: List[MarketBar] = []
 
-        for timestamp, row in history.iterrows():
+        for timestamp, row in frame.iterrows():
             open_value = self._clean_number(row.get("Open"))
             high_value = self._clean_number(row.get("High"))
             low_value = self._clean_number(row.get("Low"))
