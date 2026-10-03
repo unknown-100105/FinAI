@@ -6,6 +6,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 import torch
 
+from causal_risk.bidirectional_feasibility import backward_target_cone
 from causal_risk.feasibility_pruning import (
     AdaptivePruningController,
     evaluate_prefix_feasibility,
@@ -51,6 +52,7 @@ class CausalConstrainedTailGenerator:
         controller: AdaptivePruningController | None = None,
         empirical_center: Mapping[str, float] | None = None,
         empirical_scale: Mapping[str, float] | None = None,
+        use_bidirectional_feasibility: bool = True,
     ) -> dict[str, Any]:
         if not self.generator.trained:
             raise RuntimeError("GFlowNet prototype must be trained before constrained sampling")
@@ -69,10 +71,25 @@ class CausalConstrainedTailGenerator:
         trajectories: list[dict[str, float]] = []
         certificate_counts = {
             "candidates": 0,
+            "bidirectional_pruned": 0,
             "hard_pruned": 0,
             "adaptive_pruned": 0,
             "accepted": 0,
+            "forward_certificate_evaluations": 0,
         }
+        backward_required: dict[str, tuple[float, float]] = {}
+        if use_bidirectional_feasibility:
+            backward_result = backward_target_cone(
+                nodes,
+                edges,
+                node_bounds,
+                target_node=target_node,
+                target_interval=target_interval,
+            )
+            backward_required = {
+                str(node): (float(interval[0]), float(interval[1]))
+                for node, interval in backward_result["required_intervals"].items()
+            }
 
         with torch.no_grad():
             for draw_index in range(draws):
@@ -88,6 +105,35 @@ class CausalConstrainedTailGenerator:
                         candidate_value = float(center[factor]) + float(level) * max(abs(float(center[factor])) * scale, 5.0)
                         candidate_prefix = dict(prefix)
                         candidate_prefix[factor] = candidate_value
+                        certificate_counts["candidates"] += 1
+
+                        backward_pruned = False
+                        backward_reason = ""
+                        required_lo = required_hi = 0.0
+                        if use_bidirectional_feasibility and factor in backward_required:
+                            required_lo, required_hi = backward_required[factor]
+                            if required_lo > required_hi:
+                                backward_pruned = True
+                                backward_reason = f"{factor} has an empty necessary interval"
+                            elif candidate_value < required_lo or candidate_value > required_hi:
+                                backward_pruned = True
+                                backward_reason = (
+                                    f"{factor}={candidate_value:.6f} is outside the "
+                                    f"necessary interval [{required_lo:.6f},{required_hi:.6f}]"
+                                )
+                        if backward_pruned:
+                            certificate_counts["bidirectional_pruned"] += 1
+                            candidate_certificates.append({
+                                "target_node": target_node,
+                                "hard_infeasible": True,
+                                "margin": float("-inf"),
+                                "reason": backward_reason,
+                                "certificate_type": "backward_necessary_interval",
+                                "required_interval": [required_lo, required_hi],
+                            })
+                            candidate_probs.append(0.0)
+                            continue
+
                         certificate = evaluate_prefix_feasibility(
                             nodes,
                             edges,
@@ -98,7 +144,7 @@ class CausalConstrainedTailGenerator:
                             empirical_center=empirical_center,
                             empirical_scale=empirical_scale,
                         )
-                        certificate_counts["candidates"] += 1
+                        certificate_counts["forward_certificate_evaluations"] += 1
                         hard = certificate.hard_infeasible
                         heuristic = (
                             controller is not None
@@ -145,13 +191,17 @@ class CausalConstrainedTailGenerator:
             "trajectories": trajectories,
             "screening": {
                 **certificate_counts,
+                "bidirectional_feasibility_enabled": use_bidirectional_feasibility,
+                "bidirectional_pruning_is_necessary_condition": True,
                 "hard_pruning_is_conservative": True,
                 "hard_pruning_certificate": "linear_dag_interval_outer_bound",
                 "adaptive_pruning_is_heuristic": controller is not None,
                 "baseline_candidate_evaluations": certificate_counts["candidates"],
                 "screened_candidate_evaluations": certificate_counts["accepted"],
                 "candidate_evaluations_avoided": (
-                    certificate_counts["hard_pruned"] + certificate_counts["adaptive_pruned"]
+                    certificate_counts["bidirectional_pruned"]
+                    + certificate_counts["hard_pruned"]
+                    + certificate_counts["adaptive_pruned"]
                 ),
                 "screening_fraction": (
                     certificate_counts["accepted"] / certificate_counts["candidates"]
