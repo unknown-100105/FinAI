@@ -15,6 +15,19 @@ class FinancialKnowledgeEntry:
 
 ENTRIES = (
     FinancialKnowledgeEntry(
+        "investing_basics",
+        "Investing Basics",
+        "investments",
+        ("investment", "investments", "investing", "invest"),
+        "Investing means committing money or other capital to assets or activities with the objective of generating a return, while accepting some level of risk.",
+        (
+            "Different assets have different return, risk, liquidity and time-horizon characteristics.",
+            "Diversification can reduce concentration risk but cannot remove investment risk.",
+            "A financial goal and time horizon should be considered before selecting an investment product.",
+        ),
+        "Product suitability, taxation, charges and current rules depend on the specific investment and investor circumstances.",
+    ),
+    FinancialKnowledgeEntry(
         "mutual_funds",
         "Mutual Funds",
         "investments",
