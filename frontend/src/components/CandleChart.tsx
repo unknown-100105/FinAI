@@ -68,7 +68,7 @@ export function CandleChart({
         <g className="candle-grid">
           {[0, 1, 2, 3, 4].map((line) => <line key={line} x1="0" x2="720" y1={22 + line * 55} y2={22 + line * 55} />)}
         </g>
-        {candleGeometry.map((candle, index) => (
+        {candleGeometry.map((candle) => (
           <g
             key={candle.originalIndex}
             className={candle.up ? "candle candle-up" : "candle candle-down"}
