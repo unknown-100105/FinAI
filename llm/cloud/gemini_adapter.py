@@ -28,3 +28,8 @@ class GeminiResponseAdapter:
             persona=persona,
             max_new_tokens=max_new_tokens,
         )
+
+
+class GeminiProResponseAdapter(GeminiResponseAdapter):
+    def __init__(self):
+        self.provider = GeminiProvider(model_name="gemini-3.1-pro-preview")
