@@ -25,6 +25,7 @@ import {
   Sparkles,
   WalletCards,
   Globe2,
+  BrainCircuit,
 } from "lucide-react";
 import {
   authenticateSession,
@@ -46,6 +47,7 @@ import { ResourcesHub } from "./components/ResourcesHub";
 import { MarketAnalystHub } from "./components/MarketAnalystHub";
 import { GlobalInvestmentHub } from "./components/GlobalInvestmentHub";
 import { XAIExplorerHub } from "./components/XAIExplorerHub";
+import CausalRiskLab from "./components/CausalRiskLab";
 import { PlatformGuide } from "./components/PlatformGuide";
 import "./index.css";
 
@@ -69,6 +71,7 @@ const navigation = [
   { id: "knowledge", label: "Knowledge", icon: BookOpen },
   { id: "analyst", label: "Market Analyst", icon: Activity },
   { id: "global", label: "Global Markets", icon: Globe2 },
+  { id: "causal", label: "Causal Risk Lab", icon: BrainCircuit },
   { id: "resources", label: "Schemes & Resources", icon: Landmark },
   { id: "study", label: "Study Centre", icon: GraduationCap },
   { id: "token", label: "Token Lab", icon: Code2 },
@@ -565,6 +568,7 @@ function App() {
     knowledge: <KnowledgeHub />,
     analyst: <MarketAnalystHub />,
     global: <GlobalInvestmentHub />,
+    causal: <CausalRiskLab />,
     resources: <ResourcesHub />,
     study: <StudyHub />,
     token: <TokenGeneratorHub />,
