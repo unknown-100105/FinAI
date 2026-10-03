@@ -595,6 +595,17 @@ class ResponseService:
             and not claim_verification["passed"]
         )
 
+        actual_model_id = (
+            selected_model
+            if model_id is not None
+            else str(
+                result.get(
+                    "model_id",
+                    selected_model,
+                )
+            )
+        )
+
         if response_failed or claims_failed:
 
             if source == "retrieval_evidence":
@@ -661,16 +672,6 @@ class ResponseService:
         # Explicit model selection is authoritative. This preserves
         # deterministic model_id behavior even when a test double or
         # adapter returns a different model_id.
-        actual_model_id = (
-            selected_model
-            if model_id is not None
-            else str(
-                result.get(
-                    "model_id",
-                    selected_model,
-                )
-            )
-        )
 
         return {
             **result,
