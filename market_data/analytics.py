@@ -65,13 +65,13 @@ def _returns(values: List[float]) -> List[float]:
     return result
 
 
-def _volatility(values: List[float]) -> Optional[float]:
+def _volatility(values: List[float], periods_per_year: float = 252.0) -> Optional[float]:
     returns = _returns(values)
 
     if len(returns) < 2:
         return None
 
-    return stdev(returns) * sqrt(252)
+    return stdev(returns) * sqrt(max(1.0, periods_per_year))
 
 
 def _maximum_drawdown(values: List[float]) -> Optional[float]:
@@ -135,7 +135,23 @@ def _rsi(values: List[float], period: int = 14) -> Optional[float]:
 
 def calculate_market_analytics(
     bars: List[MarketBar],
+    interval: str = "1d",
 ) -> MarketAnalytics:
+    annualization_periods = {
+        "1m": 252 * 6.25 * 60,
+        "2m": 252 * 6.25 * 30,
+        "5m": 252 * 6.25 * 12,
+        "15m": 252 * 25,
+        "30m": 252 * 12.5,
+        "60m": 252 * 6.25,
+        "1h": 252 * 6.25,
+        "1d": 252,
+        "5d": 52,
+        "1wk": 52,
+        "1mo": 12,
+        "3mo": 4,
+    }
+    periods_per_year = annualization_periods.get(interval, 252.0)
     if not bars:
         return MarketAnalytics(
             symbol="",
@@ -178,7 +194,7 @@ def calculate_market_analytics(
         observations=len(values),
         latest_close=values[-1],
         cumulative_return=cumulative_return,
-        annualized_volatility=_volatility(values),
+        annualized_volatility=_volatility(values, periods_per_year),
         maximum_drawdown=_maximum_drawdown(values),
         sma_20=_sma(values, 20),
         sma_50=_sma(values, 50),
