@@ -13,6 +13,14 @@ class RAGEvidenceVerifier:
     DEFAULT_OVERLAP_THRESHOLD = 0.35
     MIN_CONTENT_TOKENS = 2
 
+    # Strong qualifiers require matching evidence wording. This prevents a
+    # simple token-overlap score from treating stronger model claims such as
+    # "all", "always", or "guarantees" as supported by weaker evidence.
+    STRONG_QUALIFIERS: Set[str] = {
+        "all", "every", "always", "never", "guarantee", "guarantees",
+        "guaranteed", "must", "only", "required",
+    }
+
     STOPWORDS: Set[str] = {
         "a", "an", "and", "are", "as", "at", "be", "been", "being",
         "but", "by", "can", "could", "did", "do", "does", "for",
@@ -75,6 +83,38 @@ class RAGEvidenceVerifier:
         return token_sets
 
     @classmethod
+    @classmethod
+    def _qualifier_supported(
+        cls,
+        claim_tokens: Set[str],
+        document_tokens: List[Set[str]],
+    ) -> bool:
+        """Require evidence support for strong claim qualifiers."""
+        qualifiers = claim_tokens.intersection(
+            cls.STRONG_QUALIFIERS
+        )
+
+        if not qualifiers:
+            return True
+
+        return any(
+            qualifiers.issubset(tokens)
+            for tokens in document_tokens
+        )
+
+    @classmethod
+    def _has_internal_qualifier_conflict(
+        cls,
+        claim_tokens: Set[str],
+    ) -> bool:
+        # "all ... in some cases" is a classic overstatement pattern.
+        return (
+            "all" in claim_tokens
+            and "some" in claim_tokens
+            and "cases" in claim_tokens
+        )
+
+    @classmethod
     def _best_overlap(
         cls,
         claim_tokens: Set[str],
@@ -131,12 +171,45 @@ class RAGEvidenceVerifier:
                 "overlap": round(overlap, 4),
             }
 
-            if overlap >= threshold:
+            qualifier_ok = cls._qualifier_supported(
+                tokens,
+                evidence_tokens,
+            )
+            internal_conflict = cls._has_internal_qualifier_conflict(
+                tokens
+            )
+
+            item["qualifier_supported"] = qualifier_ok
+            item["internal_qualifier_conflict"] = internal_conflict
+
+            if (
+                overlap >= threshold
+                and qualifier_ok
+                and not internal_conflict
+            ):
                 supported.append(item)
             else:
+                reasons = []
+
+                if overlap < threshold:
+                    reasons.append(
+                        "Insufficient lexical support in retrieved evidence."
+                    )
+
+                if not qualifier_ok:
+                    reasons.append(
+                        "Strong claim qualifier is not directly supported "
+                        "by retrieved evidence."
+                    )
+
+                if internal_conflict:
+                    reasons.append(
+                        "Claim contains conflicting strength/caveat wording."
+                    )
+
                 unsupported.append({
                     **item,
-                    "reason": "Insufficient lexical support in retrieved evidence.",
+                    "reason": " ".join(reasons),
                 })
 
         # An answer with no substantive sentences is not considered grounded.
