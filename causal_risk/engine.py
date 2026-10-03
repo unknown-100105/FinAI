@@ -83,14 +83,24 @@ def _evaluate_structural_shock(
     return {"scm": scm, "channels": channels, "paths": paths}
 
 
-def _percentiles(values: list[float]) -> Dict[str, float]:
+def _tail_metrics(values: list[float]) -> Dict[str, float]:
     if not values:
-        return {"p90": 0.0, "p95": 0.0, "p99": 0.0}
-    data = np.asarray(values, dtype=float)
+        return {
+            "p90": 0.0,
+            "p95": 0.0,
+            "p99": 0.0,
+            "cvar90": 0.0,
+            "cvar95": 0.0,
+        }
+    data = np.sort(np.asarray(values, dtype=float))
+    p90 = float(np.quantile(data, 0.90))
+    p95 = float(np.quantile(data, 0.95))
     return {
-        "p90": round(float(np.quantile(data, 0.90)), 3),
-        "p95": round(float(np.quantile(data, 0.95)), 3),
+        "p90": round(p90, 3),
+        "p95": round(p95, 3),
         "p99": round(float(np.quantile(data, 0.99)), 3),
+        "cvar90": round(float(np.mean(data[data >= p90])), 3),
+        "cvar95": round(float(np.mean(data[data >= p95])), 3),
     }
 
 
@@ -124,8 +134,8 @@ def _evaluate_tail_scenarios(
             }
         )
 
-    systemic_pct = _percentiles(systemic_values)
-    portfolio_pct = _percentiles([abs(value) for value in portfolio_values])
+    systemic_pct = _tail_metrics(systemic_values)
+    portfolio_pct = _tail_metrics([abs(value) for value in portfolio_values])
     worst = max(
         evaluated,
         key=lambda item: float(item["systemic_stress"]),
@@ -145,12 +155,16 @@ def _evaluate_tail_scenarios(
             "systemic_stress_p90": systemic_pct["p90"],
             "systemic_stress_p95": systemic_pct["p95"],
             "systemic_stress_p99": systemic_pct["p99"],
+            "systemic_stress_cvar90": systemic_pct["cvar90"],
+            "systemic_stress_cvar95": systemic_pct["cvar95"],
             "mean_portfolio_impact": round(float(np.mean(portfolio_values)), 3)
             if portfolio_values
             else 0.0,
             "absolute_portfolio_impact_p90": portfolio_pct["p90"],
             "absolute_portfolio_impact_p95": portfolio_pct["p95"],
             "absolute_portfolio_impact_p99": portfolio_pct["p99"],
+            "absolute_portfolio_impact_cvar90": portfolio_pct["cvar90"],
+            "absolute_portfolio_impact_cvar95": portfolio_pct["cvar95"],
             "highest_stress_scenario_id": worst["scenario_id"] if worst else None,
         },
         "scenarios": evaluated,
