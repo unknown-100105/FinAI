@@ -233,11 +233,13 @@ class FinAIHybridEngine:
             from knowledge.finance_encyclopedia import build_answer as build_encyclopedia_answer
             from compliance_catalog import find_items
             from knowledge.india_finance_regulation import search_regulations
+            from knowledge.investment_eligibility import search_investment_routes
 
             catalog_result = build_catalog_answer(user_text)
             encyclopedia_result = build_encyclopedia_answer(user_text)
             compliance_results = find_items(user_text)
             regulatory_results = search_regulations(user_text)
+            investment_route_results = search_investment_routes(user_text)
 
             compliance_hint = any(
                 term in user_text.lower()
@@ -245,6 +247,19 @@ class FinAIHybridEngine:
                     "itr", "tax form", "tax forms", "tds", "form 16",
                     "form 16a", "26as", "ais", "15g", "15h", "form 67",
                     "gstr", "gst", "capital gains",
+                )
+            )
+
+            investment_route_hint = any(
+                term in user_text.lower()
+                for term in (
+                    "resident indian", "resident india", "nri",
+                    "non-resident indian", "non resident indian", "oci",
+                    "investment avenues", "where can i invest",
+                    "invest in india", "invest outside india",
+                    "lrs", "nre", "nro", "fcnr", "ppf", "small savings",
+                    "government securities", "reit", "invit", "pms", "aif",
+                    "fdi", "fpi", "foreign investment",
                 )
             )
 
@@ -258,7 +273,33 @@ class FinAIHybridEngine:
                 )
             )
 
-            if regulatory_hint and regulatory_results:
+            if investment_route_hint and investment_route_results:
+                route = investment_route_results[0]
+                investment_answer = (
+                    f"{route['avenue']}\\n"
+                    f"Resident India: {route['resident_status']}\\n"
+                    f"NRI: {route['nri_status']}\\n\\n"
+                    f"Resident route: {route['resident_route']}\\n"
+                    f"NRI route: {route['nri_route']}\\n\\n"
+                    "Key conditions:\\n"
+                    + "\\n".join(f"- {condition}" for condition in route["key_conditions"])
+                    + f"\\n\\nAuthority: {route['authority']}\\n"
+                    f"Official source: {route['official_source']}\\n"
+                    f"As of: {route['as_of']}\\n"
+                    f"Accuracy note: {route['accuracy_note']}"
+                )
+                investment_route_knowledge = {
+                    "answer": investment_answer,
+                    "matches": [route],
+                    "source": "resident_nri_investment_matrix",
+                    "requires_current_data": True,
+                }
+            else:
+                investment_route_knowledge = None
+
+            if investment_route_knowledge:
+                knowledge_result = investment_route_knowledge
+            elif regulatory_hint and regulatory_results:
                 item = regulatory_results[0]
                 regulatory_answer = (
                     f"{item['title']}\\n{item['answer']}\\n\\n"
