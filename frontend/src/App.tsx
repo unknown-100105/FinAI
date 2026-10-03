@@ -4,6 +4,9 @@ import {
   Bot,
   CheckCircle2,
   Cpu,
+  LockKeyhole,
+  LogIn,
+  LogOut,
   FileSearch,
   FileText,
   Languages,
@@ -15,7 +18,11 @@ import {
   Sparkles,
   WalletCards,
 } from "lucide-react";
-import { sendChat } from "./api/finai";
+import {
+  authenticateSession,
+  logoutSession,
+  sendChat,
+} from "./api/finai";
 import { MarketTerminal } from "./components/MarketTerminal";
 import { WealthWorkspace } from "./components/WealthWorkspace";
 import { PlatformHome } from "./components/PlatformHome";
@@ -115,6 +122,11 @@ function AssistantWorkspace() {
   const [message, setMessage] = useState("");
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authRequired, setAuthRequired] = useState(false);
+  const [pendingRequest, setPendingRequest] = useState("");
+  const [confirmationRequired, setConfirmationRequired] = useState(false);
   const [error, setError] = useState("");
   const [trace, setTrace] = useState<TraceState>({
     intent: "Pending",
@@ -140,6 +152,57 @@ function AssistantWorkspace() {
     "Calculate EMI for ₹10 lakh at 8.5% for 20 years",
   ];
 
+  const ensureSessionId = () => {
+    if (sessionId) return sessionId;
+
+    const nextId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? `session-${crypto.randomUUID()}`
+        : `session-${Date.now()}`;
+
+    setSessionId(nextId);
+    return nextId;
+  };
+
+  const applyResult = (result: any, addAssistantMessage = true) => {
+    if (result?.session_id) setSessionId(result.session_id);
+
+    const session = result?.session ?? {};
+    setAuthenticated(session.authenticated === true);
+
+    const status = result?.status;
+    const requiresAuth = status === "AUTH_REQUIRED";
+    const requiresConfirmation = status === "CONFIRMATION_REQUIRED";
+
+    setAuthRequired(requiresAuth);
+    setConfirmationRequired(requiresConfirmation);
+
+    if (requiresAuth) {
+      setPendingRequest(
+        session.pending_request ||
+          "The previous request requires account authentication.",
+      );
+    } else if (!requiresConfirmation) {
+      setPendingRequest("");
+    }
+
+    if (addAssistantMessage) {
+      const rawResponse = extractResponse(result);
+      const userFacingResponse = requiresAuth
+        ? "This operation needs account authentication before FinAI can continue. Use “Sign in (demo)” in the Account access panel. This development login does not verify a real identity."
+        : requiresConfirmation
+          ? "Authentication is complete. This operation now needs your explicit confirmation. Use “Confirm operation” to continue."
+          : rawResponse;
+
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", content: userFacingResponse },
+      ]);
+    }
+
+    setTrace(extractTrace(result));
+  };
+
   const sendMessage = async (textOverride?: string) => {
     const text = (textOverride ?? message).trim();
     if (!text || loading) return;
@@ -159,13 +222,7 @@ function AssistantWorkspace() {
         max_new_tokens: 256,
       });
 
-      if (result?.session_id) setSessionId(result.session_id);
-
-      setMessages((current) => [
-        ...current,
-        { role: "assistant", content: extractResponse(result) },
-      ]);
-      setTrace(extractTrace(result));
+      applyResult(result);
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -181,6 +238,103 @@ function AssistantWorkspace() {
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const signIn = async () => {
+    const id = ensureSessionId();
+    setAuthBusy(true);
+    setError("");
+
+    try {
+      await authenticateSession(id);
+      setAuthenticated(true);
+      setAuthRequired(false);
+
+      if (pendingRequest) {
+        const result = await sendChat({
+          message: "authenticated",
+          session_id: id,
+          language,
+          persona,
+          generate_response: true,
+          max_new_tokens: 256,
+        });
+
+        applyResult(result);
+      } else {
+        setMessages((current) => [
+          ...current,
+          {
+            role: "assistant",
+            content:
+              "Demo account authentication is active for this session. Protected operations can now continue.",
+          },
+        ]);
+      }
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to authenticate the session.",
+      );
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const signOut = async () => {
+    if (!sessionId) return;
+
+    setAuthBusy(true);
+    try {
+      await logoutSession(sessionId);
+      setAuthenticated(false);
+      setAuthRequired(false);
+      setConfirmationRequired(false);
+      setPendingRequest("");
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: "The demo session has been signed out. Protected operations will request authentication again.",
+        },
+      ]);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to sign out the session.",
+      );
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const confirmPending = async () => {
+    const id = ensureSessionId();
+    setAuthBusy(true);
+    setError("");
+
+    try {
+      const result = await sendChat({
+        message: "yes",
+        session_id: id,
+        language,
+        persona,
+        generate_response: true,
+        max_new_tokens: 256,
+      });
+
+      applyResult(result);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to confirm the pending operation.",
+      );
+    } finally {
+      setAuthBusy(false);
     }
   };
 
@@ -257,6 +411,44 @@ function AssistantWorkspace() {
       </div>
 
       <aside className="assistant-side">
+        <section className="glass-panel side-card security-card">
+          <div className="side-title"><LockKeyhole size={15} /> Account access</div>
+          <p className="security-copy">
+            Protected banking actions require authentication. This local demo login
+            is only a workflow simulation and does not verify real identity.
+          </p>
+          <div className="security-status">
+            <span className={authenticated ? "security-dot active" : "security-dot"} />
+            <strong>{authenticated ? "Authenticated" : "Not authenticated"}</strong>
+          </div>
+
+          <div className="security-actions">
+            {!authenticated ? (
+              <button type="button" onClick={() => void signIn()} disabled={authBusy}>
+                <LogIn size={14} />
+                {authBusy ? "Signing in…" : "Sign in (demo)"}
+              </button>
+            ) : (
+              <button type="button" onClick={() => void signOut()} disabled={authBusy}>
+                <LogOut size={14} />
+                {authBusy ? "Signing out…" : "Sign out"}
+              </button>
+            )}
+
+            {confirmationRequired && (
+              <button
+                type="button"
+                className="confirm-button"
+                onClick={() => void confirmPending()}
+                disabled={authBusy}
+              >
+                <CheckCircle2 size={14} />
+                Confirm operation
+              </button>
+            )}
+          </div>
+        </section>
+
         <section className="glass-panel side-card">
           <div className="side-title"><Languages size={15} /> Preferences</div>
           <label>Language<select value={language} onChange={(event) => setLanguage(event.target.value)} disabled={loading}>{languages.map((item) => <option key={item}>{item}</option>)}</select></label>
