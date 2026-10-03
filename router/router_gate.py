@@ -282,6 +282,25 @@ def _is_financial_guidance_query(text: str) -> bool:
     return True
 
 
+def _rule_based_legacy_intent(text):
+    """Minimal deterministic fallback when the trained router artifact is absent."""
+    normalized = " ".join(str(text).strip().lower().split())
+    rules = (
+        (("card is lost", "lost my card", "my card was lost"), "CARD_LOST"),
+        (("card stolen", "stole my card", "someone stole my card"), "CARD_STOLEN"),
+        (("block my card", "card block", "block card"), "CARD_BLOCK"),
+        (("account balance", "balance in my account", "how much is my account"), "ACCOUNT_BALANCE"),
+        (("fraudulent", "fraud", "unauthorized", "unauthorised", "suspicious activity"), "FRAUD_REPORT"),
+        (("payment failed", "payment failure"), "PAYMENT_FAILED"),
+        (("payment pending", "pending payment"), "PAYMENT_PENDING"),
+        (("transaction history", "my transactions"), "TRANSACTION_HISTORY"),
+    )
+    for phrases, intent in rules:
+        if any(phrase in normalized for phrase in phrases):
+            return intent
+    return None
+
+
 class FinAIRouterGate:
 
     def __init__(
@@ -292,7 +311,8 @@ class FinAIRouterGate:
         high_margin=0.20,
         medium_margin=0.08,
     ):
-        self.model = joblib.load(model_path)
+        self.model_path = Path(model_path)
+        self.model = joblib.load(model_path) if Path(model_path).exists() else None
 
         self.high_confidence = high_confidence
         self.medium_confidence = medium_confidence
@@ -300,8 +320,10 @@ class FinAIRouterGate:
         self.high_margin = high_margin
         self.medium_margin = medium_margin
 
-        self.classes = list(
-            self.model.named_steps["classifier"].classes_
+        self.classes = (
+            list(self.model.named_steps["classifier"].classes_)
+            if self.model is not None
+            else []
         )
 
     def _basic_ood(self, text):
@@ -417,6 +439,36 @@ class FinAIRouterGate:
                 "requires_clarification": False,
                 "reason": "financial_guidance_rule",
                 "confidence_source": "deterministic_rule",
+                "top_k": [],
+            }
+
+        if self.model is None:
+            fallback_intent = _rule_based_legacy_intent(text)
+            if fallback_intent is not None:
+                high_risk = fallback_intent in HIGH_RISK_INTENTS
+                return {
+                    "intent": fallback_intent,
+                    "raw_prediction": fallback_intent,
+                    "confidence": 1.0,
+                    "margin": 1.0,
+                    "decision": "ROUTE",
+                    "risk_level": "high" if high_risk else "low",
+                    "requires_clarification": False,
+                    "reason": "artifact_independent_rule_fallback",
+                    "confidence_source": "deterministic_rule",
+                    "top_k": [],
+                }
+
+            return {
+                "intent": "UNKNOWN",
+                "raw_prediction": None,
+                "confidence": 0.0,
+                "margin": 0.0,
+                "decision": "UNKNOWN",
+                "risk_level": "low",
+                "requires_clarification": True,
+                "reason": "router_model_artifact_missing",
+                "confidence_source": "artifact_independent_fallback",
                 "top_k": [],
             }
 
