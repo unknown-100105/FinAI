@@ -24,6 +24,7 @@ import {
   BookMarked,
   Sparkles,
   WalletCards,
+  Globe2,
 } from "lucide-react";
 import {
   authenticateSession,
@@ -43,6 +44,7 @@ import { TokenGeneratorHub } from "./components/TokenGeneratorHub";
 import { StudyHub } from "./components/StudyHub";
 import { ResourcesHub } from "./components/ResourcesHub";
 import { MarketAnalystHub } from "./components/MarketAnalystHub";
+import { GlobalInvestmentHub } from "./components/GlobalInvestmentHub";
 import { XAIExplorerHub } from "./components/XAIExplorerHub";
 import { PlatformGuide } from "./components/PlatformGuide";
 import "./index.css";
@@ -66,6 +68,7 @@ const navigation = [
   { id: "arbitrage", label: "Crypto Arbitrage", icon: ArrowRightLeft },
   { id: "knowledge", label: "Knowledge", icon: BookOpen },
   { id: "analyst", label: "Market Analyst", icon: Activity },
+  { id: "global", label: "Global Markets", icon: Globe2 },
   { id: "resources", label: "Schemes & Resources", icon: Landmark },
   { id: "study", label: "Study Centre", icon: GraduationCap },
   { id: "token", label: "Token Lab", icon: Code2 },
@@ -561,6 +564,7 @@ function App() {
     arbitrage: <CryptoArbitrageHub />,
     knowledge: <KnowledgeHub />,
     analyst: <MarketAnalystHub />,
+    global: <GlobalInvestmentHub />,
     resources: <ResourcesHub />,
     study: <StudyHub />,
     token: <TokenGeneratorHub />,

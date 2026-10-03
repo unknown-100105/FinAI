@@ -15,6 +15,7 @@ import {
   type CandleAnalysis,
 } from "../api/marketAnalyst";
 import { MarketSearchBox } from "./MarketSearchBox";
+import { getPrediction, type Prediction } from "../api/intelligence";
 import { CandleChart } from "./CandleChart";
 import type { MarketBar } from "../api/market";
 import "./PlatformModules.css";
@@ -69,6 +70,7 @@ export function MarketAnalystHub() {
   });
   const [aiExplanation, setAiExplanation] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
+  const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [modelAnalysis, setModelAnalysis] = useState<any>(null);
   const [modelBusy, setModelBusy] = useState(false);
 
@@ -105,6 +107,12 @@ export function MarketAnalystHub() {
       );
       setNews(result.news || []);
       setSelected(Math.max(0, result.analysis.candles.length - 1));
+      try {
+        const modelResult = await getPrediction(instrument, range === "1D" ? 1 : range === "5D" ? 5 : range === "1M" ? 20 : 5);
+        setPrediction(modelResult);
+      } catch {
+        setPrediction(null);
+      }
 
       const modelResult = await getMarketModelAnalysis(
         instrument,
@@ -150,6 +158,14 @@ export function MarketAnalystHub() {
 
   const candle = candles[selected];
   const bars = useMemo(() => toMarketBars(candles), [candles]);
+  const xaiFactors = useMemo(() => {
+    const factors: Record<string, number> = {};
+    for (const model of prediction?.models ?? []) {
+      for (const [name, value] of Object.entries(model.feature_importance)) factors[name] = (factors[name] ?? 0) + Number(value);
+    }
+    const max = Math.max(...Object.values(factors), 0);
+    return Object.entries(factors).sort((a,b) => b[1] - a[1]).slice(0, 8).map(([name,value]) => ({ name, value, width: max > 0 ? Math.min(100, value / max * 100) : 0 }));
+  }, [prediction]);
 
   return (
     <section className="module-page">
@@ -437,6 +453,16 @@ export function MarketAnalystHub() {
               )}
             </>
           )}
+        </section>
+
+        <section className="workspace-panel model-arena-panel">
+          <div className="module-panel-head"><div><div className="module-kicker">Multi-model intelligence</div><h2>Model Arena · historical benchmark</h2></div><span className="source-chip">{prediction?.validation?.method || "Not run"}</span></div>
+          {prediction ? <><div className="analyst-model-summary"><div><span>Ensemble</span><strong>{prediction.ensemble.direction}</strong></div><div><span>Probability up</span><strong>{prediction.ensemble.probability_up == null ? "—" : Math.round(prediction.ensemble.probability_up * 100) + "%"}</strong></div><div><span>Agreement</span><strong>{prediction.ensemble.confidence == null ? "—" : Math.round(prediction.ensemble.confidence * 100) + "%"}</strong></div><div><span>Holdout</span><strong>{prediction.validation?.test_samples || 0}</strong></div></div><div className="model-arena-grid">{prediction.models.map((model) => <article key={model.model_id} className="model-arena-card"><div><strong>{model.model_id.replaceAll("_"," ")}</strong><span>{model.family}</span></div><b className={model.direction === "bullish" ? "signal-positive" : model.direction === "bearish" ? "signal-negative" : "source-chip"}>{model.direction}</b><div className="model-metric-row"><span>Probability</span><strong>{model.probability_up == null ? "—" : Math.round(model.probability_up * 100) + "%"}</strong></div><div className="model-metric-row"><span>Holdout accuracy</span><strong>{model.validation_accuracy == null ? "—" : Math.round(model.validation_accuracy * 100) + "%"}</strong></div><div className="model-feature-list">{Object.entries(model.feature_importance).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([name,value])=><span key={name}>{name} {Math.round(value*100)}%</span>)}</div></article>)}</div><div className="data-note">Historical chronological benchmark only; metrics expose uncertainty rather than claiming reliable future prediction.</div></> : <div className="module-empty">Model arena unavailable or insufficient historical data.</div>}
+        </section>
+        <section className="workspace-panel xai-panel">
+          <div className="module-panel-head"><div><div className="module-kicker">Explainable AI</div><h2>Why the ensemble produced this view</h2></div><span className="source-chip">Feature attribution</span></div>
+          {xaiFactors.length ? <div className="xai-factor-grid">{xaiFactors.map((factor) => <div key={factor.name}><span>{factor.name.replaceAll("_"," ")}</span><div className="xai-bar"><i style={{width: factor.width + "%"}} /></div><strong>{Math.round(factor.value*100)}%</strong></div>)}</div> : <div className="module-empty">Run the model arena to populate explainability.</div>}
+          <div className="data-note">Attribution describes model features; it is not proof of causality.</div>
         </section>
 
         <section className="workspace-panel">

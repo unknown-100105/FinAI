@@ -16,9 +16,12 @@ const ranges = [
   { id: "1D", days: 1, interval: "15m" },
   { id: "5D", days: 5, interval: "30m" },
   { id: "1M", days: 30, interval: "1d" },
+  { id: "3M", days: 90, interval: "1d" },
   { id: "6M", days: 180, interval: "1d" },
+  { id: "YTD", days: 365, interval: "1d" },
   { id: "1Y", days: 365, interval: "1d" },
   { id: "5Y", days: 1825, interval: "1d" },
+  { id: "MAX", days: 3650, interval: "1d" },
 ] as const;
 
 const intervals = ["1m", "5m", "15m", "30m", "1h", "1d", "1wk"] as const;

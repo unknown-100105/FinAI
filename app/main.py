@@ -19,6 +19,8 @@ from app.resources_api import router as resources_router
 from app.models_api import router as models_router
 from app.system_api import router as system_router
 from app.xai_router import router as xai_router
+from app.market_intelligence_api import router as market_intelligence_router
+from app.investment_knowledge_api import router as investment_knowledge_router
 
 
 APP_VERSION = "0.1.0"
@@ -59,6 +61,8 @@ app.include_router(resources_router)
 app.include_router(models_router)
 app.include_router(system_router)
 app.include_router(xai_router)
+app.include_router(market_intelligence_router)
+app.include_router(investment_knowledge_router)
 
 
 _orchestrator: Optional[XAISessionOrchestrator] = None

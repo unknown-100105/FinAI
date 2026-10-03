@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/end-to-end-finai
+      - feature/professional-market-intelligence-v2
   pull_request:
 
 jobs:
