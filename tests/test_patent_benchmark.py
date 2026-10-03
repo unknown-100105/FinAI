@@ -1,0 +1,44 @@
+from causal_risk.patent_benchmark import benchmark_patent_mechanism_variants
+
+
+def _case():
+    nodes = ["rates", "credit", "liquidity", "equity", "portfolio"]
+    edges = [
+        {"source": "rates", "target": "credit", "weight": 0.7},
+        {"source": "credit", "target": "liquidity", "weight": 0.8},
+        {"source": "liquidity", "target": "equity", "weight": 0.9},
+        {"source": "equity", "target": "portfolio", "weight": 0.8},
+    ]
+    bounds = {node: (-100.0, 100.0) for node in nodes}
+    return benchmark_patent_mechanism_variants(
+        nodes,
+        edges,
+        ["rates", "credit"],
+        {"rates": 10.0, "credit": 10.0},
+        [-1.0, -0.5, 0.5, 1.0],
+        bounds,
+        target_node="portfolio",
+        target_interval=(35.0, 55.0),
+        prefix_depth=1,
+        scale=0.35,
+    )
+
+
+def test_patent_benchmark_is_deterministic_and_reports_correctness():
+    one = _case()
+    two = _case()
+    assert one["status"] == "PATENT_MECHANISM_VARIANT_BENCHMARK_READY"
+    assert one["baseline"]["candidate_prefixes"] == 4
+    assert one["baseline"]["exact_completion_evaluations"] == 16
+    assert one["correctness"]["forward_no_false_prune"] is True
+    assert one["correctness"]["bidirectional_no_false_prune"] is True
+    assert one["incremental_propagation"]["exact_match_rate"] == 1.0
+    assert one == two
+
+
+def test_patent_benchmark_records_compute_effect_fields():
+    result = _case()
+    for variant in ("forward_certificate", "bidirectional_necessary_interval"):
+        assert "estimated_expensive_evaluations_avoided" in result[variant]
+        assert "estimated_evaluation_reduction_fraction" in result[variant]
+        assert 0.0 <= result[variant]["high_risk_prefix_recall"] <= 1.0
