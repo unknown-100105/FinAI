@@ -108,3 +108,15 @@ def test_controller_moves_toward_compute_budget():
     )
     assert controller.update(0.8) == pytest.approx(0.1)
     assert controller.update(0.1) == pytest.approx(0.0)
+
+
+def test_controller_recall_guard_overrides_compute_budget():
+    controller = AdaptivePruningController(
+        target_full_eval_fraction=0.25,
+        margin_step=0.1,
+        margin_floor=-0.5,
+        minimum_high_risk_recall=0.95,
+        current_margin=0.4,
+    )
+    assert controller.update(0.10, observed_high_risk_recall=0.80) == -0.5
+    assert controller.metadata()["minimum_high_risk_recall"] == 0.95
