@@ -7,7 +7,21 @@ COUNTRIES=[
 ("Brazil","BR","BRL","B3","Latin America"),("Mexico","MX","MXN","BMV","Latin America"),("Argentina","AR","ARS","BYMA","Latin America"),("Chile","CL","CLP","Santiago","Latin America"),("Colombia","CO","COP","BVC","Latin America"),
 ("South Africa","ZA","ZAR","JSE","Africa"),("Egypt","EG","EGP","EGX","Africa"),("Nigeria","NG","NGN","NGX","Africa"),("Kenya","KE","KES","NSE Kenya","Africa"),
 ]
-ASSET_CLASSES=[
+
+OFFICIAL_MARKET_SOURCES = {
+"IN":"https://www.nseindia.com/","US":"https://www.sec.gov/","CA":"https://www.ciro.ca/","GB":"https://www.fca.org.uk/",
+"DE":"https://www.bafin.de/","FR":"https://www.amf-france.org/","CH":"https://www.finma.ch/","NL":"https://www.afm.nl/",
+"IT":"https://www.consob.it/","ES":"https://www.cnmv.es/","IE":"https://www.centralbank.ie/","NO":"https://www.finanstilsynet.no/",
+"SE":"https://www.fi.se/","DK":"https://www.dfsa.dk/","FI":"https://www.finanssivalvonta.fi/","JP":"https://www.fsa.go.jp/",
+"KR":"https://www.fsc.go.kr/","CN":"https://www.csrc.gov.cn/","HK":"https://www.sfc.hk/","TW":"https://www.sfb.gov.tw/",
+"SG":"https://www.mas.gov.sg/","AU":"https://asic.gov.au/","NZ":"https://www.fma.govt.nz/","ID":"https://www.ojk.go.id/",
+"MY":"https://www.sc.com.my/","TH":"https://www.sec.or.th/","VN":"https://www.ssc.gov.vn/","PH":"https://www.sec.gov.ph/",
+"IL":"https://www.isa.gov.il/","AE":"https://sca.gov.ae/","SA":"https://cma.org.sa/","TR":"https://www.spk.gov.tr/",
+"BR":"https://www.gov.br/cvm/","MX":"https://www.gob.mx/cnbv","AR":"https://www.argentina.gob.ar/cnv",
+"CL":"https://www.cmfchile.cl/","CO":"https://www.superfinanciera.gov.co/","ZA":"https://www.fsca.co.za/",
+"EG":"https://fra.gov.eg/","NG":"https://sec.gov.ng/","KE":"https://www.cma.or.ke/",
+}
+\nASSET_CLASSES=[
 {"id":"equity","label":"Equities","description":"Listed company shares and eligible depositary receipts."},{"id":"etf","label":"ETFs","description":"Exchange-traded funds subject to venue and investor-access rules."},{"id":"index","label":"Indices","description":"Benchmarks for research; an index is not necessarily investable."},{"id":"government_bond","label":"Government bonds","description":"Sovereign bills and bonds subject to local and Indian rules."},{"id":"corporate_bond","label":"Corporate bonds","description":"Issuer debt securities subject to intermediary and market-access rules."},{"id":"deposit","label":"Bank deposits / FD","description":"Foreign time deposits; residency, KYC, FX and repatriation rules vary."},{"id":"fund","label":"Funds","description":"Mutual funds and other pooled investment vehicles."},{"id":"reit","label":"REITs","description":"Listed real-estate investment vehicles where available."},{"id":"commodity","label":"Commodities","description":"Gold, energy, agricultural and industrial commodity exposures."},{"id":"forex","label":"Currencies","description":"FX data for research; retail access is jurisdiction-dependent."},
 ]
 SPECIAL={
@@ -18,7 +32,7 @@ SPECIAL={
 "SG":("CONDITIONAL","Singapore securities and government securities have foreign-investor routes for some instruments; verify account, tax and Indian rules.","https://www.mas.gov.sg/"),
 }
 def list_global_markets():
-    return [{"country":n,"country_code":c,"currency":cur,"primary_market":m,"region":r,"asset_classes":[a["id"] for a in ASSET_CLASSES]} for n,c,cur,m,r in COUNTRIES]
+    return [{"country":n,"country_code":c,"currency":cur,"primary_market":m,"region":r,"asset_classes":[a["id"] for a in ASSET_CLASSES],"official_source_url":OFFICIAL_MARKET_SOURCES.get(c)} for n,c,cur,m,r in COUNTRIES]
 def global_catalog():
     return {"countries":list_global_markets(),"asset_classes":ASSET_CLASSES,"investor_profile":"Indian resident individual","scope_note":"Country coverage is a research registry; instrument-level eligibility must be verified before execution."}
 def eligibility(country_code:str,asset_class:str):
@@ -26,4 +40,4 @@ def eligibility(country_code:str,asset_class:str):
     if not country: raise ValueError("Unknown country code.")
     status="DOMESTIC" if code=="IN" else SPECIAL.get(code,("CONDITIONAL",None,None))[0]
     note= SPECIAL.get(code,(status,"Instrument-level eligibility, intermediary onboarding, Indian FEMA/LRS rules, local rules and tax treatment must be verified.",None))
-    return {"country":country[0],"country_code":code,"asset_class":asset_class,"investor":"Indian resident individual","status":status,"summary":note[1],"checks":["Indian FEMA / overseas-investment rules","LRS applicability and annual limit where relevant","Local foreign-investor eligibility","Bank/broker KYC and account opening","Currency conversion and repatriation rules","Foreign withholding and Indian tax/reporting treatment"],"verification_sources":[note[2]] if note[2] else []}
+    return {"country":country[0],"country_code":code,"asset_class":asset_class,"investor":"Indian resident individual","status":status,"summary":note[1],"checks":["Indian FEMA / overseas-investment rules","LRS applicability and annual limit where relevant","Local foreign-investor eligibility","Bank/broker KYC and account opening","Currency conversion and repatriation rules","Foreign withholding and Indian tax/reporting treatment"],"verification_sources":[u for u in (note[2], OFFICIAL_MARKET_SOURCES.get(code)) if u]}
