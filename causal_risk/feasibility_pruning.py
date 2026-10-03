@@ -173,6 +173,8 @@ def evaluate_prefix_feasibility(
     fixed = {str(k): float(v) for k, v in fixed_values.items()}
     intervened = tuple(dict.fromkeys(str(node) for node in intervened_nodes))
     unknown_intervened = [node for node in intervened if node not in labels]
+    if str(target_node) in intervened:
+        raise ValueError("target_node cannot be a future intervention")
     overlap = sorted(set(fixed) & set(intervened))
     if unknown_intervened:
         raise ValueError(f"intervened_nodes references unknown nodes: {unknown_intervened}")
