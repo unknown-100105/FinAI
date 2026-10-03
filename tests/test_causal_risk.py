@@ -420,3 +420,17 @@ def test_tail_sampler_retains_explicit_independent_baseline():
     )
     assert result["dependence_model"] == "independent_gaussian_baseline"
     assert result["covariance_source"] == "shock_scale"
+
+
+
+def test_tail_evaluation_reports_expected_shortfall_metrics():
+    shock = {"rates": 75, "supply": 60, "oil": 35, "credit": 40, "usd": 15}
+    allocation = {"equity": 55, "debt": 30, "gold": 10, "cash": 5}
+    result = run_counterfactual(
+        shock,
+        allocation,
+        include_tail_scenarios=True,
+    )
+    summary = result["tail_evaluation"]["summary"]
+    assert summary["systemic_stress_cvar95"] >= summary["systemic_stress_p95"]
+    assert summary["absolute_portfolio_impact_cvar95"] >= summary["absolute_portfolio_impact_p95"]
