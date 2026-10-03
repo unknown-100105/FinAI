@@ -57,4 +57,7 @@ else {
     Write-Host "Live API checks skipped because FINAI_SKIP_LIVE is set." -ForegroundColor DarkYellow
 }
 
+Write-Host "Running patent mechanism benchmark..."
+python scripts/run_patent_mechanism_benchmark.py --output patent-benchmark.json
+if ($LASTEXITCODE -ne 0) { throw "Patent mechanism benchmark failed" }
 Write-Host "=== Verification complete ===" -ForegroundColor Green
