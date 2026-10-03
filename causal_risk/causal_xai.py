@@ -10,6 +10,7 @@ def explain_paths(
     target: str = "portfolio",
     max_paths: int = 12,
 ) -> List[Dict[str, object]]:
+    """Enumerate directed structural paths and rank them by path strength."""
     children: dict[str, list[tuple[str, float]]] = defaultdict(list)
     for src, dst, weight in edges:
         children[src].append((dst, float(weight)))
@@ -17,8 +18,6 @@ def explain_paths(
     paths: list[Dict[str, object]] = []
 
     def walk(node: str, path: list[str], strength: float) -> None:
-        if len(paths) >= max_paths:
-            return
         if node == target:
             paths.append(
                 {
@@ -35,4 +34,6 @@ def explain_paths(
 
     for root in interventions:
         walk(root, [root], 1.0)
-    return paths
+
+    paths.sort(key=lambda item: float(item["strength"]), reverse=True)
+    return paths[:max_paths]

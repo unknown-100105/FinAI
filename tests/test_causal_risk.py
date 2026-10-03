@@ -21,7 +21,17 @@ def test_counterfactual_is_deterministic_and_explains_paths():
     assert first == second
     assert 0 <= first["systemic_stress"] <= 100
     assert first["explanation"]["primary_path"][-1] == "portfolio"
+    assert first["explanation"]["primary_path"] == max(
+        (path["path"] for path in first["explanation"]["paths"]),
+        key=lambda path: next(
+            item["strength"] for item in first["explanation"]["paths"] if item["path"] == path
+        ),
+    )
     assert first["validation"]["allocation"]["passed"]
+    assert first["tail_evaluation"]["status"] == "SCM_EVALUATED"
+    assert first["tail_evaluation"]["scenario_count"] == first["tail_scenarios"]["scenario_count"]
+    assert first["tail_evaluation"]["summary"]["systemic_stress_p99"] >= first["tail_evaluation"]["summary"]["systemic_stress_p95"]
+    assert first["tail_evaluation"]["scenarios"][0]["primary_path"][-1] == "portfolio"
 
 
 def test_invalid_allocation_is_rejected():

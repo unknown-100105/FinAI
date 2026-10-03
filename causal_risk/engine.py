@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
+import numpy as np
+
 from causal_risk.causal_xai import explain_paths
 from causal_risk.constraints import validate_allocation, validate_shocks
 from causal_risk.schema import DEFAULT_EDGES, DEFAULT_NODES, graph_payload, validate_graph
@@ -22,8 +24,17 @@ def _clamp(x: float, lo: float = -100.0, hi: float = 100.0) -> float:
 def _channels_from_scm(values: Dict[str, float], allocation: Dict[str, float]) -> Dict[str, float]:
     liquidity = _clamp(values.get("liquidity", 0.0))
     equity = _clamp(values.get("equity", 0.0) + liquidity * 0.24)
-    debt = _clamp(-values.get("rates", 0.0) * 0.05 - values.get("credit", 0.0) * 0.16 + values.get("oil", 0.0) * 0.02 - liquidity * 0.08)
-    gold = allocation.get("gold", 0.0) * (-values.get("usd", 0.0) * 0.03 - values.get("rates", 0.0) * 0.02 + values.get("oil", 0.0) * 0.02)
+    debt = _clamp(
+        -values.get("rates", 0.0) * 0.05
+        - values.get("credit", 0.0) * 0.16
+        + values.get("oil", 0.0) * 0.02
+        - liquidity * 0.08
+    )
+    gold = allocation.get("gold", 0.0) * (
+        -values.get("usd", 0.0) * 0.03
+        - values.get("rates", 0.0) * 0.02
+        + values.get("oil", 0.0) * 0.02
+    )
     drawdown = (
         allocation.get("equity", 0.0) * equity
         + allocation.get("debt", 0.0) * debt
@@ -46,6 +57,88 @@ def _channels_from_scm(values: Dict[str, float], allocation: Dict[str, float]) -
     }
 
 
+def _evaluate_structural_shock(
+    shock: Dict[str, float],
+    allocation: Dict[str, float],
+) -> Dict[str, Any]:
+    normalized = {key: value / 100.0 for key, value in shock.items()}
+    scm = simulate_scm(NODE_IDS, EDGE_TUPLES, normalized)
+    channels = _channels_from_scm(
+        {key: value * 100.0 for key, value in scm["node_values"].items()},
+        allocation,
+    )
+    interventions = tuple(key for key in shock if key in ALLOWED_SHOCKS)
+    paths = explain_paths(EDGE_TUPLES, interventions, target="portfolio")
+    return {
+        "scm": scm,
+        "channels": channels,
+        "paths": paths,
+    }
+
+
+def _percentiles(values: list[float]) -> Dict[str, float]:
+    if not values:
+        return {"p90": 0.0, "p95": 0.0, "p99": 0.0}
+    data = np.asarray(values, dtype=float)
+    return {
+        "p90": round(float(np.quantile(data, 0.90)), 3),
+        "p95": round(float(np.quantile(data, 0.95)), 3),
+        "p99": round(float(np.quantile(data, 0.99)), 3),
+    }
+
+
+def _evaluate_tail_scenarios(
+    tail: Dict[str, Any],
+    allocation: Dict[str, float],
+) -> Dict[str, Any]:
+    evaluated = []
+    systemic_values: list[float] = []
+    portfolio_values: list[float] = []
+
+    for scenario in tail["scenarios"]:
+        shock = {str(key): float(value) for key, value in scenario["shock"].items()}
+        result = _evaluate_structural_shock(shock, allocation)
+        channels = result["channels"]
+        systemic_values.append(float(channels["systemic_stress"]))
+        portfolio_values.append(float(channels["portfolio"]))
+        evaluated.append(
+            {
+                "scenario_id": scenario["scenario_id"],
+                "shock": shock,
+                "tail_score": scenario["tail_score"],
+                "systemic_stress": channels["systemic_stress"],
+                "portfolio_impact": channels["portfolio"],
+                "channels": {
+                    key: channels[key]
+                    for key in ("liquidity", "equity", "debt")
+                },
+                "primary_path": result["paths"][0]["path"] if result["paths"] else [],
+            }
+        )
+
+    systemic_pct = _percentiles(systemic_values)
+    portfolio_pct = _percentiles([abs(value) for value in portfolio_values])
+    worst = max(evaluated, key=lambda item: float(item["systemic_stress"]), default=None)
+
+    return {
+        "status": "SCM_EVALUATED",
+        "scenario_count": len(evaluated),
+        "summary": {
+            "mean_systemic_stress": round(float(np.mean(systemic_values)), 3) if systemic_values else 0.0,
+            "max_systemic_stress": round(float(max(systemic_values)), 3) if systemic_values else 0.0,
+            "systemic_stress_p90": systemic_pct["p90"],
+            "systemic_stress_p95": systemic_pct["p95"],
+            "systemic_stress_p99": systemic_pct["p99"],
+            "mean_portfolio_impact": round(float(np.mean(portfolio_values)), 3) if portfolio_values else 0.0,
+            "absolute_portfolio_impact_p90": portfolio_pct["p90"],
+            "absolute_portfolio_impact_p95": portfolio_pct["p95"],
+            "absolute_portfolio_impact_p99": portfolio_pct["p99"],
+            "highest_stress_scenario_id": worst["scenario_id"] if worst else None,
+        },
+        "scenarios": evaluated,
+    }
+
+
 def run_counterfactual(
     shock: Dict[str, float],
     allocation: Dict[str, float],
@@ -62,14 +155,10 @@ def run_counterfactual(
     if not shock_check["passed"]:
         raise ValueError("; ".join(shock_check["errors"]))
 
-    normalized = {key: value / 100.0 for key, value in shock.items()}
-    scm = simulate_scm(NODE_IDS, EDGE_TUPLES, normalized)
-    channels = _channels_from_scm(
-        {key: value * 100.0 for key, value in scm["node_values"].items()},
-        allocation,
-    )
-    interventions = tuple(key for key in shock if key in ALLOWED_SHOCKS)
-    paths = explain_paths(EDGE_TUPLES, interventions, target="portfolio")
+    structural = _evaluate_structural_shock(shock, allocation)
+    scm = structural["scm"]
+    channels = structural["channels"]
+    paths = structural["paths"]
 
     result: Dict[str, Any] = {
         "systemic_stress": channels["systemic_stress"],
@@ -101,7 +190,9 @@ def run_counterfactual(
         "assumptions": "Structural coefficients are transparent research parameters. Outputs are scenario analytics, not forecasts.",
     }
     if include_tail_scenarios:
+        tail = generate_tail_scenarios(shock)
         result["tail_scenarios"] = generate_tail_scenarios(shock)
+        result["tail_evaluation"] = _evaluate_tail_scenarios(tail, allocation)
     return result
 
 
