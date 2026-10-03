@@ -11,6 +11,7 @@ import {
 import {
   explainCandle,
   getMarketAnalyst,
+  getMarketModelAnalysis,
   type CandleAnalysis,
 } from "../api/marketAnalyst";
 import { MarketSearchBox } from "./MarketSearchBox";
@@ -68,6 +69,8 @@ export function MarketAnalystHub() {
   });
   const [aiExplanation, setAiExplanation] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
+  const [modelAnalysis, setModelAnalysis] = useState<any>(null);
+  const [modelBusy, setModelBusy] = useState(false);
 
   const rangeConfig =
     useMemo(() => ranges.find((item) => item.id === range) ?? ranges[0], [range]);
@@ -83,6 +86,7 @@ export function MarketAnalystHub() {
     setLoading(true);
     setError("");
     setAiExplanation("");
+    setModelBusy(true);
 
     try {
       const window = datesFor(rangeConfig.days);
@@ -101,6 +105,14 @@ export function MarketAnalystHub() {
       );
       setNews(result.news || []);
       setSelected(Math.max(0, result.analysis.candles.length - 1));
+
+      const modelResult = await getMarketModelAnalysis(
+        instrument,
+        window.start,
+        window.end,
+        interval,
+      );
+      setModelAnalysis(modelResult.analysis);
     } catch (requestError) {
       setCandles([]);
       setScenario({ scenarios: [], forecast_note: "" });
@@ -111,6 +123,7 @@ export function MarketAnalystHub() {
       );
     } finally {
       setLoading(false);
+      setModelBusy(false);
     }
   };
 
@@ -238,6 +251,42 @@ export function MarketAnalystHub() {
             {candle ? new Date(candle.timestamp).toLocaleString() : "—"}
           </span>
         </div>
+      </section>
+
+      <section className="workspace-panel model-ensemble-panel">
+        <div className="module-panel-head">
+          <div>
+            <div className="module-kicker">Quant research ensemble</div>
+            <h2>Walk-forward model comparison</h2>
+          </div>
+          <span className="source-chip">Research scenarios · not guarantees</span>
+        </div>
+        <p className="data-note">FinAI does not assume one model is universally best. It evaluates multiple model families on the selected historical window and combines them using inverse backtest error. The result is a research scenario, not a guaranteed forecast.</p>
+        {modelBusy ? <div className="module-empty">Running walk-forward model evaluation…</div> : modelAnalysis?.ensemble ? (
+          <>
+            <div className="forecast-summary-grid">
+              <div><span>Ensemble next-return scenario</span><strong>{Number(modelAnalysis.ensemble.next_return_scenario_percent).toFixed(3)}%</strong></div>
+              <div><span>Scenario direction</span><strong>{modelAnalysis.ensemble.direction}</strong></div>
+              <div><span>Model agreement</span><strong>{Number(modelAnalysis.ensemble.model_agreement_percent).toFixed(1)}%</strong></div>
+              <div><span>Reference close</span><strong>{Number(modelAnalysis.ensemble.reference_last_close).toFixed(2)}</strong></div>
+            </div>
+            <div className="model-table-wrap">
+              <table className="model-table">
+                <thead><tr><th>Model</th><th>Backtest MAE</th><th>Direction accuracy</th><th>Next scenario</th><th>Weight</th></tr></thead>
+                <tbody>{(modelAnalysis.models || []).map((model:any) => (
+                  <tr key={model.name}>
+                    <td><strong>{model.name}</strong></td>
+                    <td>{model.mae_percent == null ? "—" : Number(model.mae_percent).toFixed(3) + "%"}</td>
+                    <td>{model.directional_accuracy_percent == null ? "—" : Number(model.directional_accuracy_percent).toFixed(1) + "%"}</td>
+                    <td>{model.next_return_percent == null ? "—" : Number(model.next_return_percent).toFixed(3) + "%"}</td>
+                    <td>{(Number(model.weight) * 100).toFixed(1)}%</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </>
+        ) : <div className="module-empty">{modelAnalysis?.message || "No model comparison available for this history window."}</div>}
+        <div className="data-note">{modelAnalysis?.warning || "Use the model panel as research evidence, not as a promise about the next market move."}</div>
       </section>
 
       <section className="workspace-panel">
