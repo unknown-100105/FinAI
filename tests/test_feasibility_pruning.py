@@ -76,7 +76,8 @@ def test_empirical_support_can_reject_extreme_action():
         empirical_scale={"rates": 10},
         max_standardized_deviation=4.0,
     )
-    assert certificate.hard_infeasible is True
+    assert certificate.hard_infeasible is False
+    assert certificate.support_infeasible is True
     assert certificate.empirical_support_ok is False
 
 
@@ -152,3 +153,18 @@ def test_target_cannot_be_future_intervention():
             target_interval=(8.0, 10.0),
             intervened_nodes=("portfolio",),
         )
+
+
+def test_structural_bound_violation_remains_hard_infeasible():
+    certificate = evaluate_prefix_feasibility(
+        NODES,
+        EDGES,
+        {"rates": 101},
+        BOUNDS,
+        target_node="portfolio",
+        target_interval=(0, 100),
+        empirical_center={"rates": 0},
+        empirical_scale={"rates": 10},
+    )
+    assert certificate.hard_infeasible is True
+    assert certificate.support_infeasible is True
