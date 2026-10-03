@@ -18,6 +18,7 @@ from causal_risk.multimodal_ingestion import (
 )
 from causal_risk.regime_benchmark import assign_regimes, evaluate_predictions
 from causal_risk.risk_calibration import calibrate_risk_target
+from causal_risk.pipeline import run_causal_research_pipeline
 from causal_risk.research_counterfactual import run_research_counterfactual
 
 router = APIRouter(prefix="/api/v1/causal-risk", tags=["causal-risk-research"])
@@ -294,4 +295,42 @@ def multimodal_ingest(request: MultimodalIngestionRequest):
             },
         }
     except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class CausalResearchPipelineRequest(BaseModel):
+    samples: List[List[float]]
+    node_ids: List[str]
+    lambda1: float = Field(default=0.02, ge=0, le=2)
+    threshold: float = Field(default=0.08, ge=0, le=2)
+    lags: int = Field(default=2, ge=1, le=8)
+    alpha: float = Field(default=1.0, gt=0, le=100)
+    windows: int = Field(default=4, ge=2, le=6)
+    window_fraction: float = Field(default=0.60, gt=0, le=0.90)
+    stable_frequency: float = Field(default=0.75, ge=0.5, le=1.0)
+    bootstrap_draws: int = Field(default=100, ge=20, le=1000)
+    block_size: int = Field(default=10, ge=1, le=365)
+    ridge_alpha: float = Field(default=1.0, gt=0, le=100)
+    seed: int = Field(default=42, ge=0, le=10_000_000)
+
+
+@router.post("/research-pipeline")
+def causal_research_pipeline(request: CausalResearchPipelineRequest):
+    try:
+        return run_causal_research_pipeline(
+            request.samples,
+            request.node_ids,
+            lambda1=request.lambda1,
+            threshold=request.threshold,
+            lags=request.lags,
+            alpha=request.alpha,
+            windows=request.windows,
+            window_fraction=request.window_fraction,
+            stable_frequency=request.stable_frequency,
+            bootstrap_draws=request.bootstrap_draws,
+            block_size=request.block_size,
+            ridge_alpha=request.ridge_alpha,
+            seed=request.seed,
+        )
+    except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
