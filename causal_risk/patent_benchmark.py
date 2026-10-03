@@ -199,6 +199,49 @@ def benchmark_patent_mechanism_variants(
         incremental_matches / len(candidate_prefixes) if candidate_prefixes else 1.0
     )
 
+    baseline = {
+        "candidate_prefixes": len(candidate_prefixes),
+        "exact_completion_evaluations": exact_completion_evaluations,
+        "high_risk_prefixes": exact_feasible_prefixes,
+        "remaining_actions_per_prefix": len(action_levels) ** len(remaining),
+    }
+    forward = {
+        "hard_pruned_prefixes": forward_hard_pruned,
+        "retained_prefixes": forward_retained,
+        "false_prunes": forward_false_prunes,
+        "high_risk_prefix_recall": (
+            (exact_feasible_prefixes - forward_false_prunes) / exact_feasible_prefixes
+            if exact_feasible_prefixes else 1.0
+        ),
+        "estimated_expensive_evaluations_avoided": (
+            forward_hard_pruned * (len(action_levels) ** len(remaining))
+        ),
+        "estimated_evaluation_reduction_fraction": (
+            forward_hard_pruned / len(candidate_prefixes)
+            if candidate_prefixes else 0.0
+        ),
+    }
+    backward_result = {
+        "necessary_interval_pruned_prefixes": backward_pruned,
+        "retained_prefixes": backward_retained,
+        "false_prunes": backward_false_prunes,
+        "high_risk_prefix_recall": (
+            (exact_feasible_prefixes - backward_false_prunes) / exact_feasible_prefixes
+            if exact_feasible_prefixes else 1.0
+        ),
+        "estimated_expensive_evaluations_avoided": (
+            backward_pruned * (len(action_levels) ** len(remaining))
+        ),
+        "estimated_evaluation_reduction_fraction": (
+            backward_pruned / len(candidate_prefixes)
+            if candidate_prefixes else 0.0
+        ),
+        "target_ancestor_required_intervals": {
+            node: list(interval)
+            for node, interval in required.items()
+        },
+    }
+
     return {
         "status": "PATENT_MECHANISM_VARIANT_BENCHMARK_READY",
         "baseline": baseline,
