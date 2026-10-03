@@ -20,7 +20,7 @@ import "./PlatformModules.css";
 
 type FeatureKey = "burnable" | "pausable" | "capped" | "permit" | "mintable";
 
-const featureMeta: Array<{
+const tokenLabTabs: Array<{ id: "design" | "code" | "security"; label: string; icon: typeof Layers3 }> = [\n  { id: "design", label: "Design studio", icon: Layers3 },\n  { id: "code", label: "Contract source", icon: Code2 },\n  { id: "security", label: "Security review", icon: ShieldCheck },\n];\n\nconst featureMeta: Array<{
   id: FeatureKey;
   label: string;
   description: string;
