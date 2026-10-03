@@ -101,6 +101,9 @@ export default function CausalRiskLab() {
           cash: portfolios[p].cash,
         },
         include_tail_scenarios: true,
+        use_empirical_tail_dependence: true,
+        tail_distribution: "student_t_copula",
+        tail_degrees_of_freedom: 5,
       });
       setResult(next);
     } catch (requestError) {
@@ -137,7 +140,7 @@ export default function CausalRiskLab() {
       </div>
       <div className="causal-hero-metrics">
         <div><span>Graph</span><strong>{graphEdges.length} links</strong></div>
-        <div><span>Engine</span><strong>SCM v0.2</strong></div>
+        <div><span>Engine</span><strong>SCM v0.3</strong></div>
         <div><span>Discovery</span><strong>{String(graph.learned_components_status.notears_linear ?? "research")}</strong></div>
       </div>
     </header>
