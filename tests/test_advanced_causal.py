@@ -311,3 +311,26 @@ def test_microstructure_endpoint():
     )
     assert response.status_code == 200
     assert response.json()["status"] == "MICROSTRUCTURE_FEATURES_READY"
+
+
+
+def test_end_to_end_causal_research_pipeline_bundle():
+    from causal_risk.pipeline import run_causal_research_pipeline
+
+    rng = np.random.default_rng(41)
+    x = rng.normal(size=(80, 3))
+    x[:, 1] += 0.5 * x[:, 0]
+    result = run_causal_research_pipeline(
+        x,
+        ["rates", "credit", "oil"],
+        windows=2,
+        bootstrap_draws=20,
+        block_size=5,
+        lags=1,
+    )
+    assert result["status"] == "FINAI_CAUSAL_RESEARCH_PIPELINE_READY"
+    assert result["discovery"]["consensus"]["status"] in {
+        "CONSENSUS_RESEARCH_GRAPH_READY",
+        "NO_CONSENSUS_EDGES",
+    }
+    assert "regime_summary" in result
