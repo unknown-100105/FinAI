@@ -143,6 +143,12 @@ class ChatRequest(BaseModel):
         le=1024,
     )
 
+    model_id: Optional[str] = Field(
+        default=None,
+        max_length=128,
+        description="Optional enabled reasoning model override.",
+    )
+
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
@@ -233,6 +239,7 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
             language=request.language,
             persona=request.persona,
             max_new_tokens=request.max_new_tokens,
+            model_id=request.model_id,
         )
 
     except ValueError as exc:
