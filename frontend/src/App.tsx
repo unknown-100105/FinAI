@@ -24,6 +24,7 @@ import {
   BookMarked,
   Sparkles,
   WalletCards,
+  Globe2,
 } from "lucide-react";
 import {
   authenticateSession,
