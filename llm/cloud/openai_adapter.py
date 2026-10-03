@@ -31,3 +31,13 @@ class OpenAIResponseAdapter:
             persona=persona,
             max_new_tokens=max_new_tokens,
         )
+
+
+class OpenAIAstraResponseAdapter(OpenAIResponseAdapter):
+    def __init__(self):
+        super().__init__(provider=OpenAIProvider(model="gpt-6-astra"))
+
+
+class OpenAISolResponseAdapter(OpenAIResponseAdapter):
+    def __init__(self):
+        super().__init__(provider=OpenAIProvider(model="gpt-6.1-sol"))
