@@ -232,10 +232,12 @@ class FinAIHybridEngine:
             from knowledge.financial_catalog import build_answer as build_catalog_answer
             from knowledge.finance_encyclopedia import build_answer as build_encyclopedia_answer
             from compliance_catalog import find_items
+            from knowledge.india_finance_regulation import search_regulations
 
             catalog_result = build_catalog_answer(user_text)
             encyclopedia_result = build_encyclopedia_answer(user_text)
             compliance_results = find_items(user_text)
+            regulatory_results = search_regulations(user_text)
 
             compliance_hint = any(
                 term in user_text.lower()
@@ -246,7 +248,39 @@ class FinAIHybridEngine:
                 )
             )
 
-            if compliance_hint and compliance_results:
+            regulatory_hint = any(
+                term in user_text.lower()
+                for term in (
+                    "sebi", "listing", "ipo", "sme ipo", "innovators growth",
+                    "foreign investment", "fdi", "fpi", "nri", "oci", "ifsc",
+                    "etf", "aif", "create a crypto", "create cryptocurrency",
+                    "create token", "mining", "proof of work",
+                )
+            )
+
+            if regulatory_hint and regulatory_results:
+                item = regulatory_results[0]
+                regulatory_answer = (
+                    f"{item['title']}\\n{item['answer']}\\n\\n"
+                    "Practical workflow:\\n"
+                    + "\\n".join(f"- {step}" for step in item["steps"])
+                    + f"\\n\\nAuthority: {item['authority']}\\n"
+                    f"Official source: {item['official_url']}\\n"
+                    f"Updated/source date: {item['updated']}\\n"
+                    f"Caveat: {item['caveat']}"
+                )
+                regulatory_knowledge = {
+                    "answer": regulatory_answer,
+                    "matches": [item],
+                    "source": "india_finance_regulation_catalog",
+                    "requires_current_data": True,
+                }
+            else:
+                regulatory_knowledge = None
+
+            if regulatory_knowledge:
+                knowledge_result = regulatory_knowledge
+            elif compliance_hint and compliance_results:
                 item = compliance_results[0]
                 compliance_answer = (
                     f"{item['name']}\\n{item['purpose']}\\n\\n"
