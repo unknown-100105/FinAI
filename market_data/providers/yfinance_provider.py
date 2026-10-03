@@ -191,6 +191,7 @@ class YFinanceProvider(MarketDataProvider):
         start: datetime,
         end: datetime,
         exchange: Optional[str] = None,
+        interval: str = "1d",
     ) -> List[MarketBar]:
         if start > end:
             raise ValueError(
@@ -205,11 +206,26 @@ class YFinanceProvider(MarketDataProvider):
 
         ticker = yf.Ticker(yahoo_symbol)
 
+        allowed_intervals = {
+            "1m", "2m", "5m", "15m", "30m", "60m",
+            "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo",
+        }
+
+        if interval not in allowed_intervals:
+            raise ValueError(
+                f"Unsupported history interval: {interval}"
+            )
+
+        if interval == "1d":
+            request_interval = "1d"
+        else:
+            request_interval = interval
+
         try:
             history = ticker.history(
                 start=start,
                 end=end,
-                interval="1d",
+                interval=request_interval,
                 auto_adjust=False,
                 actions=False,
                 timeout=self.timeout,
