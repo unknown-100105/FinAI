@@ -22,33 +22,59 @@ REGULATORY_SOURCE_URL = "https://sansad.in/getFile/loksabhaquestions/annex/187/A
 
 FIU_REGISTERED_SNAPSHOT = (
     ("Coin DCX", "Neblio Technologies Private Limited", "India", "registered"),
-    ("Giottus", "Giottus Technologies Pvt Ltd", "India", "registered"),
-    ("Zebpay", "Awlencan Innovations India Limited", "India", "registered"),
-    ("Coinswitch", "Bitcipher Labs LLP", "India", "registered"),
-    ("Mudrex", "RPFAS Technologies Private Limited", "India", "registered"),
-    ("WazirX", "Zanmai Labs PVT LTD", "India", "registered"),
+    ("ANQ Finance", "ANQ Digital Finserv Private Limited", "India", "registered"),
     ("Unocoin", "Unocoin Technologies PVT LTD", "India", "registered"),
-    ("Coinbase India", "Coinbase India Private Limited", "India", "registered"),
-    ("Binance", "Nest Services Limited (earlier Binance International Limited)", "Seychelles", "registered"),
-    ("Bybit", "Bybit Fintech Limited", "Seychelles", "registered"),
-    ("KuCoin", "Peken Global Limited", "Seychelles", "registered"),
-    ("Delta Exchange", "Excelium Technologies Private Limited", "India", "registered"),
-    ("Flitpay", "Flitpay Private Limited", "India", "registered"),
-    ("Buyucoin", "IBLOCK Technologies Private Limited", "India", "registered"),
-    ("KoinBX", "Kooz Advisors and Technologies Private Limited", "India", "registered"),
-    ("Density Exchange", "Pagarpay India Private Limited", "India", "registered"),
-    ("pi42", "Lightningnodes Technologies Private Limited", "India", "registered"),
-    ("Transak", "Transak Technology India Private Limited", "India", "registered"),
-    ("Onmeta", "ABHIBHA Technologies Private Limited", "India", "registered"),
     ("Onramp", "Buyhatke internet private limited", "India", "registered"),
+    ("Giottus", "Giottus Technologies Pvt Ltd", "India", "registered"),
+    ("Bitbns", "Bitbns Internet Private Limited", "India", "registered"),
+    ("Zebpay", "Awlencan Innovations India Limited", "India", "registered"),
+    ("WazirX", "Zanmai Labs PVT LTD", "India", "registered"),
+    ("Coinswitch", "Bitcipher Labs LLP", "India", "registered"),
+    ("CoinswitchX", "Nextgendev Solutions Private Limited", "India", "registered"),
+    ("Mudrex", "RPFAS Technologies Private Limited", "India", "registered"),
+    ("Buyucoin", "IBLOCK Technologies Private Limited", "India", "registered"),
+    ("Coindhan", "WOLLFISH Labs Pvt Ltd", "India", "registered"),
+    ("Rario", "Rario Digital Private Limited", "India", "registered"),
     ("Suncrypto", "Angelic Infotech Private Limited", "India", "registered"),
     ("Carret", "Carretx Technologies Pvt. Ltd.", "India", "registered"),
-    ("Bitbns", "Bitbns Internet Private Limited", "India", "registered"),
-    ("ANQ Finance", "ANQ Digital Finserv Private Limited", "India", "registered"),
-    ("Rario", "Rario Digital Private Limited", "India", "registered"),
+    ("—", "Ante Multimedia Private Limited", "India", "registered"),
+    ("Onmeta", "ABHIBHA Technologies Private Limited", "India", "registered"),
+    ("Cryptosmartlife", "Smartliving Digital Technologies Pvt. Ltd", "India", "registered"),
+    ("Pyor", "UCY Technology Private Limited", "India", "registered"),
+    ("Rario", "Digital Collectibles Pte. Ltd.", "Singapore", "registered"),
+    ("Valr", "Veeratva Technologies Private Limited", "India", "registered"),
+    ("Transak", "Transak Technology India Private Limited", "India", "registered"),
+    ("Getbit", "REMIZO Technologies India Private Limited", "India", "registered"),
+    ("Bytex", "FIN GENIE Tech Private Limited", "India", "registered"),
+    ("—", "ARDOUR Labs Private Limited", "India", "registered"),
+    ("Inocyx", "Inocyx Technologies Private Limited", "India", "registered"),
+    ("Fanztar", "Metatoken Technologies Private Limited", "India", "registered"),
+    ("Delta Exchange", "Excelium Technologies Private Limited", "India", "registered"),
+    ("—", "Rovi91 Innovations Private Limited", "India", "registered"),
+    ("Bitbse.com", "Longreen India Private Limited", "India", "registered"),
+    ("Flitpay", "Flitpay Private Limited", "India", "registered"),
     ("Stable Pay", "Fincrypt LLP", "India", "registered"),
     ("ArthBit", "Arthbit Private Limited", "India", "registered"),
-    ("eXchange1", 'UAB “Web 3 Utility Platform”', "Lithuania", "registered"),
+    ("Density Exchange", "Pagarpay India Private Limited", "India", "registered"),
+    ("pi42", "Lightningnodes Technologies Private Limited", "India", "registered"),
+    ("KoinBX", "Kooz Advisors and Technologies Private Limited", "India", "registered"),
+    ("—", "Mindless Pandora Tech Solutions Private Limited", "India", "registered"),
+    ("—", "FanCraze Technologies Inc.", "Delaware, USA", "registered"),
+    ("BIT24HR", "SUBHX INFOTECH (OPC) PRIVATE LIMITED", "India", "registered"),
+    ("KuCoin", "Peken Global Limited", "Seychelles", "registered"),
+    ("Alpyne", "ALSD Technologies Private Limited", "India", "registered"),
+    ("Square", "Damsol Pvt Ltd", "India", "registered"),
+    ("Liminal", "First Answer India Technologies Pvt Ltd", "India", "registered"),
+    ("Eclipton", "Eclipton Technologies Private Limited", "India", "registered"),
+    ("Blockoville", "Blockoville OU", "Estonia", "registered"),
+    ("Binance", "Nest Services Limited (Earlier Binance International Limited)", "Seychelles", "registered"),
+    ("Bybit", "Bybit Fintech Limited", "Seychelles", "registered"),
+    ("Coinbase India", "Coinbase India Private Limited", "India", "registered"),
+    ("eXchange1", 'UAB "Web 3 Utility Platform"', "Lithuania", "registered"),
+    ("eXchange1.India", "UAB WEB 3 UTILITY IT SERVICES INDIA PRIVATE LIMITED", "India", "linked_offshore"),
+    ("PLATINX", "Eopsin Tech Private Limited", "India", "conditional"),
+    ("Parracrypto", "PARAACRYPTO TECHNOLOGY PRIVATE LIMITED", "India", "conditional"),
+    ("BitDelta", "Durva Fintech Private Limited", "India", "conditional"),
 )
 
 # Public connectors that are both present in CCXT in typical installations
@@ -82,6 +108,20 @@ def supported_connectors() -> List[Dict[str, str]]:
             "source": REGULATORY_SOURCE,
         }
         for exchange_id, trade_name in PUBLIC_CONNECTOR_MAP.items()
+    ]
+
+
+def registered_vda_services() -> List[Dict[str, str]]:
+    return [
+        {
+            "trade_name": trade_name,
+            "registered_entity": entity,
+            "country": country,
+            "status": status,
+            "snapshot_date": "2026-03-09",
+            "source": REGULATORY_SOURCE_URL,
+        }
+        for trade_name, entity, country, status in FIU_REGISTERED_SNAPSHOT
     ]
 
 
