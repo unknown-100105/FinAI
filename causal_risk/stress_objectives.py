@@ -41,9 +41,18 @@ class CausalStressReward:
                     raise ValueError(f"{name} must be square with factor dimension")
                 if not np.isfinite(array).all():
                     raise ValueError(f"{name} must be finite")
+                if name == "correlation_inverse":
+                    if not np.allclose(array, array.T, atol=1e-8):
+                        raise ValueError("correlation_inverse must be symmetric")
+                    if float(np.min(np.linalg.eigvalsh(array))) <= 0:
+                        raise ValueError("correlation_inverse must be positive definite")
+                if name == "edge_matrix" and np.any(np.abs(array) > 5.0):
+                    raise ValueError("edge_matrix weights must be between -5 and 5")
         if self.portfolio_weights is not None:
             if len(self.portfolio_weights) != d:
                 raise ValueError("portfolio_weights must match factor dimension")
+            if not np.isfinite(np.asarray(self.portfolio_weights, dtype=float)).all():
+                raise ValueError("portfolio_weights must be finite")
 
     def __call__(self, trajectory: Tensor) -> Tensor:
         if trajectory.ndim != 2 or trajectory.shape[1] != len(self.empirical_center):
