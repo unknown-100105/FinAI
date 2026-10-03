@@ -76,13 +76,26 @@ function extractTrace(data: any): TraceState {
   const executionPlan = root?.execution_plan ?? {};
   const responseGeneration = root?.response_generation ?? {};
 
+  const verificationFailed =
+    root?.status === "VERIFICATION_FAILED" ||
+    responseGeneration?.status === "VERIFICATION_FAILED" ||
+    responseGeneration?.verification?.passed === false ||
+    responseGeneration?.claim_verification?.passed === false ||
+    responseGeneration?.fallback_verification?.passed === false ||
+    responseGeneration?.fallback_claim_verification?.passed === false ||
+    root?.verification?.passed === false ||
+    root?.claim_verification?.passed === false;
+
   const verificationPassed =
-    root?.verification?.passed === true ||
-    root?.claim_verification?.passed === true ||
-    responseGeneration?.verification?.passed === true ||
-    responseGeneration?.claim_verification?.passed === true ||
-    responseGeneration?.fallback_verification?.passed === true ||
-    responseGeneration?.fallback_claim_verification?.passed === true;
+    !verificationFailed &&
+    (
+      root?.verification?.passed === true ||
+      root?.claim_verification?.passed === true ||
+      responseGeneration?.verification?.passed === true ||
+      responseGeneration?.claim_verification?.passed === true ||
+      responseGeneration?.fallback_verification?.passed === true ||
+      responseGeneration?.fallback_claim_verification?.passed === true
+    );
 
   return {
     intent:
@@ -111,9 +124,11 @@ function extractTrace(data: any): TraceState {
       root?.model_id ??
       "Cloud LLM",
     verification:
-      verificationPassed
-        ? "Verified"
-        : "Completed",
+      verificationFailed
+        ? "Verification failed"
+        : verificationPassed
+          ? "Verified"
+          : "Completed",
   };
 }
 
