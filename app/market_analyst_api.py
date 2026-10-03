@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Query
 from market_data.analyst import analyze_candles
