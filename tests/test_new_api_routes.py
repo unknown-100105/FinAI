@@ -16,6 +16,7 @@ def test_route_registry_has_new_modules():
         "/api/v1/crypto/mining/btc",
         "/api/v1/knowledge/investment-routes",
         "/api/v1/system/status",
+        "/api/v1/causal-risk/graph",
     }
     assert expected <= paths
 
@@ -48,3 +49,11 @@ def test_model_registry_endpoint_is_reachable():
     response = client.get("/api/v1/models?capability=financial_qa")
     assert response.status_code == 200
     assert "models" in response.json()
+
+
+def test_causal_risk_counterfactual_is_reachable():
+    client = TestClient(app)
+    response = client.post("/api/v1/causal-risk/counterfactual", json={"shock": {"rates": 75, "supply": 60}})
+    assert response.status_code == 200
+    body = response.json()
+    assert 0 <= body["systemic_stress"] <= 100
