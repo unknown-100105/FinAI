@@ -12,6 +12,22 @@ class ModelSpec:
 
 
 MODEL_REGISTRY = {
+    "openai-luna": ModelSpec(
+        model_id="openai-luna",
+        model_name="gpt-6-luna",
+        role="openai_reasoning_financial_response",
+        capabilities=(
+            "response_generation",
+            "financial_qa",
+            "financial_reasoning",
+            "financial_explanation",
+            "persona_control",
+            "table_reasoning",
+            "tool_assisted_qa",
+        ),
+        enabled=False,
+    ),
+
     "gemini-cloud": ModelSpec(
         model_id="gemini-cloud",
         model_name="gemini-3.8-flash",
@@ -141,10 +157,16 @@ def get_model_spec(model_id: str) -> ModelSpec:
 
 
 def enabled_models():
+    import os
+
     return [
         spec
         for spec in MODEL_REGISTRY.values()
         if spec.enabled
+        or (
+            spec.model_id == "openai-luna"
+            and bool(os.getenv("OPENAI_API_KEY"))
+        )
     ]
 
 
