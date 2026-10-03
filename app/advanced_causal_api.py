@@ -21,6 +21,12 @@ from causal_risk.multimodal_ingestion import (
 from causal_risk.regime_benchmark import assign_regimes, evaluate_predictions
 from causal_risk.risk_calibration import calibrate_risk_target
 from causal_risk.channel_calibration import fit_channel_calibration
+from causal_risk.research_evaluation import (
+    ablation_summary,
+    perturb_features,
+    scenario_quality_metrics,
+    tail_backtest_metrics,
+)
 from causal_risk.pipeline import run_causal_research_pipeline
 from causal_risk.research_counterfactual import run_research_counterfactual
 from causal_risk.temporal_gnn import (
@@ -411,6 +417,97 @@ def research_status():
             "decision logic unless explicitly validated and approved."
         ),
     }
+
+
+class TailBacktestRequest(BaseModel):
+    realized_loss: List[float] = Field(min_length=20, max_length=5000)
+    forecast_var: List[float] = Field(min_length=20, max_length=5000)
+    level: float = Field(default=0.95, gt=0.5, lt=1.0)
+
+
+@router.post("/tail-backtest")
+def tail_backtest(request: TailBacktestRequest):
+    try:
+        return tail_backtest_metrics(
+            request.realized_loss,
+            request.forecast_var,
+            level=request.level,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class ScenarioQualityRequest(BaseModel):
+    scenarios: List[List[float]] = Field(min_length=2, max_length=5000)
+    empirical_samples: List[List[float]] | None = Field(default=None, max_length=5000)
+    causal_edge_matrix: List[List[float]] | None = Field(default=None, max_length=100)
+
+
+@router.post("/scenario-quality")
+def scenario_quality(request: ScenarioQualityRequest):
+    try:
+        total_cells = len(request.scenarios) * len(request.scenarios[0])
+        if request.empirical_samples:
+            total_cells += len(request.empirical_samples) * len(request.empirical_samples[0])
+        if total_cells > 250_000:
+            raise ValueError("scenario-quality input exceeds the maximum of 250000 cells")
+        return scenario_quality_metrics(
+            request.scenarios,
+            request.empirical_samples,
+            causal_edge_matrix=request.causal_edge_matrix,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class AblationSummaryRequest(BaseModel):
+    results: Dict[str, Dict[str, float]]
+    primary_metric: str = Field(min_length=1, max_length=64)
+
+
+@router.post("/ablation-summary")
+def ablation(request: AblationSummaryRequest):
+    try:
+        if len(request.results) < 2 or len(request.results) > 50:
+            raise ValueError("ablation results must contain between 2 and 50 models")
+        return ablation_summary(request.results, primary_metric=request.primary_metric)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class RobustnessPerturbationRequest(BaseModel):
+    samples: List[List[float]] = Field(min_length=2, max_length=5000)
+    scale: float = Field(default=1.0, gt=0, le=10)
+    missing_columns: List[int] = Field(default_factory=list, max_length=100)
+    noise_std: float = Field(default=0.0, ge=0, le=10)
+    seed: int = Field(default=42, ge=0, le=10_000_000)
+
+
+@router.post("/robustness/perturb")
+def robustness_perturb(request: RobustnessPerturbationRequest):
+    try:
+        if request.samples and len(request.samples) * len(request.samples[0]) > 250_000:
+            raise ValueError("robustness input exceeds the maximum of 250000 cells")
+        result = perturb_features(
+            request.samples,
+            scale=request.scale,
+            missing_columns=request.missing_columns,
+            noise_std=request.noise_std,
+            seed=request.seed,
+        )
+        return {
+            "status": "ROBUSTNESS_PERTURBATION_READY",
+            "shape": list(result.shape),
+            "samples": result.tolist(),
+            "perturbation": {
+                "scale": request.scale,
+                "missing_columns": request.missing_columns,
+                "noise_std": request.noise_std,
+                "seed": request.seed,
+            },
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 class ResearchCounterfactualRequest(BaseModel):
