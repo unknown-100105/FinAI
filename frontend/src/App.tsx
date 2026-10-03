@@ -15,6 +15,7 @@ import {
   PiggyBank,
   Send,
   ShieldCheck,
+  ArrowRightLeft,
   Sparkles,
   WalletCards,
 } from "lucide-react";
@@ -29,6 +30,7 @@ import { PlatformHome } from "./components/PlatformHome";
 import { InvestmentHub } from "./components/InvestmentHub";
 import { NewsHub } from "./components/NewsHub";
 import { FormsHub } from "./components/FormsHub";
+import { CryptoArbitrageHub } from "./components/CryptoArbitrageHub";
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
@@ -47,6 +49,7 @@ const navigation = [
   { id: "portfolio", label: "Portfolio", icon: WalletCards },
   { id: "news", label: "News", icon: Newspaper },
   { id: "forms", label: "Forms", icon: FileText },
+  { id: "arbitrage", label: "Crypto Arbitrage", icon: ArrowRightLeft },
 ] as const;
 
 type Section = (typeof navigation)[number]["id"];
@@ -497,6 +500,7 @@ function App() {
     portfolio: <WealthWorkspace />,
     news: <NewsHub />,
     forms: <FormsHub />,
+    arbitrage: <CryptoArbitrageHub />,
   }[section];
 
   return (
