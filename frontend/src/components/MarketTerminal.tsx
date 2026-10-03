@@ -35,6 +35,16 @@ const instruments = [
   "SBIN",
   "ITC",
   "LT",
+  "WIPRO",
+  "BHARTIARTL",
+  "MARUTI",
+  "AXISBANK",
+  "Bitcoin",
+  "Ethereum",
+  "Gold",
+  "Silver",
+  "USD/INR",
+  "EUR/INR",
 ];
 
 const ranges = [
