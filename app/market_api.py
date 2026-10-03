@@ -203,8 +203,10 @@ def analytics(
     start: datetime = Query(
         ...,
     ),
-    end: datetime = Query(
-        ...,
+    end: datetime = Query(...),
+    interval: str = Query(
+        default="1d",
+        pattern="^(1m|2m|5m|15m|30m|60m|90m|1h|1d|5d|1wk|1mo|3mo)$",
     ),
 ):
     if start > end:
@@ -223,6 +225,7 @@ def analytics(
             start=start,
             end=end,
             provider_id="yfinance",
+            interval=interval,
         )
     except Exception as exc:
         raise HTTPException(
