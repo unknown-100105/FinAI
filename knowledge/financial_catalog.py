@@ -357,7 +357,7 @@ def build_answer(query: str, limit: int = 3) -> dict:
         return {"found": False, "matches": [], "answer": ""}
 
     primary = matches[0]
-    sections = [primary.summary, "", "Key points:"]
+    sections = [primary.title, primary.summary, "", "Key points:"]
     sections.extend(f"- {point}" for point in primary.key_points)
 
     if len(matches) > 1:
