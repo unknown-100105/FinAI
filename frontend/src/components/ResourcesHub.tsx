@@ -107,6 +107,7 @@ export function ResourcesHub({ defaultCategory = "All" }: { defaultCategory?: st
                 {selected.form_url && <a className="primary-module-button link-button" href={selected.form_url} target="_blank" rel="noreferrer"><FileText size={13} /> Open official form/source</a>}
                 <button type="button" className="secondary-module-button" onClick={saveDraft}><Save size={13} /> {saved ? "Draft saved" : "Save draft"}</button>
                 <button type="button" className="secondary-module-button" onClick={exportDraft}>Export JSON</button>
+                <button type="button" className="secondary-module-button" onClick={() => window.print()}>Print / Save PDF</button>
               </div>
               <div className="detail-section">
                 <div className="detail-section-title">Form filler</div>
