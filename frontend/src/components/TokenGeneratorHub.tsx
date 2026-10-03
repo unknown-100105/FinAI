@@ -20,7 +20,13 @@ import "./PlatformModules.css";
 
 type FeatureKey = "burnable" | "pausable" | "capped" | "permit" | "mintable";
 
-const tokenLabTabs: Array<{ id: "design" | "code" | "security"; label: string; icon: typeof Layers3 }> = [\n  { id: "design", label: "Design studio", icon: Layers3 },\n  { id: "code", label: "Contract source", icon: Code2 },\n  { id: "security", label: "Security review", icon: ShieldCheck },\n];\n\nconst featureMeta: Array<{
+const tokenLabTabs: Array<{ id: "design" | "code" | "security"; label: string; icon: typeof Layers3 }> = [
+  { id: "design", label: "Design studio", icon: Layers3 },
+  { id: "code", label: "Contract source", icon: Code2 },
+  { id: "security", label: "Security review", icon: ShieldCheck },
+];
+
+const featureMeta: Array<{
   id: FeatureKey;
   label: string;
   description: string;
@@ -71,7 +77,8 @@ function buildSolidity(
     features.capped && 'import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";',
     features.permit && 'import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";',
     (features.pausable || features.capped || features.mintable) && 'import "@openzeppelin/contracts/access/Ownable.sol";',
-  ].filter(Boolean).join("\n");
+  ].filter(Boolean).join("
+");
 
   const parents = [
     "ERC20",
@@ -90,19 +97,39 @@ function buildSolidity(
     " {",
     `        _mint(msg.sender, ${supply} * 10 ** ${decimals});`,
     "    }",
-  ].join("\n");
+  ].join("
+");
 
   const mintFunction = features.mintable
-    ? `\n    function mint(address to, uint256 amount) external onlyOwner {\n        _mint(to, amount);\n    }\n`
+    ? `
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
+    }
+`
     : "";
 
   const pauseFunctions = features.pausable
-    ? `\n    function pause() external onlyOwner {\n        _pause();\n    }\n\n    function unpause() external onlyOwner {\n        _unpause();\n    }\n`
+    ? `
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+`
     : "";
 
   const updateOverride =
     features.pausable || features.capped
-      ? `\n    function _update(address from, address to, uint256 value)\n        internal\n        override(ERC20${features.pausable ? ", ERC20Pausable" : ""}${features.capped ? ", ERC20Capped" : ""})\n    {\n        super._update(from, to, value);\n    }\n`
+      ? `
+    function _update(address from, address to, uint256 value)
+        internal
+        override(ERC20${features.pausable ? ", ERC20Pausable" : ""}${features.capped ? ", ERC20Capped" : ""})
+    {
+        super._update(from, to, value);
+    }
+`
       : "";
 
   return `// SPDX-License-Identifier: MIT
@@ -219,12 +246,8 @@ export function TokenGeneratorHub() {
       </div>
 
       <div className="token-tabbar" role="tablist" aria-label="Token Lab sections">
-        {[
-          ["design", "Design studio", Layers3],
-          ["code", "Contract source", Code2],
-          ["security", "Security review", ShieldCheck],
-        ].map(([id, label, Icon]) => (
-          <button key={id} type="button" className={activeTab === id ? "active" : ""} onClick={() => setActiveTab(id as typeof activeTab)}>
+        {tokenLabTabs.map(({ id, label, icon: Icon }) => (
+          <button key={id} type="button" className={activeTab === id ? "active" : ""} onClick={() => setActiveTab(id)}>
             <Icon size={13} /> {label}
           </button>
         ))}
@@ -303,7 +326,8 @@ export function TokenGeneratorHub() {
               </div>
             </div>
             <div className="token-editor">
-              <div className="token-editor-bar"><span>Solidity</span><span>OpenZeppelin extensions</span><span>{code.split("\n").length} lines</span></div>
+              <div className="token-editor-bar"><span>Solidity</span><span>OpenZeppelin extensions</span><span>{code.split("
+").length} lines</span></div>
               <pre className="code-window token-code-window">{code}</pre>
             </div>
           </section>
