@@ -106,3 +106,27 @@ export function getMarketNews(query = "Indian stock market", count = 8) {
     `/api/v1/market/news?query=${encodeURIComponent(query)}&count=${count}`,
   );
 }
+
+
+export type InstrumentSearchResult = {
+  symbol: string;
+  name: string;
+  asset_type: string;
+  quote_type?: string | null;
+  exchange?: string | null;
+  exchange_full_name?: string | null;
+  currency?: string | null;
+  score?: number | null;
+  provider: string;
+};
+
+export function searchMarketInstruments(query: string, count = 10) {
+  return getJson<{
+    query: string;
+    count: number;
+    source: string;
+    results: InstrumentSearchResult[];
+  }>(
+    `/api/v1/market/search?query=${encodeURIComponent(query)}&count=${count}`,
+  );
+}
