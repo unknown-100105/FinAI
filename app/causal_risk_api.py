@@ -147,7 +147,7 @@ def discover_dynamic(request: DynamicDiscoveryRequest):
 def tail_scenarios(request: TailScenarioRequest):
     try:
         correlation = (
-            _empirical_covariance_for_shock(request.shock)
+            _empirical_correlation_for_shock(request.shock)
             if request.use_empirical_market_dependence
             else None
         )
