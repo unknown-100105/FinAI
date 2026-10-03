@@ -2,14 +2,12 @@ from causal_risk.patent_benchmark import benchmark_patent_mechanism_variants
 
 
 def _case():
-    nodes = ["rates", "credit", "liquidity", "equity", "portfolio"]
+    nodes = ["rates", "credit", "portfolio"]
     edges = [
-        {"source": "rates", "target": "credit", "weight": 0.7},
-        {"source": "credit", "target": "liquidity", "weight": 0.8},
-        {"source": "liquidity", "target": "equity", "weight": 0.9},
-        {"source": "equity", "target": "portfolio", "weight": 0.8},
+        {"source": "rates", "target": "portfolio", "weight": 0.8},
+        {"source": "credit", "target": "portfolio", "weight": 0.5},
     ]
-    bounds = {node: (-100.0, 100.0) for node in nodes}
+    bounds = {"rates": (-100.0, 100.0), "credit": (0.0, 1.0), "portfolio": (-100.0, 100.0)}
     return benchmark_patent_mechanism_variants(
         nodes,
         edges,
@@ -30,6 +28,9 @@ def test_patent_benchmark_is_deterministic_and_reports_correctness():
     assert one["status"] == "PATENT_MECHANISM_VARIANT_BENCHMARK_READY"
     assert one["baseline"]["candidate_prefixes"] == 4
     assert one["baseline"]["exact_completion_evaluations"] == 16
+    assert one["correctness"]["finite_action_space_high_risk_prefixes"] == 1
+    assert one["forward_certificate"]["hard_pruned_prefixes"] == 3
+    assert one["bidirectional_necessary_interval"]["necessary_interval_pruned_prefixes"] == 3
     assert one["correctness"]["forward_no_false_prune"] is True
     assert one["correctness"]["bidirectional_no_false_prune"] is True
     assert one["incremental_propagation"]["exact_match_rate"] == 1.0
