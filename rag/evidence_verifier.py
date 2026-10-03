@@ -63,24 +63,30 @@ class RAGEvidenceVerifier:
         return sentences
 
     @classmethod
-    def _document_tokens(cls, documents: Iterable[Dict[str, Any]]) -> List[Set[str]]:
-        token_sets = []
+    def _evidence_chunks(
+        cls,
+        documents: Iterable[Dict[str, Any]],
+    ) -> List[Set[str]]:
+        """Split evidence into local chunks so unrelated document text
+        cannot support a claim merely because a word appears elsewhere."""
+        chunks = []
 
         for document in documents or []:
             if not isinstance(document, dict):
                 continue
 
-            text = " ".join(
-                str(document.get(field, "") or "")
-                for field in ("title", "text")
-            )
+            for field in ("title", "text"):
+                raw = str(document.get(field, "") or "").strip()
+                if not raw:
+                    continue
 
-            tokens = set(cls._tokens(text))
+                parts = re.split(r"(?<=[.!?])\s+|\n+", raw)
+                for part in parts:
+                    tokens = set(cls._tokens(part))
+                    if tokens:
+                        chunks.append(tokens)
 
-            if tokens:
-                token_sets.append(tokens)
-
-        return token_sets
+        return chunks
 
     @classmethod
     @classmethod
@@ -137,7 +143,7 @@ class RAGEvidenceVerifier:
         threshold: float = DEFAULT_OVERLAP_THRESHOLD,
     ) -> Dict[str, Any]:
         documents = list(documents or [])
-        evidence_tokens = cls._document_tokens(documents)
+        evidence_tokens = cls._evidence_chunks(documents)
 
         if not documents or not evidence_tokens:
             return {
