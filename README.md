@@ -125,6 +125,31 @@ Prediction outputs are historical model benchmarks, not guaranteed forecasts or 
 - `GET /api/v1/intelligence/eligibility`
 
 
+### Research-stage causal stress intelligence
+
+The Causal Risk Lab now includes a second-stage research path for empirical
+calibration, causal-empirical GFlowNet reward training, chronological temporal
+GNN holdout evaluation, and a trainable masked-modality financial encoder.
+
+Research endpoints include:
+
+- `POST /api/v1/causal-risk/risk-calibration/fit-channels`
+- `POST /api/v1/causal-risk/temporal-gnn/train`
+- `POST /api/v1/causal-risk/multimodal/train`
+- `POST /api/v1/causal-risk/gfnets/train` with
+  `reward_mode=causal_empirical`
+
+Research documentation:
+
+- `docs/research-gap-and-novelty.md`
+- `docs/research-training-runbook.md`
+- `docs/finai-final-architecture.md`
+
+The research stack distinguishes implementation, training, future-holdout
+evaluation, empirical validation and production eligibility. No prototype is
+automatically promoted to production status by virtue of passing software tests.
+
+
 ## Consolidated investment knowledge scope
 
 FinAI's investment-knowledge layer covers the complete non-real-estate scope requested for the platform.
