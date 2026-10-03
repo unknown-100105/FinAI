@@ -58,13 +58,13 @@ class CounterfactualRequest(BaseModel):
 
 
 class DiscoveryRequest(BaseModel):
-    samples: List[List[float]] = Field(min_length=8, max_length=MAX_DISCOVERY_ROWS)
+    samples: List[List[float]]
     lambda1: float = Field(default=0.02, ge=0, le=2)
     threshold: float = Field(default=0.10, ge=0, le=2)
 
 
 class DynamicDiscoveryRequest(BaseModel):
-    samples: List[List[float]] = Field(min_length=8, max_length=MAX_DISCOVERY_ROWS)
+    samples: List[List[float]]
     lags: int = Field(default=1, ge=1, le=8)
     alpha: float = Field(default=1.0, gt=0, le=100)
     threshold: float = Field(default=0.08, ge=0, le=2)
@@ -170,8 +170,8 @@ def tail_scenarios(request: TailScenarioRequest):
 
 
 class DiscoveryGraphRequest(BaseModel):
-    samples: List[List[float]] = Field(min_length=8, max_length=MAX_DISCOVERY_ROWS)
-    node_ids: List[str] | None = Field(default=None, max_length=MAX_DISCOVERY_VARIABLES)
+    samples: List[List[float]]
+    node_ids: List[str] | None = None
     lambda1: float = Field(default=0.02, ge=0, le=2)
     threshold: float = Field(default=0.10, ge=0, le=2)
     lags: int = Field(default=1, ge=1, le=8)
