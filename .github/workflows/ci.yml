@@ -106,6 +106,26 @@ jobs:
             tests/test_xai_portfolio.py \
             tests/test_xai_rag_trace.py
 
+  research-benchmark:
+    name: Patent mechanism benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run deterministic research benchmark
+        run: python scripts/run_patent_mechanism_benchmark.py --output patent-benchmark.json
+      - name: Upload benchmark artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: patent-mechanism-benchmark
+          path: patent-benchmark.json
+
   frontend:
     name: Frontend build
     runs-on: ubuntu-latest
