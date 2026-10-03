@@ -305,14 +305,14 @@ class FinAIRouterGate:
             )
         ):
             return {
-                "intent": "FINANCIAL_PRODUCT_KNOWLEDGE",
+                "intent": "FINANCIAL_GUIDANCE",
                 "raw_prediction": None,
                 "confidence": 1.0,
                 "margin": 1.0,
                 "decision": "ROUTE",
                 "risk_level": "low",
                 "requires_clarification": False,
-                "reason": "financial_product_knowledge_rule",
+                "reason": "financial_guidance_rule",
                 "confidence_source": "deterministic_rule",
                 "top_k": [],
             }
