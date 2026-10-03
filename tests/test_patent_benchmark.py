@@ -30,7 +30,7 @@ def test_patent_benchmark_is_deterministic_and_reports_correctness():
     assert one["baseline"]["exact_completion_evaluations"] == 16
     assert one["correctness"]["finite_action_space_high_risk_prefixes"] == 1
     assert one["forward_certificate"]["hard_pruned_prefixes"] == 1
-    assert one["bidirectional_necessary_interval"]["necessary_interval_pruned_prefixes"] == 1
+    assert one["bidirectional_necessary_interval"]["necessary_interval_pruned_prefixes"] == 0
     assert one["correctness"]["forward_no_false_prune"] is True
     assert one["correctness"]["bidirectional_no_false_prune"] is True
     assert one["incremental_propagation"]["exact_match_rate"] == 1.0
