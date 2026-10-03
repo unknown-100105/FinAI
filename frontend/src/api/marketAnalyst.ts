@@ -18,3 +18,23 @@ export async function getMarketAnalyst(instrument:string,start:string,end:string
     news:MarketNewsItem[]; source:string; causality_note:string;
   }>;
 }
+
+export function explainCandle(payload: {
+  instrument: string;
+  candle: CandleAnalysis;
+  context_news?: unknown[];
+  model_id?: string;
+}) {
+  const response = fetch(
+    API_BASE_URL + "/api/v1/market/analyst/explain",
+    {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload),
+    },
+  );
+  return response.then(async (result) => {
+    if (!result.ok) throw new Error("Candle explanation API error " + result.status + ": " + await result.text());
+    return result.json() as Promise<{status:string;response:string;model_id?:string;verification?:unknown}>;
+  });
+}
