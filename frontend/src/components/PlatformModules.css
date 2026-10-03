@@ -94,3 +94,55 @@
 .scan-card{margin-top:9px}.scan-row{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid rgba(146,174,208,.06)}.scan-row:last-child{border-bottom:0}.scan-row strong{display:block;color:#ced9e8;font-size:9px}.scan-row span{display:block;margin-top:3px;color:#5c7089;font-size:8px}
 @media(max-width:950px){.arb-layout{grid-template-columns:1fr}.arb-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.arb-fields{grid-template-columns:1fr}.arb-actions{flex-direction:column}.arb-actions button{justify-content:center}}
+
+/* Execution-oriented investment workspace */
+.investment-workspace{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:12px;margin-top:12px}
+.workspace-panel{padding:17px;border:1px solid rgba(146,174,208,.10);border-radius:18px;background:rgba(7,14,25,.56)}
+.source-link{color:#90a9ff;font-size:9px;text-decoration:none}
+.fund-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.fund-category-card{padding:13px;border:1px solid rgba(146,174,208,.08);border-radius:13px;background:rgba(91,118,163,.035)}
+.fund-category-top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.fund-category-top strong{color:#dce6f3;font-size:11px}
+.fund-category-top span{color:#6b7f97;font-size:8px}
+.fund-category-card p{margin:8px 0 9px;color:#71839b;font-size:9px;line-height:1.55}
+.criteria-list{display:flex;flex-wrap:wrap;gap:5px}
+.criteria-list span{display:inline-flex;align-items:center;gap:4px;padding:5px 6px;border:1px solid rgba(146,174,208,.06);border-radius:999px;color:#788ba2;background:rgba(92,119,164,.04);font-size:7px}
+.fund-execution p{color:#74869d;font-size:10px;line-height:1.65}
+.execution-steps{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px}
+.execution-steps span{padding:9px;border-radius:9px;background:rgba(83,113,165,.05);color:#91a4bb;font-size:8px}
+.rate-table-wrap{overflow:auto}
+.rate-table{width:100%;border-collapse:collapse}
+.rate-table th{padding:9px 8px;text-align:left;color:#5e738c;font-size:8px;text-transform:uppercase;letter-spacing:.08em}
+.rate-table td{padding:10px 8px;border-top:1px solid rgba(146,174,208,.06);color:#9aabc0;font-size:9px;cursor:pointer}
+.rate-table tr:hover td,.rate-table tr.selected td{background:rgba(66,96,159,.08)}
+.rate-table td strong{display:block;color:#d5dfec;font-size:9px}
+.rate-table td small{display:block;margin-top:3px;color:#5d7088;font-size:7px}
+.product-fact-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}
+.product-fact-grid div{padding:10px;border:1px solid rgba(146,174,208,.07);border-radius:10px;background:rgba(92,119,164,.035)}
+.product-fact-grid span,.results-grid span,.analytics-card span{display:block;color:#5f748b;font-size:8px;text-transform:uppercase}
+.product-fact-grid strong{display:block;margin-top:5px;color:#cbd8e8;font-size:9px;line-height:1.4}
+.single-field-label{display:block;color:#71839a;font-size:8px;text-transform:uppercase;margin:10px 0}.single-field-label input,.advanced-calc-grid input{display:block;width:100%;margin-top:6px;min-height:39px;padding:0 10px;border:1px solid rgba(146,174,208,.11);border-radius:10px;color:#d7e0eb;background:rgba(9,18,31,.88);outline:0}
+.primary-module-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;padding:10px 14px;border:0;border-radius:10px;color:#fff;background:#2b50bd;font-size:9px;font-weight:800;cursor:pointer}
+.primary-module-button:disabled{opacity:.45;cursor:not-allowed}
+.result-panel{margin-top:11px;padding:12px;border:1px solid rgba(70,201,169,.14);border-radius:12px;background:rgba(44,143,119,.05)}
+.result-panel span{color:#5f748b;font-size:8px;text-transform:uppercase}.result-panel strong{display:block;margin:4px 0;color:#89dfc4;font-size:21px}.result-panel small{color:#6f8299;font-size:8px;line-height:1.5}
+.data-note{margin:11px 0 0;color:#61748b;font-size:8px;line-height:1.6}
+.calculator-workspace{margin-top:12px}
+.advanced-calc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.advanced-calc-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.advanced-calc-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.advanced-calc-grid label{color:#71839a;font-size:8px;text-transform:uppercase;letter-spacing:.06em}
+.results-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px}
+.results-grid.compact{grid-template-columns:repeat(3,minmax(0,1fr))}
+.results-grid>div{padding:11px;border:1px solid rgba(146,174,208,.07);border-radius:11px;background:rgba(91,118,163,.035)}
+.results-grid strong{display:block;margin-top:5px;color:#8fe0c8;font-size:14px}
+@media(max-width:950px){.investment-workspace{grid-template-columns:1fr}.fund-category-grid{grid-template-columns:1fr}.advanced-calc-grid,.advanced-calc-grid.four{grid-template-columns:repeat(2,minmax(0,1fr))}.results-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.advanced-calc-grid,.advanced-calc-grid.three,.advanced-calc-grid.four,.results-grid,.results-grid.compact{grid-template-columns:1fr}.rate-table{min-width:680px}}
+/* Enhanced market execution */
+.market-toolbar-enhanced{align-items:flex-start}.market-search-stack{flex:1;min-width:0}.market-quick-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.market-quick-list button{border:1px solid rgba(146,174,208,.08);border-radius:999px;padding:5px 8px;color:#71839a;background:rgba(91,118,163,.04);font-size:7px}.market-quick-list button.active{border-color:rgba(88,131,243,.3);color:#d5e0ee;background:rgba(55,89,171,.12)}
+.market-instrument-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:11px 0 8px;padding:10px 12px;border:1px solid rgba(146,174,208,.08);border-radius:12px;background:rgba(91,118,163,.035)}
+.market-instrument-meta span:first-child{display:block;color:#62758d;font-size:7px}.market-instrument-meta strong{display:block;margin-top:4px;color:#e1e9f5;font-size:11px}.market-live-chip{display:inline-flex;align-items:center;gap:5px;color:#7ddbc2;font-size:7px}.market-live-chip span{width:5px;height:5px;border-radius:50%;background:#58d5b7;box-shadow:0 0 9px rgba(88,213,183,.8)}
+.analytics-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:9px}.analytics-card{padding:11px;border:1px solid rgba(146,174,208,.08);border-radius:12px;background:rgba(91,118,163,.035)}.analytics-card strong{display:block;margin:5px 0 3px;color:#cdd9e8;font-size:12px}.analytics-card small{color:#536780;font-size:7px}
+.market-evidence-card p{margin:0;color:#65788f;font-size:8px;line-height:1.6}
+@media(max-width:850px){.analytics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){.analytics-grid{grid-template-columns:1fr}.market-instrument-meta{align-items:flex-start;flex-direction:column}}
