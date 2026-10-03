@@ -14,7 +14,7 @@ export async function getMarketAnalyst(instrument:string,start:string,end:string
   const response = await fetch(API_BASE_URL + "/api/v1/market/analyst?" + params);
   if(!response.ok) throw new Error("Market analyst API error " + response.status + ": " + await response.text());
   return response.json() as Promise<{
-    instrument:any; range:any; interval:string; analysis:{count:number;candles:CandleAnalysis[];summary:any};
+    instrument:any; range:any; interval:string; analysis:{count:number;candles:CandleAnalysis[];summary:any;scenario?:{scenarios:Array<{name:string;conditions_to_watch:string[];not_a_prediction:boolean}>;selection_basis:string;forecast_note:string}};
     news:MarketNewsItem[]; source:string; causality_note:string;
   }>;
 }
