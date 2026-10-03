@@ -4,6 +4,11 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
+
+# Allow direct execution as `python scripts/run_patent_mechanism_benchmark.py`
+# without requiring the repository to be installed as a package.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from causal_risk.patent_benchmark import benchmark_patent_mechanism_variants
 
