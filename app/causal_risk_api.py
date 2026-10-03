@@ -85,10 +85,10 @@ def _empirical_correlation_for_shock(shock: Dict[str, float]) -> list[list[float
         dict(proxy_items),
         days=730,
     )
-    covariance = np.asarray(dataset.get("empirical_covariance"), dtype=float)
-    if covariance.shape != (len(proxy_items), len(proxy_items)):
+    correlation = np.asarray(dataset.get("empirical_correlation"), dtype=float)
+    if correlation.shape != (len(proxy_items), len(proxy_items)):
         raise ValueError("empirical market correlation is unavailable for the requested factors")
-    return covariance.tolist()
+    return correlation.tolist()
 
 
 @router.get("/graph")
@@ -105,7 +105,7 @@ def architecture():
 def counterfactual(request:CounterfactualRequest):
     try:
         tail_correlation = (
-            _empirical_covariance_for_shock(request.shock)
+            _empirical_correlation_for_shock(request.shock)
             if request.use_empirical_tail_dependence
             else None
         )
