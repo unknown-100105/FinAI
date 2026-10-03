@@ -145,6 +145,20 @@ export function MarketAnalystHub() {
 
   const candle = candles[selected];
   const bars = useMemo(() => toMarketBars(candles), [candles]);
+  const xaiFactors = useMemo(() => {
+    const factors: Record<string, number> = {};
+    for (const model of prediction?.models ?? []) {
+      for (const [name, value] of Object.entries(model.feature_importance)) {
+        factors[name] = (factors[name] ?? 0) + Number(value);
+      }
+    }
+    const max = Math.max(...Object.values(factors), 0);
+    return Object.entries(factors).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({
+      name,
+      value,
+      width: max > 0 ? Math.min(100, (value / max) * 100) : 0,
+    }));
+  }, [prediction]);
 
   return (
     <section className="module-page">
@@ -285,11 +299,16 @@ export function MarketAnalystHub() {
           <div><div className="module-kicker">Explainable AI</div><h2>Why the ensemble produced this view</h2></div>
           <span className="source-chip">Feature attribution</span>
         </div>
-        {prediction ? <div className="xai-factor-grid">
-          {Object.entries(prediction.models.flatMap(m => Object.entries(m.feature_importance)).reduce((acc, [name, value]) => { acc[name] = (acc[name] || 0) + value; return acc; }, {} as Record<string, number>)).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,value]) =>
-            <div key={name}><span>{name.replaceAll("_"," ")}</span><div className="xai-bar"><i style={{width: Math.min(100, Math.round(value / Math.max(...Object.values(prediction.models.flatMap(m => Object.entries(m.feature_importance)).reduce((acc, [n,v]) => { acc[n]=(acc[n]||0)+v; return acc; }, {} as Record<string,number)))) * 100)) + "%"}} /></div><strong>{Math.round(value * 100)}%</strong></div>
-          )}
+        {xaiFactors.length ? <div className="xai-factor-grid">
+          {xaiFactors.map((factor) => (
+            <div key={factor.name}>
+              <span>{factor.name.replaceAll("_", " ")}</span>
+              <div className="xai-bar"><i style={{ width: factor.width + "%" }} /></div>
+              <strong>{Math.round(factor.value * 100)}%</strong>
+            </div>
+          ))}
         </div> : <div className="module-empty">Run the model arena to populate explainability.</div>}
+        <div className="data-note">Attribution is descriptive of the trained model features; it is not proof that a feature caused the future market move.</div>
       </section>
 
       <section className="workspace-panel">
