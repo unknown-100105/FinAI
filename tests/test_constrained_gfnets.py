@@ -29,6 +29,8 @@ def test_causal_constrained_generator_masks_infeasible_actions():
     assert result["status"] == "CAUSALLY_CONSTRAINED_TRAJECTORIES_READY"
     assert len(result["trajectories"]) == 8
     assert result["screening"]["baseline_candidate_evaluations"] > 0
+    assert result["screening"]["bidirectional_feasibility_enabled"] is True
+    assert result["screening"]["forward_certificate_evaluations"] <= result["screening"]["candidates"]
 
 
 def test_causal_constrained_generator_rejects_no_feasible_action():
