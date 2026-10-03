@@ -234,7 +234,7 @@ def train_multimodal_encoder(
             "representation; not a foundation-model scale pretraining claim."
         ),
         "model": model,
-        "embedding": encoded["embedding"].detach().cpu().numpy(),
+        "embedding": encoded["embedding"].detach().cpu().numpy().round(8).tolist(),
     }
 
 
