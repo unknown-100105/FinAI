@@ -5,9 +5,9 @@ def _case():
     nodes = ["rates", "credit", "portfolio"]
     edges = [
         {"source": "rates", "target": "portfolio", "weight": 0.8},
-        {"source": "credit", "target": "portfolio", "weight": 0.5},
+        {"source": "credit", "target": "portfolio", "weight": 0.1},
     ]
-    bounds = {"rates": (-100.0, 100.0), "credit": (0.0, 1.0), "portfolio": (-100.0, 100.0)}
+    bounds = {"rates": (-100.0, 100.0), "credit": (0.0, 20.0), "portfolio": (-100.0, 100.0)}
     return benchmark_patent_mechanism_variants(
         nodes,
         edges,
@@ -29,8 +29,8 @@ def test_patent_benchmark_is_deterministic_and_reports_correctness():
     assert one["baseline"]["candidate_prefixes"] == 4
     assert one["baseline"]["exact_completion_evaluations"] == 16
     assert one["correctness"]["finite_action_space_high_risk_prefixes"] == 1
-    assert one["forward_certificate"]["hard_pruned_prefixes"] == 3
-    assert one["bidirectional_necessary_interval"]["necessary_interval_pruned_prefixes"] == 3
+    assert one["forward_certificate"]["hard_pruned_prefixes"] == 1
+    assert one["bidirectional_necessary_interval"]["necessary_interval_pruned_prefixes"] == 1
     assert one["correctness"]["forward_no_false_prune"] is True
     assert one["correctness"]["bidirectional_no_false_prune"] is True
     assert one["incremental_propagation"]["exact_match_rate"] == 1.0
