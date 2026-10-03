@@ -28,8 +28,16 @@ export function InvestmentDiaryHub(){
   const [news,setNews]=useState<any[]>([]);
   const [quote,setQuote]=useState<any>(null);
   const [busy,setBusy]=useState(false);
+  const [watchlist,setWatchlist]=useState<string[]>([]);
+  const [watchData,setWatchData]=useState<Record<string,{price:number|null;return30:number|null;volumeRatio:number|null;trend:string;news:any[]}>>({});
+  const [watchBusy,setWatchBusy]=useState(false);
 
-  useEffect(()=>{ try{ setEntries(JSON.parse(localStorage.getItem(diaryKey())||"[]")); }catch{ setEntries([]); } },[]);
+  useEffect(()=>{
+    try{
+      setEntries(JSON.parse(localStorage.getItem(diaryKey())||"[]"));
+      setWatchlist(JSON.parse(localStorage.getItem("finai.watchlist")||"[]"));
+    }catch{ setEntries([]); setWatchlist([]); }
+  },[]);
   const snapshot=useMemo(()=>summarize(bars),[bars]);
 
   const refresh=async()=>{
@@ -46,6 +54,36 @@ export function InvestmentDiaryHub(){
     } finally { setBusy(false); }
   };
   useEffect(()=>{ void refresh().catch(()=>setBars([])); },[asset]);
+  const refreshWatchlist = async () => {
+    if (!watchlist.length) return;
+    setWatchBusy(true);
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 30);
+    const results = await Promise.allSettled(
+      watchlist.map(async (symbol) => {
+        const [q,h,n] = await Promise.all([
+          getMarketQuote(symbol),
+          getMarketHistory(symbol,start.toISOString(),end.toISOString(),"1d"),
+          getMarketNews(symbol,4),
+        ]);
+        const snapshot = summarize(h.bars);
+        return [symbol,{
+          price: Number(q.quote.price ?? 0) || null,
+          return30: snapshot?.ret ?? null,
+          volumeRatio: snapshot?.volumeRatio ?? null,
+          trend: snapshot ? (snapshot.ret > 0 ? "up" : snapshot.ret < 0 ? "down" : "flat") : "—",
+          news: n.articles,
+        }] as const;
+      }),
+    );
+    const next: typeof watchData = {};
+    results.forEach((result) => { if (result.status === "fulfilled") next[result.value[0]] = result.value[1]; });
+    setWatchData(next);
+    setWatchBusy(false);
+  };
+  useEffect(()=>{ void refreshWatchlist().catch(()=>undefined); },[watchlist]);
+
 
   const save=()=>{
     const entry:DiaryEntry={id:globalThis.crypto?.randomUUID?.()||String(Date.now()),date:new Date().toISOString(),asset,action,price,thesis,notes};
@@ -65,6 +103,15 @@ export function InvestmentDiaryHub(){
       <p>Each diary entry is local to this browser. FinAI attaches a current market snapshot and contextual headlines for research; it does not place trades or claim a future price move.</p></div>
       <button className="market-refresh" type="button" onClick={()=>void refresh()} disabled={busy}><RefreshCw size={14}/> Refresh snapshot</button>
     </div>
+
+    <section className="workspace-panel">
+      <div className="module-panel-head"><div><div className="module-kicker">Watchlist intelligence</div><h2>{watchlist.length} tracked assets</h2></div><button className="market-refresh" type="button" onClick={()=>void refreshWatchlist()} disabled={watchBusy}><RefreshCw size={13}/> {watchBusy?"Scanning…":"Refresh watchlist"}</button></div>
+      {watchlist.length ? <div className="watch-analysis-table-wrap"><table className="ticker-table"><thead><tr><th>Asset</th><th>Latest</th><th>30D return</th><th>Volume ratio</th><th>Trend</th><th>Context</th></tr></thead><tbody>{watchlist.map(symbol=>{
+        const d=watchData[symbol];
+        return <tr key={symbol} onClick={()=>setAsset(symbol)}><td><strong>{symbol}</strong></td><td>{d?.price ?? "—"}</td><td className={Number(d?.return30||0)>=0?"market-positive":"market-negative"}>{d?.return30==null?"—":d.return30.toFixed(2)+"%"}</td><td>{d?.volumeRatio==null?"—":d.volumeRatio.toFixed(2)+"×"}</td><td>{d?.trend||"—"}</td><td>{d?.news?.[0]?.title||"No headline returned"}</td></tr>;
+      })}</tbody></table></div> : <div className="module-empty">Add instruments to Portfolio → Watchlist to analyze them here.</div>}
+      <div className="data-note">This panel reports observed market/news context. It does not infer a certain future price or recommend a trade.</div>
+    </section>
 
     <div className="diary-layout">
       <section className="workspace-panel">
