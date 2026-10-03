@@ -163,6 +163,8 @@ def run_counterfactual(
     *,
     include_tail_scenarios: bool = False,
     tail_correlation: Any = None,
+    tail_distribution: str = "gaussian",
+    tail_degrees_of_freedom: float = 5.0,
 ) -> Dict[str, Any]:
     shock = {str(key): float(value) for key, value in shock.items()}
     allocation = {str(key): float(value) for key, value in allocation.items()}
@@ -228,7 +230,12 @@ def run_counterfactual(
         ),
     }
     if include_tail_scenarios:
-        tail = generate_tail_scenarios(shock, correlation=tail_correlation)
+        tail = generate_tail_scenarios(
+            shock,
+            correlation=tail_correlation,
+            distribution=tail_distribution,
+            degrees_of_freedom=tail_degrees_of_freedom,
+        )
         result["tail_scenarios"] = tail
         result["tail_evaluation"] = _evaluate_tail_scenarios(
             tail, allocation, calibration
