@@ -252,6 +252,64 @@ def analytics(
     }
 
 
+
+@router.get("/candle-analysis")
+def candle_analysis(
+    instrument: str = Query(..., min_length=1),
+    start: datetime = Query(...),
+    end: datetime = Query(...),
+    interval: str = Query(
+        default="15m",
+        pattern="^(1m|2m|5m|15m|30m|60m|90m|1h|1d|5d|1wk|1mo|3mo)$",
+    ),
+    max_candles: int = Query(default=1000, ge=10, le=5000),
+):
+    if start > end:
+        raise HTTPException(status_code=422, detail="start must not be after end.")
+
+    item = _resolve_instrument_or_search(instrument)
+
+    try:
+        from market_data.candle_analysis import analyze_candles
+        from market_data.news import fetch_news
+
+        bars = _get_service().history(
+            symbol=item.display_name,
+            asset_type=item.asset_type,
+            exchange=item.exchange,
+            start=start,
+            end=end,
+            provider_id="yfinance",
+            interval=interval,
+        )
+        analysis = analyze_candles(bars, max_candles=max_candles)
+
+        try:
+            articles = fetch_news(query=item.display_name, count=12)
+        except Exception:
+            articles = []
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Candle analysis retrieval failed: {exc}",
+        ) from exc
+
+    return {
+        "instrument": {
+            "instrument_id": item.instrument_id,
+            "display_name": item.display_name,
+            "asset_type": item.asset_type,
+            "exchange": item.exchange,
+            "currency": item.currency,
+        },
+        "range": {"start": start, "end": end},
+        "interval": interval,
+        "analysis": analysis,
+        "news": articles,
+        "source": "yfinance OHLCV + instrument news search",
+    }
+
 @router.get("/news")
 def news(
     query: str = Query(
