@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity, ArrowDownRight, ArrowUpRight, BarChart3, ExternalLink,
   Newspaper, RefreshCw, ShieldCheck,
@@ -65,19 +65,6 @@ function datesFor(days: number) {
   const start = new Date();
   start.setDate(end.getDate() - days);
   return { start: start.toISOString(), end: end.toISOString() };
-}
-
-function chartPoints(bars: MarketBar[], width = 720, height = 220) {
-  if (bars.length < 2) return "";
-  const values = bars.map((bar) => bar.close);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const spread = max - min || 1;
-  return bars.map((bar, index) => {
-    const x = (index / Math.max(1, bars.length - 1)) * width;
-    const y = 15 + (1 - (bar.close - min) / spread) * (height - 30);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
 }
 
 function MiniMover({ item }: { item: MarketOverviewItem }) {
@@ -196,7 +183,6 @@ export function MarketTerminal() {
   }, [instrument, range, interval]);
   useEffect(() => { void loadSide(); }, [instrument]);
 
-  const points = useMemo(() => chartPoints(bars), [bars]);
   const firstClose = bars.length ? bars[0].close : null;
   const lastClose = bars.length ? bars[bars.length - 1].close : null;
   const periodChange = firstClose ? (lastClose ?? firstClose) / firstClose - 1 : null;
