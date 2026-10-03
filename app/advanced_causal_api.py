@@ -60,6 +60,7 @@ class GFlowTrainRequest(BaseModel):
     epochs: int = Field(default=150, ge=1, le=2000)
     learning_rate: float = Field(default=1e-3, gt=0, le=0.1)
     seed: int = Field(default=42, ge=0, le=10_000_000)
+    device: str = Field(default="auto", pattern="^(auto|cpu|cuda)$")
     reward_mode: str = Field(default="synthetic_tail", pattern="^(synthetic_tail|causal_empirical)$")
     empirical_center: List[float] | None = Field(default=None, min_length=1, max_length=20)
     empirical_scale: List[float] | None = Field(default=None, min_length=1, max_length=20)
@@ -101,6 +102,7 @@ def gfnets_train(request: GFlowTrainRequest):
                 learning_rate=request.learning_rate,
                 epochs=request.epochs,
                 seed=request.seed,
+                device=request.device,
             ),
         )
         reward_fn = None
