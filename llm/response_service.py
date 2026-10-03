@@ -19,6 +19,10 @@ class ResponseService:
     CAPABILITY_BY_INTENT = {
         "EMI_QUERY": "financial_qa",
         "INTEREST_QUERY": "financial_qa",
+        # Retrieval-grounded financial knowledge can use the local
+        # financial-QA model when cloud providers are unavailable.
+        "KYC_DOCUMENTS": "financial_qa",
+        "FINANCIAL_GUIDANCE": "financial_qa",
     }
 
     ADAPTERS = {
