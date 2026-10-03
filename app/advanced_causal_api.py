@@ -702,6 +702,7 @@ class ConstrainedGFlowNetGenerateRequest(BaseModel):
     adaptive_margin: float = Field(default=0.0, ge=-1, le=1)
     target_full_eval_fraction: float = Field(default=0.25, gt=0, le=1)
     minimum_high_risk_recall: float = Field(default=0.99, gt=0, le=1)
+    use_bidirectional_feasibility: bool = True
     empirical_center: Dict[str, float] | None = Field(default=None, max_length=100)
     empirical_scale: Dict[str, float] | None = Field(default=None, max_length=100)
 
@@ -767,6 +768,7 @@ def constrained_gfnets(request: ConstrainedGFlowNetGenerateRequest):
             controller=controller,
             empirical_center=request.empirical_center,
             empirical_scale=request.empirical_scale,
+            use_bidirectional_feasibility=request.use_bidirectional_feasibility,
         )
         return {
             "status": "CAUSAL_CONSTRAINED_GFLOWNET_RESEARCH_READY",
