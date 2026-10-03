@@ -387,24 +387,24 @@ def test_discovery_api_rejects_ragged_sample_matrix():
 
 
 
-def test_tail_sampler_accepts_valid_correlated_covariance():
+def test_tail_sampler_accepts_valid_correlated_correlation():
     covariance = [[25.0, 18.0], [18.0, 36.0]]
     result = generate_tail_scenarios(
         {"rates": 75, "supply": 60},
         draws=1000,
         seed=19,
-        covariance=covariance,
+        correlation=[[1.0, 0.6], [0.6, 1.0]],
     )
-    assert result["dependence_model"] == "supplied_covariance_gaussian"
-    assert result["covariance_source"] == "caller_supplied"
+    assert result["dependence_model"] == "supplied_correlation_gaussian"
+    assert result["correlation_source"] == "caller_supplied"
     assert result["generated_correlation"][0][1] > 0.4
 
 
-def test_tail_sampler_rejects_invalid_covariance():
+def test_tail_sampler_rejects_invalid_correlation():
     try:
         generate_tail_scenarios(
             {"rates": 75, "supply": 60},
-            covariance=[[1.0, 2.0], [0.0, 1.0]],
+            correlation=[[1.0, 0.5], [0.2, 1.0]],
         )
     except ValueError as exc:
         assert "symmetric" in str(exc)
