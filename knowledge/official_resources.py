@@ -129,7 +129,7 @@ RESOURCES = (
     _r("nsc","National Savings Certificate (NSC)","Government Schemes","Small Savings",
        "Five-year government savings certificate with notified interest.",
        "Eligible customers under current rules.","Current",
-       "https://www.indiapost.gov.in/documents/offerings/schemesandservices/posb/NationalSavingsCertificateVIIIthIssue2019English.pdf", "https://www.indiapost.gov.in/documents/offerings/schemesandservices/posb/NationalSavingsCertificateVIIIthIssue2019English.pdf","Department of Posts / DEA","2026",
+       INDIAPOST_EBOOK + "#page=23", INDIAPOST_EBOOK + "#page=23","Department of Posts / DEA","2026",
        "Official NSC scheme section; verify the current rate notification and amendments.",
        ("name","date_of_birth","address","pan","aadhaar_or_kyc","purchase_amount","nominee")),
     _r("kvp","Kisan Vikas Patra (KVP)","Government Schemes","Small Savings",
