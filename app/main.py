@@ -14,6 +14,7 @@ from app.investment_api import router as investment_router
 from app.compliance_api import router as compliance_router
 from app.knowledge_api import router as knowledge_router
 from app.investment_routes_api import router as investment_routes_router
+from app.resources_api import router as resources_router
 
 
 APP_VERSION = "0.1.0"
@@ -49,6 +50,7 @@ app.include_router(investment_router)
 app.include_router(compliance_router)
 app.include_router(knowledge_router)
 app.include_router(investment_routes_router)
+app.include_router(resources_router)
 
 
 _orchestrator: Optional[XAISessionOrchestrator] = None
