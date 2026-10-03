@@ -238,6 +238,7 @@ class AdaptivePruningController:
     margin_step: float = 0.05
     margin_floor: float = -1.0
     margin_ceiling: float = 1.0
+    minimum_high_risk_recall: float = 0.99
     current_margin: float = 0.0
 
     def __post_init__(self) -> None:
@@ -245,16 +246,30 @@ class AdaptivePruningController:
             raise ValueError("target_full_eval_fraction must be in (0,1]")
         if self.margin_step <= 0:
             raise ValueError("margin_step must be positive")
+        if not 0.0 < self.minimum_high_risk_recall <= 1.0:
+            raise ValueError("minimum_high_risk_recall must be in (0,1]")
         if self.margin_floor > self.margin_ceiling:
             raise ValueError("margin_floor must not exceed margin_ceiling")
         self.current_margin = float(
             min(max(self.current_margin, self.margin_floor), self.margin_ceiling)
         )
 
-    def update(self, observed_full_eval_fraction: float) -> float:
+    def update(
+        self,
+        observed_full_eval_fraction: float,
+        observed_high_risk_recall: float | None = None,
+    ) -> float:
         observed = float(observed_full_eval_fraction)
         if not math.isfinite(observed) or not 0.0 <= observed <= 1.0:
             raise ValueError("observed_full_eval_fraction must be between 0 and 1")
+        if observed_high_risk_recall is not None:
+            recall = float(observed_high_risk_recall)
+            if not math.isfinite(recall) or not 0.0 <= recall <= 1.0:
+                raise ValueError("observed_high_risk_recall must be between 0 and 1")
+            if recall < self.minimum_high_risk_recall:
+                # Recall protection dominates compute optimization.
+                self.current_margin = self.margin_floor
+                return self.current_margin
         if observed > self.target_full_eval_fraction:
             self.current_margin = min(
                 self.margin_ceiling,
@@ -272,6 +287,7 @@ class AdaptivePruningController:
             "target_full_eval_fraction": self.target_full_eval_fraction,
             "current_margin": self.current_margin,
             "margin_step": self.margin_step,
+            "minimum_high_risk_recall": self.minimum_high_risk_recall,
         }
 
 
