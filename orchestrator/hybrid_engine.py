@@ -335,9 +335,18 @@ class FinAIHybridEngine:
                 else "Supporting evidence retrieved successfully."
             )
 
+            rag_status = "RETRIEVED"
+            if response_result:
+                generation_status = response_result.get("status")
+                if generation_status in {
+                    "VERIFICATION_FAILED",
+                    "INCOMPLETE_GENERATION",
+                }:
+                    rag_status = generation_status
+
             return {
                 "stage": "rag",
-                "status": "RETRIEVED",
+                "status": rag_status,
                 "user_text": user_text,
                 "router": router,
                 "execution_plan": execution_plan,
