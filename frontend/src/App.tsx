@@ -140,6 +140,8 @@ function traceValue(value: string) {
 function AssistantWorkspace() {
   const [language, setLanguage] = useState("English");
   const [persona, setPersona] = useState("neutral");
+  const [models, setModels] = useState<FinAIModel[]>([]);
+  const [modelId, setModelId] = useState("");
   const [message, setMessage] = useState("");
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
@@ -157,6 +159,14 @@ function AssistantWorkspace() {
     model: "Gemini",
     verification: "Ready",
   });
+
+  useEffect(() => {
+    void getFinAIModels("financial_qa").then((data) => {
+      const enabled = data.models.filter((model) => model.enabled);
+      setModels(enabled);
+      if (!modelId && enabled.length) setModelId(enabled[0].model_id);
+    }).catch(() => setModels([]));
+  }, [modelId]);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -244,7 +254,8 @@ function AssistantWorkspace() {
         language,
         persona,
         generate_response: true,
-        max_new_tokens: 256,
+        max_new_tokens: 512,
+        model_id: modelId || undefined,
       });
 
       applyResult(result);
@@ -478,7 +489,7 @@ function AssistantWorkspace() {
         <section className="glass-panel side-card">
           <div className="side-title"><Languages size={15} /> Preferences</div>
           <label>Language<select value={language} onChange={(event) => setLanguage(event.target.value)} disabled={loading}>{languages.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label>Persona<select value={persona} onChange={(event) => setPersona(event.target.value)} disabled={loading}>{personas.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label>Persona<select value={persona} onChange={(event) => setPersona(event.target.value)} disabled={loading}>{personas.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>\n          <label>Reasoning model<select value={modelId} onChange={(event) => setModelId(event.target.value)} disabled={loading}>\n            <option value="">Automatic</option>\n            {models.map((model) => <option key={model.model_id} value={model.model_id}>{model.model_name}</option>)}\n          </select></label>
         </section>
 
         <section className="glass-panel side-card">
