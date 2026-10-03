@@ -280,3 +280,43 @@ def test_research_graph_gate_rejects_contemporaneous_cycle():
     assert result["status"] == "RESEARCH_GRAPH_REJECTED"
     assert any("directed cycle" in error for error in result["errors"])
     assert result["counterfactual_ready"] is False
+
+
+def test_empirical_calibration_uses_chronological_holdout_and_bootstrap():
+    from causal_risk.calibration import calibrate_consensus_edges
+
+    rng = np.random.default_rng(456)
+    x1 = rng.normal(size=100)
+    x2 = 0.6 * x1 + rng.normal(scale=0.3, size=100)
+    x3 = rng.normal(size=100)
+    samples = np.column_stack([x1, x2, x3])
+    result = calibrate_consensus_edges(
+        samples,
+        ["rates", "credit", "usd"],
+        [{"source": "rates", "target": "credit", "weight": 0.5, "lag": 0}],
+        bootstrap_draws=30,
+        block_size=5,
+        seed=7,
+    )
+    item = result["calibrations"][0]
+    assert result["status"] == "EMPIRICAL_CALIBRATION_READY"
+    assert result["split_method"] == "chronological"
+    assert result["train_samples"] + result["test_samples"] == 100
+    assert result["bootstrap"]["draws"] == 30
+    assert item["bootstrap_ci_95"][0] <= item["bootstrap_ci_95"][1]
+
+
+def test_empirical_calibration_rejects_unknown_edge_nodes():
+    from causal_risk.calibration import calibrate_consensus_edges
+
+    samples = np.ones((80, 2))
+    try:
+        calibrate_consensus_edges(
+            samples,
+            ["rates", "credit"],
+            [{"source": "unknown", "target": "credit", "weight": 0.2}],
+        )
+    except ValueError as exc:
+        assert "unknown node" in str(exc)
+    else:
+        raise AssertionError("expected unknown edge node to fail")

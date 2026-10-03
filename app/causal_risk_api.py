@@ -382,3 +382,64 @@ def gate_research_graph(request: ResearchGraphGateRequest):
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class MarketCalibrationRequest(BaseModel):
+    proxies: Dict[str, str] = Field(default_factory=lambda: dict(DEFAULT_CAUSAL_PROXIES))
+    days: int = Field(default=730, ge=90, le=3650)
+    windows: int = Field(default=4, ge=2, le=6)
+    window_fraction: float = Field(default=0.60, gt=0, le=0.90)
+    lags: int = Field(default=1, ge=1, le=8)
+    alpha: float = Field(default=1.0, gt=0, le=100)
+    threshold: float = Field(default=0.08, ge=0, le=2)
+    lambda1: float = Field(default=0.02, ge=0, le=2)
+    stable_frequency: float = Field(default=0.75, ge=0.5, le=1.0)
+    bootstrap_draws: int = Field(default=100, ge=20, le=1000)
+    block_size: int = Field(default=10, ge=1, le=365)
+    seed: int = Field(default=42, ge=0, le=10_000_000)
+
+
+@router.post("/discover/market-graph/calibration")
+def market_graph_calibration(request: MarketCalibrationRequest):
+    try:
+        dataset = build_market_return_dataset(
+            _get_service(),
+            InstrumentResolver(),
+            request.proxies,
+            days=request.days,
+        )
+        x = np.asarray(dataset["returns"], dtype=float)
+        stability = assess_discovery_stability(
+            x,
+            dataset["node_ids"],
+            windows=request.windows,
+            window_fraction=request.window_fraction,
+            lambda1=request.lambda1,
+            threshold=request.threshold,
+            lags=request.lags,
+            alpha=request.alpha,
+            stable_frequency=request.stable_frequency,
+        )
+        consensus = build_consensus_graph(stability)
+        calibration = calibrate_consensus_edges(
+            x,
+            dataset["node_ids"],
+            consensus["edges"],
+            test_fraction=0.20,
+            bootstrap_draws=request.bootstrap_draws,
+            block_size=request.block_size,
+            seed=request.seed,
+        )
+        return {
+            "status": "MARKET_EMPIRICAL_CALIBRATION_READY",
+            "consensus": consensus,
+            "calibration": calibration,
+            "dataset": {
+                key: value for key, value in dataset.items()
+                if key != "returns"
+            },
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Market causal calibration failed: {exc}") from exc
