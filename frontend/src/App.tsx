@@ -166,7 +166,7 @@ function AssistantWorkspace() {
       setModels(enabled);
       if (!modelId && enabled.length) setModelId(enabled[0].model_id);
     }).catch(() => setModels([]));
-  }, [modelId]);
+  }, []);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -294,7 +294,8 @@ function AssistantWorkspace() {
           language,
           persona,
           generate_response: true,
-          max_new_tokens: 256,
+          max_new_tokens: 512,
+          model_id: modelId || undefined,
         });
 
         applyResult(result);
