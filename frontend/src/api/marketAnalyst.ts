@@ -38,3 +38,35 @@ export function explainCandle(payload: {
     return result.json() as Promise<{status:string;response:string;model_id?:string;verification?:unknown}>;
   });
 }
+
+export async function getMarketModelAnalysis(instrument:string,start:string,end:string,interval:string){
+  const params = new URLSearchParams({instrument,start,end,interval});
+  const response = await fetch(API_BASE_URL + "/api/v1/market/analyst/models?" + params);
+  if(!response.ok) throw new Error("Market model API error " + response.status + ": " + await response.text());
+  return response.json() as Promise<{
+    instrument:string;
+    interval:string;
+    source:string;
+    analysis:{
+      status:string;
+      bar_count?:number;
+      models:Array<{
+        name:string;
+        available:boolean;
+        mae_percent:number|null;
+        directional_accuracy_percent:number|null;
+        next_return_percent:number|null;
+        weight:number;
+      }>;
+      ensemble?:{
+        next_return_scenario_percent:number;
+        direction:string;
+        model_agreement_percent:number;
+        reference_last_close:number;
+      }|null;
+      method:string;
+      warning:string;
+      message?:string;
+    };
+  }>;
+}
