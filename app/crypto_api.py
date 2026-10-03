@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from crypto.arbitrage import estimate_arbitrage
 from crypto.scanner import scan_cross_exchange_arbitrage
-from crypto.universe import market_universe, scan_all_pairs, supported_connectors
+from crypto.universe import all_exchange_tickers, market_universe, scan_all_pairs, supported_connectors
 
 
 router = APIRouter(
@@ -124,3 +124,31 @@ def arbitrage_scan_all(request: AllPairsScanRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"All-pairs scan failed: {exc}") from exc
+
+
+@router.get("/tickers")
+def crypto_tickers(
+    exchange: str = "binance",
+    quote: str | None = "USDT",
+    search: str | None = None,
+    limit: int = 500,
+    offset: int = 0,
+) -> Dict[str, Any]:
+    try:
+        items = all_exchange_tickers(exchange, quote=quote)
+        s = (search or "").strip().upper()
+        if s:
+            items = [item for item in items if s in item["symbol"].upper()]
+        start = max(0, int(offset))
+        end = start + max(1, min(int(limit), 2000))
+        return {
+            "exchange": exchange,
+            "quote": quote,
+            "count": len(items),
+            "offset": start,
+            "limit": end - start,
+            "tickers": items[start:end],
+            "snapshot_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Crypto tickers unavailable: {exc}") from exc
