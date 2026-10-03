@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Query
 from market_data.analyst import analyze_candles
 from app.market_api import _get_service, _resolve_instrument_or_search
@@ -38,3 +39,51 @@ def analyst(
         }
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Market analysis failed: {exc}") from exc
+
+
+class CandleExplainRequest(BaseModel):
+    instrument: str = Field(min_length=1, max_length=64)
+    candle: Dict[str, Any]
+    context_news: list[Dict[str, Any]] = Field(default_factory=list, max_length=10)
+    model_id: Optional[str] = None
+
+
+@router.post("/analyst/explain")
+def explain_candle(request: CandleExplainRequest) -> dict[str, Any]:
+    """Generate a model explanation constrained to supplied observed candle data."""
+    from llm.response_service import ResponseService
+
+    prompt = (
+        f"Explain this selected {request.instrument} candle using ONLY the supplied "
+        "observed values. Distinguish facts from hypotheses. Discuss candle anatomy, "
+        "volume, recent trend, and contextual news. Do not claim a news item caused "
+        "the move unless the supplied evidence explicitly establishes causality. "
+        "Do not make a guaranteed prediction. Return a compact analyst note."
+    )
+    verified = {
+        "instrument": request.instrument,
+        "selected_candle": request.candle,
+        "context_news": request.context_news,
+        "constraint": "Use supplied data only; hypotheses must be labelled.",
+    }
+
+    try:
+        result = ResponseService().generate(
+            user_text=prompt,
+            intent="FINANCIAL_GUIDANCE",
+            verified_result=verified,
+            source="market_analyst",
+            language="English",
+            persona="neutral",
+            max_new_tokens=384,
+            model_id=request.model_id,
+        )
+        return {
+            "status": result.get("status", "GENERATED"),
+            "response": result.get("response", ""),
+            "model_id": result.get("model_id"),
+            "verification": result.get("verification"),
+            "claim_verification": result.get("claim_verification"),
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Candle explanation unavailable: {exc}") from exc
