@@ -31,6 +31,20 @@ if (-not $env:FINAI_SKIP_LIVE) {
         if ($research.status -ne "FINAI_RESEARCH_STACK") {
             throw "Research status endpoint returned an unexpected status"
         }
+        if (-not $research.components.temporal_gnn_evaluation) {
+            throw "Temporal GNN evaluation capability is missing from research status"
+        }
+        if (-not $research.components.gflownet_training) {
+            throw "GFlowNet research training capability is missing from research status"
+        }
+        if (-not $research.components.multimodal_encoder) {
+            throw "Multimodal encoder capability is missing from research status"
+        }
+
+        $architecture = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/causal-risk/architecture" -Method Get
+        if ($architecture.status -ne "architecture_implemented") {
+            throw "Causal architecture endpoint returned an unexpected status"
+        }
     }
     catch {
         Write-Host "Live API checks FAILED: $($_.Exception.Message)" -ForegroundColor Red
