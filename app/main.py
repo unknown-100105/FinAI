@@ -82,6 +82,10 @@ def get_orchestrator() -> XAISessionOrchestrator:
     return _orchestrator
 
 
+class SessionRequest(BaseModel):
+    session_id: str = Field(..., min_length=1, max_length=128)
+
+
 class ChatRequest(BaseModel):
     message: str = Field(
         ...,
@@ -150,6 +154,39 @@ def api_info() -> Dict[str, Any]:
             "chat": "/api/v1/chat",
             "xai": "app.xai_api",
         },
+    }
+
+
+@app.post("/api/v1/session/authenticate")
+def authenticate_session(request: SessionRequest) -> Dict[str, Any]:
+    session_id = request.session_id.strip()
+    if not session_id:
+        raise HTTPException(status_code=422, detail="session_id cannot be empty.")
+
+    session = get_orchestrator().authenticate_session(session_id)
+
+    return {
+        "status": "AUTHENTICATED",
+        "message": (
+            "Demo session authenticated. This development flow does not verify "
+            "real-world identity, OTP, or bank credentials."
+        ),
+        "session": session,
+    }
+
+
+@app.post("/api/v1/session/logout")
+def logout_session(request: SessionRequest) -> Dict[str, Any]:
+    session_id = request.session_id.strip()
+    if not session_id:
+        raise HTTPException(status_code=422, detail="session_id cannot be empty.")
+
+    session = get_orchestrator().logout_session(session_id)
+
+    return {
+        "status": "LOGGED_OUT",
+        "message": "Session authentication has been cleared.",
+        "session": session,
     }
 
 
