@@ -28,6 +28,7 @@ class FeasibilityCertificate:
     empirical_support_ok: bool
     fixed_violations: tuple[str, ...]
     reason: str
+    intervened_nodes: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -39,6 +40,7 @@ class FeasibilityCertificate:
             "empirical_support_ok": self.empirical_support_ok,
             "fixed_violations": list(self.fixed_violations),
             "reason": self.reason,
+            "intervened_nodes": list(self.intervened_nodes),
             "certificate_type": "conservative_linear_dag_interval_outer_bound",
         }
 
@@ -66,6 +68,7 @@ def propagate_interval_bounds(
     edges: Sequence[Mapping[str, Any]],
     fixed_values: Mapping[str, float],
     node_bounds: Mapping[str, Sequence[float]],
+    intervened_nodes: Sequence[str] = (),
 ) -> dict[str, tuple[float, float]]:
     """Propagate linear SCM intervals through a contemporaneous DAG."""
     labels = [str(node) for node in nodes]
@@ -82,7 +85,14 @@ def propagate_interval_bounds(
         raise ValueError(f"node_bounds missing nodes: {missing}")
 
     fixed = {str(k): float(v) for k, v in fixed_values.items()}
+    intervened = {str(node) for node in intervened_nodes}
     unknown_fixed = [node for node in fixed if node not in labels]
+    unknown_intervened = [node for node in intervened if node not in labels]
+    if unknown_intervened:
+        raise ValueError(f"intervened_nodes references unknown nodes: {unknown_intervened}")
+    overlap = sorted(set(fixed) & intervened)
+    if overlap:
+        raise ValueError(f"fixed_values and intervened_nodes overlap: {overlap}")
     if unknown_fixed:
         raise ValueError(f"fixed_values references unknown nodes: {unknown_fixed}")
     if not np.isfinite(np.asarray(list(fixed.values()), dtype=float)).all():
@@ -124,6 +134,9 @@ def propagate_interval_bounds(
         if node in fixed:
             intervals[node] = (fixed[node], fixed[node])
             continue
+        if node in intervened:
+            intervals[node] = bounds[node]
+            continue
         if parents[node]:
             lo = 0.0
             hi = 0.0
@@ -147,6 +160,7 @@ def evaluate_prefix_feasibility(
     *,
     target_node: str,
     target_interval: Sequence[float],
+    intervened_nodes: Sequence[str] = (),
     empirical_center: Mapping[str, float] | None = None,
     empirical_scale: Mapping[str, float] | None = None,
     max_standardized_deviation: float = 4.0,
@@ -157,6 +171,13 @@ def evaluate_prefix_feasibility(
     if str(target_node) not in labels:
         raise ValueError("target_node must exist in nodes")
     fixed = {str(k): float(v) for k, v in fixed_values.items()}
+    intervened = tuple(dict.fromkeys(str(node) for node in intervened_nodes))
+    unknown_intervened = [node for node in intervened if node not in labels]
+    overlap = sorted(set(fixed) & set(intervened))
+    if unknown_intervened:
+        raise ValueError(f"intervened_nodes references unknown nodes: {unknown_intervened}")
+    if overlap:
+        raise ValueError(f"fixed_values and intervened_nodes overlap: {overlap}")
 
     violations: list[str] = []
     for node, value in fixed.items():
@@ -197,6 +218,7 @@ def evaluate_prefix_feasibility(
             empirical_support_ok=support_ok,
             fixed_violations=tuple(violations),
             reason="fixed-prefix constraint violation",
+            intervened_nodes=intervened,
         )
 
     intervals = propagate_interval_bounds(
@@ -204,6 +226,7 @@ def evaluate_prefix_feasibility(
         edges,
         fixed,
         node_bounds,
+        intervened_nodes=intervened,
     )
     reachable_lo, reachable_hi = intervals[str(target_node)]
     margin = min(reachable_hi - target_lo, target_hi - reachable_lo)
@@ -222,6 +245,7 @@ def evaluate_prefix_feasibility(
         empirical_support_ok=support_ok,
         fixed_violations=(),
         reason=reason,
+        intervened_nodes=intervened,
     )
 
 
