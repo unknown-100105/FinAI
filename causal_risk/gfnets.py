@@ -72,6 +72,7 @@ class GFlowNetTailGenerator:
         seed: int | None = None,
         reward_fn: Any | None = None,
         objective_name: str = "synthetic_tail_reward",
+        device: str | None = None,
     ) -> dict[str, Any]:
         seed = self.config.seed if seed is None else int(seed)
         torch.manual_seed(seed)
