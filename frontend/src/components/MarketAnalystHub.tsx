@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, ExternalLink, Newspaper, Play, Pause, RefreshCw } from "lucide-react";
-import { getMarketAnalyst, type CandleAnalysis } from "../api/marketAnalyst";
+import { explainCandle, getMarketAnalyst, type CandleAnalysis } from "../api/marketAnalyst";
 import { MarketSearchBox } from "./MarketSearchBox";
 import { CandleChart } from "./CandleChart";
 import type { MarketBar } from "../api/market";
@@ -32,7 +32,7 @@ export function MarketAnalystHub(){
   const [selected,setSelected]=useState<number>(0);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
-  const [playing,setPlaying]=useState(false);
+  const [playing,setPlaying]=useState(false);\n  const [aiExplanation,setAiExplanation]=useState("");\n  const [aiBusy,setAiBusy]=useState(false);
 
   const rangeConfig=useMemo(()=>ranges.find(r=>r.id===range)??ranges[0],[range]);
 
@@ -101,6 +101,13 @@ export function MarketAnalystHub(){
         </div>}
         {candle&&<div className="detail-section"><div className="detail-section-title">What the candle shows</div><div className="criteria-list">{candle.observed_features.length?candle.observed_features.map(x=><span key={x}>• {x}</span>):<span>Normal OHLC movement without a strong standalone pattern flag.</span>}</div></div>}
         <div className="data-note"><AlertTriangle size={12}/> {candle?.causality_note||"Select a candle."}</div>
+        {candle && <button type="button" className="primary-module-button" disabled={aiBusy} onClick={() => {
+          setAiBusy(true); setAiExplanation("");
+          void explainCandle({instrument,candle,context_news:news.slice(0,8)}).then(result => setAiExplanation(result.response || "No model explanation returned."))
+            .catch(e => setAiExplanation(e instanceof Error ? e.message : "AI explanation unavailable."))
+            .finally(() => setAiBusy(false));
+        }}>{aiBusy ? "Reasoning about candle…" : "Generate AI explanation"}</button>}
+        {aiExplanation && <div className="ai-explanation"><div className="detail-section-title">AI analyst note</div><p>{aiExplanation}</p></div>}
       </section>
 
       <section className="workspace-panel">
