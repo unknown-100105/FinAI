@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, BrainCircuit, Gauge, Network, Play, RotateCcw, ShieldAlert, SlidersHorizontal } from "lucide-react";
+import { AlertTriangle, BrainCircuit, Gauge, Network, Play, RotateCcw, ShieldAlert } from "lucide-react";
 import "./CausalRiskLab.css";
 
 type K="rates"|"supply"|"oil"|"credit"|"usd"; type S=Record<K,number>;
