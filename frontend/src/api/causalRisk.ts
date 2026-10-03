@@ -90,6 +90,9 @@ export function runCounterfactual(body: {
   shock: Record<string, number>;
   allocation: Record<string, number>;
   include_tail_scenarios?: boolean;
+  use_empirical_tail_dependence?: boolean;
+  tail_distribution?: "gaussian" | "student_t_copula";
+  tail_degrees_of_freedom?: number;
 }) {
   return getJson<CounterfactualResult>("/api/v1/causal-risk/counterfactual", {
     method: "POST",
