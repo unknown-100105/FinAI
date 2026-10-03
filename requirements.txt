@@ -25,3 +25,4 @@ sentencepiece
 jsonschema
 pytest
 httpx
+ccxt>=4,<5
