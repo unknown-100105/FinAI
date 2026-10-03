@@ -1,4 +1,4 @@
-import { BookOpen, ChartCandlestick, ClipboardList, Coins, FileCheck2, GraduationCap, Landmark, Sparkles, Wallet } from "lucide-react";
+import { BookOpen, ChartCandlestick, Coins, FileCheck2, GraduationCap, Landmark, Sparkles, Wallet } from "lucide-react";
 import "./PlatformModules.css";
 
 type Props = { onNavigate:(section:string)=>void };
