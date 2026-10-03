@@ -95,6 +95,7 @@ class MarketDataService:
         end: datetime,
         exchange: Optional[str] = None,
         provider_id: Optional[str] = None,
+        interval: str = "1d",
     ) -> List[MarketBar]:
         if start > end:
             raise ValueError(
@@ -103,10 +104,20 @@ class MarketDataService:
 
         provider = self.get_provider(provider_id)
 
+        if interval == "1d":
+            return provider.get_history(
+                symbol=symbol,
+                asset_type=asset_type,
+                start=start,
+                end=end,
+                exchange=exchange,
+            )
+
         return provider.get_history(
             symbol=symbol,
             asset_type=asset_type,
             start=start,
             end=end,
             exchange=exchange,
+            interval=interval,
         )
