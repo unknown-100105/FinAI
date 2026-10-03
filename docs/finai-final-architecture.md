@@ -1,57 +1,141 @@
-# FinAI Final Research Architecture
+# FinAI Research Architecture v2
 
-## Unified system
+## Unified causal stress-intelligence loop
 
-```
+~~~text
 Market / Macro / News / Filings / Events / Entities / Portfolio
                          |
                          v
-              Typed Multimodal Graph
+                Multimodal State Encoder
+             /       |       |       |      \
+        market    macro    text   events   graph/microstructure
+                         |
+                         v
+              Time-Indexed Financial Graph
+                         |
+              +----------+----------+
+              |                     |
+       Causal Discovery       Temporal GNN
+       NOTEARS + lags        regime-aware encoder
+              |                     |
+              +----------+----------+
+                         v
+              Stability + Consensus
+                         |
+                   Research Gate
+                         |
+                         v
+             Causal Empirical GFlowNet
+                         |
+             constrained stress paths
+                         |
+                         v
+              Structural Causal Model
+                   do(X=x)
                          |
              +-----------+-----------+
              |                       |
-      Causal Discovery        Temporal GNN
-      NOTEARS + lagged            |
+       Tail / CVaR / ES          Causal XAI
              |                       |
              +-----------+-----------+
                          v
-                 Consensus Graph
-                         |
-                 Empirical Calibration
-                         |
-                  Explicit Gate
-                         |
-               Structural Causal Model
+             Neuro-Symbolic Validator
                          |
              +-----------+-----------+
              |                       |
-       Correlation-aware        GFlowNet
-       tail sampler             prototype
-             |                       |
-             +-----------+-----------+
-                         v
-                 Counterfactual Engine
-                         |
-               Neuro-symbolic Rules
-                         |
-                    Causal XAI
-                         |
-               Risk / Portfolio UI
-```
+        Accepted path            Rejected path
+             |
+             v
+         Research metrics
+   temporal / regime / OOD / ablation
+~~~
 
-## Research-status semantics
+## Research contribution hypothesis
 
-A component may be implemented without being statistically validated. FinAI must distinguish:
+FinAI investigates whether **causal-regime-constrained stress generation** can
+produce more empirically supported, causally consistent and regime-consistent
+financial stress trajectories than unconstrained generative scenario search.
+
+This is a hypothesis to be tested, not a claim of prior-art exclusivity.
+
+## Model maturity semantics
+
+Every learned component has separate states:
 
 - implemented
-- research baseline
-- research prototype
+- trainable
 - trained
+- future-holdout evaluated
 - empirically validated
 - production eligible
 
-No language-model response is allowed to override a failed symbolic constraint or an unapproved research graph.
+Training alone never upgrades a model to empirically validated.
 
-## Validation requirements
+## Core upgrades
 
-Every learned component must preserve chronological evaluation, deterministic seeds where practical, explicit provenance, and a clear distinction between prediction, association, and causal identification.
+### Empirical channel calibration
+
+The repository now contains a calibration path that can estimate the exact
+coefficient schema consumed by the structural risk engine from chronological,
+externally observed channel outcomes.
+
+The resulting bundle is explicitly marked empirical_fit and can be selected
+through FINAI_RISK_CALIBRATION_PATH after human review.
+
+### Causal empirical GFlowNet
+
+The GFlowNet objective can now be replaced with an explicit research reward
+combining:
+
+- tail severity;
+- empirical-support proximity;
+- causal-direction alignment;
+- portfolio relevance.
+
+The generator remains a research generative model until trained and
+benchmarked on a real point-in-time financial dataset.
+
+### Temporal holdout training
+
+TemporalRiskGNN now has a sequence training path that fits only on earlier
+snapshots and evaluates on future snapshots. The implementation exposes CPU,
+CUDA and automatic device selection with deterministic seeds.
+
+### Learned multimodal encoder
+
+A trainable multimodal financial encoder now supports:
+
+- modality-specific projections;
+- learned modality tokens;
+- missing-modality embeddings;
+- Transformer fusion;
+- masked-modality self-supervision;
+- embedding inference.
+
+This is a research-scale encoder, not a claim of foundation-model pretraining.
+
+## Scientific boundaries
+
+- Observational causal discovery is not causal identification by itself.
+- GFlowNet reward is not a calibrated probability distribution.
+- Student-t copula generation is not a GFlowNet.
+- Temporal holdout performance is not evidence of causal identification.
+- Embedding similarity is not factual or causal proof.
+- Real production deployment requires point-in-time data, artifact versioning,
+  security hardening and external validation.
+
+## Required final experiments
+
+1. Historical point-in-time dataset construction.
+2. Walk-forward TGAT evaluation.
+3. Empirical channel calibration.
+4. Causal-empirical GFlowNet training.
+5. Multimodal masked-modality pretraining.
+6. Tail-risk backtesting.
+7. Crisis/regime robustness.
+8. Ablation study.
+9. Out-of-distribution perturbation testing.
+10. Prior-art and patent review.
+
+See docs/research-gap-and-novelty.md and
+docs/research-training-runbook.md.
