@@ -1,0 +1,28 @@
+# FinAI workspace policy: Gemini is review-only.
+# Human/ChatGPT changes remain outside Gemini CLI.
+#
+# High-priority workspace denies prevent Gemini from modifying repository
+# files or executing shell commands, even if the interactive approval mode
+# is changed.
+
+[[rule]]
+toolName = ["write_file", "replace", "run_shell_command", "activate_skill"]
+decision = "deny"
+priority = 1000
+interactive = true
+denyMessage = "FinAI policy: Gemini is review-only. Do not modify files, execute shell commands, or activate mutating skills. Provide analysis or a proposed patch for the human/ChatGPT to apply."
+
+[[rule]]
+toolName = ["write_file", "replace", "run_shell_command", "activate_skill"]
+decision = "deny"
+priority = 1000
+interactive = false
+denyMessage = "FinAI policy: Gemini is review-only. Mutating tools and shell execution are disabled."
+
+# Block MCP tool access from the workspace so Gemini cannot bypass the
+# local read-only contract through an external mutating integration.
+[[rule]]
+toolName = "mcp_*"
+decision = "deny"
+priority = 1000
+denyMessage = "FinAI policy: Gemini may not use MCP tools from this workspace."
