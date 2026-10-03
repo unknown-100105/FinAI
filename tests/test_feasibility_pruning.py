@@ -139,3 +139,16 @@ def test_future_intervention_is_respected_by_feasibility_certificate():
     )
     assert certificate.hard_infeasible is False
     assert certificate.intervened_nodes == ("credit",)
+
+
+def test_target_cannot_be_future_intervention():
+    with pytest.raises(ValueError, match="target_node cannot be a future intervention"):
+        evaluate_prefix_feasibility(
+            ["rates", "portfolio"],
+            [{"source": "rates", "target": "portfolio", "weight": 0.8}],
+            {},
+            {"rates": (-100.0, 100.0), "portfolio": (-100.0, 100.0)},
+            target_node="portfolio",
+            target_interval=(8.0, 10.0),
+            intervened_nodes=("portfolio",),
+        )
