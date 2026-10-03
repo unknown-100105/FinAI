@@ -144,7 +144,7 @@ def run_counterfactual(
     allocation: Dict[str, float],
     *,
     include_tail_scenarios: bool = False,
-    tail_covariance: Any = None,
+    tail_correlation: Any = None,
 ) -> Dict[str, Any]:
     shock = {str(key): float(value) for key, value in shock.items()}
     allocation = {str(key): float(value) for key, value in allocation.items()}
@@ -191,7 +191,7 @@ def run_counterfactual(
         "assumptions": "Structural coefficients are transparent research parameters. Outputs are scenario analytics, not forecasts.",
     }
     if include_tail_scenarios:
-        tail = generate_tail_scenarios(shock, covariance=tail_covariance)
+        tail = generate_tail_scenarios(shock, correlation=tail_correlation)
         result["tail_scenarios"] = tail
         result["tail_evaluation"] = _evaluate_tail_scenarios(tail, allocation)
     return result
