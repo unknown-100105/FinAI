@@ -181,3 +181,42 @@ def analytics(
         "analytics": asdict(calculated),
         "data_points": len(bars),
     }
+
+
+@router.get("/news")
+def news(
+    query: str = Query(
+        ...,
+        min_length=1,
+        description="Company, ticker, sector, or financial-news search query.",
+    ),
+    count: int = Query(
+        default=10,
+        ge=1,
+        le=25,
+    ),
+):
+    from market_data.news import fetch_news
+
+    try:
+        articles = fetch_news(
+            query=query,
+            count=count,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "query": query.strip(),
+        "count": len(articles),
+        "source": "yfinance",
+        "articles": articles,
+    }
