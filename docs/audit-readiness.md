@@ -16,11 +16,15 @@ These local results are separate from GitHub Actions and should be retained as t
 
 PR #5 has an open state and is not merged.
 
-The latest visible GitHub Actions run before this audit was run #504 on commit
-`c481000574e75a718825f8183fc8cb9ac2fdb237`. That run initially completed with
-both backend and frontend jobs failed. The failed jobs were re-run to distinguish
-a transient runner/environment failure from a deterministic repository failure.
-A run that is still queued/running must not be described as green.
+The latest visible GitHub Actions run currently attached to the final branch
+head is run #520 (and subsequent runs in the same series) and its Backend,
+Frontend, and Patent mechanism jobs complete with `failure` while exposing
+empty step lists. The connector cannot retrieve a failure log because the job
+log blob is unavailable. Therefore remote CI is **not green**, but the available
+metadata also does not provide evidence that repository test steps executed.
+This is an unresolved CI-environment/runner issue and must be disclosed as such
+until the repository owner can rerun the workflow in GitHub and inspect the native
+Actions logs.
 
 ## Research mechanism boundary
 
@@ -66,6 +70,9 @@ The correct audit position is:
 - causal-feasibility implementation: implemented and tested;
 - bidirectional mechanism: implemented as a research-screening extension and
   integrated into constrained generation;
-- controlled patent-mechanism benchmark: executable;
+- controlled patent-mechanism benchmark: executable and included in CI/final local verification;
+- forward + backward certificates: intervention-aware so future generator actions
+  do not incorrectly constrain upstream causes;
+- incremental interval benchmark: persistent descendant-cone update path tested;
 - real financial evidence: pending;
 - legal patentability conclusion: pending professional search/counsel.
