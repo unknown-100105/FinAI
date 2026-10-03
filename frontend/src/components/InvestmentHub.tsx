@@ -50,7 +50,6 @@ export function InvestmentHub() {
   const [bondYield, setBondYield] = useState("7.5");
   const [bondYears, setBondYears] = useState("5");
   const [result, setResult] = useState<Record<string, any> | null>(null);
-  const [loading, setLoading] = useState(true);
   const [calculationLoading, setCalculationLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -62,7 +61,6 @@ export function InvestmentHub() {
         setMeta(data.meta);
       })
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "Investment catalog unavailable."))
-      .finally(() => setLoading(false));
   }, []);
 
   const selected = useMemo(() => products.find((item) => item.product_id === selectedProduct) ?? products[0], [products, selectedProduct]);
