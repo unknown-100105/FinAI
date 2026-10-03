@@ -13,6 +13,7 @@ from llm.response_adapter import SarvamResponseAdapter
 from llm.rllm_finqa_adapter import RLLMFinQAModelAdapter
 from llm.cloud.gemini_adapter import GeminiResponseAdapter
 from llm.cloud.openrouter_adapter import OpenRouterResponseAdapter
+from llm.cloud.openai_adapter import OpenAIResponseAdapter
 
 
 class ResponseService:
@@ -30,15 +31,19 @@ class ResponseService:
     ADAPTERS = {
         "gemini-cloud": GeminiResponseAdapter,
         "openrouter-cloud": OpenRouterResponseAdapter,
+        "openai-luna": OpenAIResponseAdapter,
         "rllm-finqa-4b": RLLMFinQAModelAdapter,
         "sarvam-1": SarvamResponseAdapter,
     }
 
     FALLBACK_MODEL_IDS_BY_CAPABILITY = {
         "response_generation": (
+            "gemini-cloud",
             "openrouter-cloud",
+            "rllm-finqa-4b",
         ),
         "financial_qa": (
+            "gemini-cloud",
             "openrouter-cloud",
             "rllm-finqa-4b",
         ),
