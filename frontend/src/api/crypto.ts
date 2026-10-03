@@ -144,3 +144,16 @@ export function getBitcoinMiningSnapshot(request: {
     return response.json();
   });
 }
+
+export function getCryptoOHLCV(exchange: string, symbol: string, timeframe = "15m", limit = 200) {
+  const params = new URLSearchParams({
+    exchange,
+    symbol,
+    timeframe,
+    limit: String(limit),
+  });
+  return fetch(API_BASE_URL + "/api/v1/crypto/ohlcv?" + params.toString()).then(async (response) => {
+    if (!response.ok) throw new Error("Crypto OHLCV error " + response.status + ": " + await response.text());
+    return response.json();
+  });
+}
