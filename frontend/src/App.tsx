@@ -11,7 +11,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import { sendChat } from "./api/finai";
-import { MarketTerminal } from "./components/MarketTerminal";\nimport "./index.css";
+import { MarketTerminal } from "./components/MarketTerminal";
+
+import "./index.css";
 
 const languages = [
   "English",
