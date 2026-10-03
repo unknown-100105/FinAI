@@ -275,3 +275,39 @@ def test_research_status_reports_advanced_components():
     ).json()
     assert payload["components"]["temporal_gnn"] == "trainable_research_implementation"
     assert payload["components"]["student_t_copula"] == "research_implemented"
+
+
+
+def test_multimodal_ingest_endpoint():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    response = TestClient(app).post(
+        "/api/v1/causal-risk/multimodal/ingest",
+        json={
+            "documents": [{"id": "doc-1", "type": "filing", "text": "supply", "source": "test"}],
+            "events": [{"id": "event-1", "type": "supply_disruption", "severity": 0.9}],
+            "relations": [{"source": "event-1", "target": "doc-1", "relation": "mentions", "weight": 0.6}],
+            "portfolio_exposures": [{"factor": "rates", "asset": "bond-fund", "weight": 0.4}],
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "MULTIMODAL_INGESTION_READY"
+    assert payload["counts"]["documents"] == 1
+    assert payload["counts"]["events"] == 1
+
+
+def test_microstructure_endpoint():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    response = TestClient(app).post(
+        "/api/v1/causal-risk/microstructure",
+        json={
+            "bids": [[100.0, 5.0], [99.5, 2.0]],
+            "asks": [[100.5, 4.0], [101.0, 1.0]],
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "MICROSTRUCTURE_FEATURES_READY"
