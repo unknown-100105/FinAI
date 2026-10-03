@@ -330,7 +330,7 @@ RESOURCES = (
     _r("form16","Form 16","Tax & Forms","TDS",
        "Salary TDS certificate issued by employer.",
        "Salary recipients where applicable.","Current",
-       INCOME_TAX, INCOME_TAX,None,"Income Tax Department","Current",
+       INCOME_TAX, INCOME_TAX,"Income Tax Department","Current",
        "Certificate should be reconciled to AIS/26AS and salary records.",
        ("employee_name","pan","employer_tan","salary","tds","assessment_year")),
     _r("form16a","Form 16A","Tax & Forms","TDS",
