@@ -68,3 +68,36 @@ def test_empty_response_is_not_grounded():
 
     assert result["applicable"] is True
     assert result["passed"] is False
+
+def test_strong_qualifier_without_matching_evidence_fails():
+    result = RAGEvidenceVerifier.verify(
+        "All KYC processes always support digital verification.",
+        [
+            {
+                "title": "KYC evidence",
+                "text": "Digital KYC is available in some cases.",
+            }
+        ],
+    )
+
+    assert result["passed"] is False
+    assert result["unsupported_claims"]
+    assert (
+        result["unsupported_claims"][0]["qualifier_supported"]
+        is False
+    )
+
+
+def test_conflicting_qualifier_and_caveat_fails():
+    result = RAGEvidenceVerifier.verify(
+        "All KYC processes support digital verification in some cases.",
+        [
+            {
+                "title": "KYC evidence",
+                "text": "Digital KYC is available in some cases.",
+            }
+        ],
+    )
+
+    assert result["passed"] is False
+    assert result["unsupported_claims"][0]["internal_qualifier_conflict"] is True
