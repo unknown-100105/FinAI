@@ -9,6 +9,13 @@ from pydantic import BaseModel, Field
 
 from causal_risk.gfnets import GFlowConfig, GFlowNetTailGenerator
 from causal_risk.multimodal_graph import GraphEdge, GraphNode, MultimodalGraph
+from causal_risk.microstructure import summarize_order_book
+from causal_risk.multimodal_ingestion import (
+    build_document_nodes,
+    build_event_nodes,
+    build_relation_edges,
+    build_portfolio_edges,
+)
 from causal_risk.regime_benchmark import assign_regimes, evaluate_predictions
 from causal_risk.risk_calibration import calibrate_risk_target
 from causal_risk.research_counterfactual import run_research_counterfactual
@@ -239,4 +246,52 @@ def research_counterfactual(request: ResearchCounterfactualRequest):
             approved=request.approved,
         )
     except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+ 
+ 
+class MicrostructureRequest(BaseModel):
+    bids: List[List[float]]
+    asks: List[List[float]]
+
+
+@router.post("/microstructure")
+def microstructure(request: MicrostructureRequest):
+    try:
+        return summarize_order_book({
+            "bids": request.bids,
+            "asks": request.asks,
+        })
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class MultimodalIngestionRequest(BaseModel):
+    documents: List[Dict[str, Any]] = Field(default_factory=list)
+    events: List[Dict[str, Any]] = Field(default_factory=list)
+    relations: List[Dict[str, Any]] = Field(default_factory=list)
+    portfolio_exposures: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+@router.post("/multimodal/ingest")
+def multimodal_ingest(request: MultimodalIngestionRequest):
+    try:
+        documents = build_document_nodes(request.documents)
+        events = build_event_nodes(request.events)
+        relation_edges = build_relation_edges(request.relations)
+        portfolio_edges = build_portfolio_edges(request.portfolio_exposures)
+        return {
+            "status": "MULTIMODAL_INGESTION_READY",
+            "document_nodes": [node.__dict__ for node in documents],
+            "event_nodes": [node.__dict__ for node in events],
+            "relation_edges": [edge.__dict__ for edge in relation_edges],
+            "portfolio_edges": [edge.__dict__ for edge in portfolio_edges],
+            "counts": {
+                "documents": len(documents),
+                "events": len(events),
+                "relations": len(relation_edges),
+                "portfolio_exposures": len(portfolio_edges),
+            },
+        }
+    except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
