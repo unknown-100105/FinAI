@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from crypto.arbitrage import estimate_arbitrage
 from crypto.scanner import scan_cross_exchange_arbitrage
-from crypto.universe import all_exchange_tickers, market_universe, scan_all_pairs, supported_connectors
+from crypto.universe import all_exchange_tickers, market_universe, scan_all_pairs, supported_connectors, registered_vda_services
 from crypto.mining import btc_mining_snapshot
 
 
@@ -76,7 +76,9 @@ def arbitrage_scan(request: ArbitrageScanRequest) -> Dict[str, Any]:
 def crypto_connectors() -> Dict[str, Any]:
     return {
         "connectors": supported_connectors(),
-        "note": "Connector status is an FIU-IND reporting-entity snapshot, not a government endorsement.",
+        "registered_vda_services": registered_vda_services(),
+        "registered_count": len(registered_vda_services()),
+        "note": "FIU-IND reporting-entity status is an AML/PMLA registration snapshot, not a government endorsement or securities licence.",
     }
 
 
