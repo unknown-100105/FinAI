@@ -54,6 +54,11 @@ export function CryptoArbitrageHub() {
   const [tickers, setTickers] = useState<any[]>([]);
   const [tickerCount, setTickerCount] = useState(0);
   const [tickersBusy, setTickersBusy] = useState(false);
+  const [miningHashrate, setMiningHashrate] = useState("200");
+  const [miningPower, setMiningPower] = useState("3500");
+  const [miningElectricity, setMiningElectricity] = useState("0.10");
+  const [miningData, setMiningData] = useState<any | null>(null);
+  const [miningBusy, setMiningBusy] = useState(false);
 
   const [chartSymbol, setChartSymbol] = useState("BTC");
   const [chartRange, setChartRange] = useState("1D");
@@ -269,6 +274,38 @@ export function CryptoArbitrageHub() {
         )}
         {estimate && <div className="result-panel"><span>Selected-pair net estimate</span><strong>{usd(estimate.net_profit_quote)}</strong><small>Return {number(estimate.net_return_percent, 3)}% · breakeven {usd(estimate.break_even_sell_price)}</small></div>}
         <div className="arb-warning"><TriangleAlert size={14}/><span>Top rows are ranked by calculated snapshot return, not guaranteed profit. A trade can disappear because of depth, transfer time, withdrawal limits, account limits, taxes, fees, latency or venue availability.</span></div>
+      </section>
+
+      <section className="workspace-panel mining-panel">
+        <div className="module-panel-head">
+          <div><div className="module-kicker">Proof-of-work economics</div><h2>Live Bitcoin network + mining profitability model</h2></div>
+          <span className="source-chip">Mempool network snapshot</span>
+        </div>
+        <div className="arb-fields">
+          <label>Miner hash rate (TH/s)<input type="number" value={miningHashrate} onChange={(e) => setMiningHashrate(e.target.value)} /></label>
+          <label>Power (watts)<input type="number" value={miningPower} onChange={(e) => setMiningPower(e.target.value)} /></label>
+          <label>Electricity (USD/kWh)<input type="number" value={miningElectricity} onChange={(e) => setMiningElectricity(e.target.value)} /></label>
+        </div>
+        <button className="primary-module-button" type="button" disabled={miningBusy} onClick={() => {
+          setMiningBusy(true);
+          void getBitcoinMiningSnapshot({
+            hashrate_ths: Number(miningHashrate),
+            power_watts: Number(miningPower),
+            electricity_usd_kwh: Number(miningElectricity),
+          }).then(setMiningData).catch((requestError) => setError(requestError instanceof Error ? requestError.message : "Live mining data unavailable."))
+            .finally(() => setMiningBusy(false));
+        }}>{miningBusy ? "Reading network…" : "Refresh mining economics"}</button>
+        {miningData && <div className="mining-results">
+          <div><span>Network hashrate</span><strong>{number(miningData.network_hashrate_eh_s, 2)} EH/s</strong></div>
+          <div><span>Difficulty</span><strong>{Number(miningData.difficulty || 0).toLocaleString()}</strong></div>
+          <div><span>BTC price</span><strong>{usd(miningData.btc_price_usd)}</strong></div>
+          <div><span>Expected BTC/day</span><strong>{number(miningData.economics.expected_btc_per_day, 8)}</strong></div>
+          <div><span>Gross/day</span><strong>{usd(miningData.economics.gross_revenue_usd_per_day)}</strong></div>
+          <div><span>Electricity/day</span><strong>{usd(miningData.economics.electricity_cost_usd_per_day)}</strong></div>
+          <div><span>Net before pool/hardware/tax</span><strong className={Number(miningData.economics.net_before_pool_hardware_tax_usd_per_day) >= 0 ? "market-positive" : "market-negative"}>{usd(miningData.economics.net_before_pool_hardware_tax_usd_per_day)}</strong></div>
+          <div><span>Break-even electricity</span><strong>{usd(miningData.economics.break_even_electricity_usd_kwh)}</strong></div>
+        </div>}
+        <div className="data-note">Live network hashrate, difficulty, block-reward and pool statistics are sourced from Mempool. This calculation is probabilistic and excludes hardware depreciation, maintenance, pool fee and taxes from the displayed net unless you model them separately.</div>
       </section>
 
       <section className="workspace-panel crypto-chart-panel">
