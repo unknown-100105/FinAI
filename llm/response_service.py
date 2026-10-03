@@ -24,6 +24,7 @@ class ResponseService:
         # financial-QA model when cloud providers are unavailable.
         "KYC_DOCUMENTS": "financial_qa",
         "FINANCIAL_GUIDANCE": "financial_qa",
+        "FINANCIAL_PRODUCT_KNOWLEDGE": "financial_qa",
     }
 
     ADAPTERS = {
