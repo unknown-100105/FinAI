@@ -29,7 +29,7 @@ class GraphEdge:
 class MultimodalGraph:
     """Small typed graph with explicit provenance and missing-modality handling."""
 
-    ALLOWED_MODALITIES = {"market", "macro", "text", "event", "entity", "portfolio"}
+    ALLOWED_MODALITIES = {"market", "macro", "text", "event", "entity", "portfolio", "microstructure"}
 
     def __init__(
         self,
