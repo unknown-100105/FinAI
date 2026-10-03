@@ -629,7 +629,7 @@ class FeasibilityScreenRequest(BaseModel):
     edges: List[Dict[str, Any]] = Field(max_length=1000)
     prefix: Dict[str, float] = Field(default_factory=dict, max_length=100)
     candidate_actions: Dict[str, List[float]]
-    node_bounds: Dict[str, List[float]]
+    node_bounds: Dict[str, List[float]] = Field(max_length=100)
     target_node: str = Field(min_length=1, max_length=100)
     target_interval: List[float] = Field(min_length=2, max_length=2)
     empirical_center: Dict[str, float] | None = Field(default=None, max_length=100)
@@ -646,6 +646,10 @@ def feasibility_screen(request: FeasibilityScreenRequest):
             raise ValueError("at most 1000 edges are supported")
         if len(request.candidate_actions) > 100:
             raise ValueError("at most 100 candidate action groups are supported")
+        if len(request.node_bounds) > 100:
+            raise ValueError("at most 100 node bounds are supported")
+        if any(len(bounds) != 2 for bounds in request.node_bounds.values()):
+            raise ValueError("each node bound must contain exactly [lower, upper]")
         total_candidates = sum(len(values) for values in request.candidate_actions.values())
         if total_candidates < 1 or total_candidates > 5000:
             raise ValueError("candidate action count must be between 1 and 5000")
@@ -690,7 +694,7 @@ class ConstrainedGFlowNetGenerateRequest(BaseModel):
     center: Dict[str, float] = Field(min_length=1, max_length=20)
     nodes: List[str] = Field(min_length=2, max_length=100)
     edges: List[Dict[str, Any]] = Field(max_length=1000)
-    node_bounds: Dict[str, List[float]]
+    node_bounds: Dict[str, List[float]] = Field(max_length=100)
     target_node: str = Field(min_length=1, max_length=100)
     target_interval: List[float] = Field(min_length=2, max_length=2)
     draws: int = Field(default=64, ge=1, le=5000)
@@ -712,6 +716,10 @@ def constrained_gfnets(request: ConstrainedGFlowNetGenerateRequest):
     try:
         if len(request.factor_ids) != len(request.center):
             raise ValueError("factor_ids and center must have matching dimensions")
+        if len(request.node_bounds) > 100:
+            raise ValueError("at most 100 node bounds are supported")
+        if any(len(bounds) != 2 for bounds in request.node_bounds.values()):
+            raise ValueError("each node bound must contain exactly [lower, upper]")
         config = GFlowConfig(
             hidden_dim=request.hidden_dim,
             epochs=request.epochs,
