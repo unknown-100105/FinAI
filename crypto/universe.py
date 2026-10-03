@@ -363,7 +363,7 @@ def scan_all_pairs(
             continue
         buy = min(buys, key=lambda t: t["ask"])
         sell = max(sells, key=lambda t: t["bid"])
-        if buy["exchange"] == sell["exchange"] or sell["bid"] <= buy["ask"]:
+        if buy["exchange"] == sell["exchange"] or sell["bid"] < buy["ask"]:
             continue
         max_quantity = None
         volumes = [v for v in (buy.get("ask_volume"), sell.get("bid_volume")) if v and v > 0]
