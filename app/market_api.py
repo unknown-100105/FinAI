@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from market_data.analytics import calculate_market_analytics
 from market_data.resolver import InstrumentResolver
+from market_data.instruments import Instrument
 
 
 router = APIRouter(
@@ -38,6 +39,56 @@ def _resolve_instrument(instrument: str):
         ) from exc
 
 
+
+def _resolve_instrument_or_search(instrument: str):
+    try:
+        return _resolver.resolve_or_raise(instrument)
+    except ValueError:
+        from market_data.discovery import search_instruments
+
+        matches = search_instruments(instrument, count=5)
+        if not matches:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unknown financial instrument: {instrument}",
+            )
+
+        top = matches[0]
+        symbol = top["symbol"]
+        return Instrument(
+            instrument_id=f"YF:{symbol}",
+            display_name=symbol,
+            asset_type=top["asset_type"],
+            exchange=top["exchange"],
+            currency=top["currency"],
+            aliases=(symbol.lower(), str(top["name"]).lower()),
+            provider_symbols={"yfinance": symbol},
+        )
+
+
+
+@router.get("/search")
+def search(
+    query: str = Query(..., min_length=1),
+    count: int = Query(default=20, ge=1, le=50),
+):
+    from market_data.discovery import search_instruments
+
+    try:
+        results = search_instruments(query=query, count=count)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {
+        "query": query.strip(),
+        "count": len(results),
+        "source": "yfinance",
+        "results": results,
+    }
+
+
 @router.get("/quote")
 def quote(
     instrument: str = Query(
@@ -46,7 +97,7 @@ def quote(
         description="Instrument name, alias, or supported market identifier.",
     ),
 ):
-    item = _resolve_instrument(instrument)
+    item = _resolve_instrument_or_search(instrument)
 
     try:
         result = _get_service().quote(
