@@ -207,6 +207,8 @@ export function CryptoArbitrageHub() {
         <div className="module-orb"><Calculator size={23} /></div>
       </div>
 
+      {error && <div className="module-error">{error}</div>}
+
       <section className="workspace-panel">
         <div className="module-panel-head">
           <div><div className="module-kicker">Regulatory / connectivity universe</div><h2>FIU-IND reporting-entity snapshot + public connectors</h2></div>
