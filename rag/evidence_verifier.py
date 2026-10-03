@@ -18,7 +18,7 @@ class RAGEvidenceVerifier:
     # "all", "always", or "guarantees" as supported by weaker evidence.
     STRONG_QUALIFIERS: Set[str] = {
         "all", "every", "always", "never", "guarantee", "guarantees",
-        "guaranteed", "must", "only", "required",
+        "guaranteed", "must", "only",
     }
 
     STOPWORDS: Set[str] = {
