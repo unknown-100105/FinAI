@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 import numpy as np
+from scipy.stats import t as student_t
 
 
-def _validate_correlation(correlation: Sequence[Sequence[float]], dimension: int) -> np.ndarray:
+def _validate_correlation(
+    correlation: Sequence[Sequence[float]],
+    dimension: int,
+) -> np.ndarray:
     matrix = np.asarray(correlation, dtype=float)
     if matrix.shape != (dimension, dimension):
         raise ValueError("correlation must match the number of shock variables")
@@ -17,10 +21,33 @@ def _validate_correlation(correlation: Sequence[Sequence[float]], dimension: int
         raise ValueError("correlation diagonal entries must equal 1")
     if np.any(matrix < -1.0) or np.any(matrix > 1.0):
         raise ValueError("correlation entries must be between -1 and 1")
-    eigenvalues = np.linalg.eigvalsh(matrix)
-    if float(np.min(eigenvalues)) < -1e-8:
+    if float(np.min(np.linalg.eigvalsh(matrix))) < -1e-8:
         raise ValueError("correlation must be positive semidefinite")
     return matrix
+
+
+def _sample_student_t_copula(
+    rng: np.random.Generator,
+    correlation: np.ndarray,
+    draws: int,
+    degrees_of_freedom: float,
+) -> np.ndarray:
+    if degrees_of_freedom <= 2:
+        raise ValueError("degrees_of_freedom must be greater than 2")
+    latent = rng.multivariate_normal(
+        np.zeros(correlation.shape[0]),
+        correlation,
+        size=draws,
+    )
+    scale = np.sqrt(
+        rng.chisquare(degrees_of_freedom, size=draws)
+        / degrees_of_freedom
+    )
+    latent = latent / scale[:, None]
+    # Convert correlated t variates back to uniforms, preserving copula
+    # dependence while providing heavy-tailed marginal shocks.
+    uniforms = student_t.cdf(latent, df=degrees_of_freedom)
+    return student_t.ppf(uniforms, df=degrees_of_freedom)
 
 
 def generate_tail_scenarios(
@@ -30,17 +57,21 @@ def generate_tail_scenarios(
     seed: int = 42,
     scale: float = 0.35,
     correlation: Sequence[Sequence[float]] | None = None,
+    distribution: str = "gaussian",
+    degrees_of_freedom: float = 5.0,
 ) -> Dict[str, Any]:
-    """Generate reproducible multivariate stress scenarios.
+    """Generate reproducible multivariate tail scenarios.
 
-    The default is an independent Gaussian Monte-Carlo baseline. An optional
-    correlation matrix preserves cross-factor dependence while retaining
-    marginal shock magnitudes derived from the requested scenario. Correlation
-    is dimensionless, so empirical return correlations can be transferred to
-    the scenario shock scale without mixing units.
+    The default preserves the original independent Gaussian baseline. When a
+    correlation matrix is supplied, dependence is preserved across shock
+    factors. A Student-t copula option adds heavier-tailed dependence for
+    research stress testing. Neither mode is a trained GFlowNet.
     """
     if draws < 8 or draws > 5000:
         raise ValueError("draws must be between 8 and 5000")
+    distribution = str(distribution).strip().lower()
+    if distribution not in {"gaussian", "student_t_copula"}:
+        raise ValueError("distribution must be 'gaussian' or 'student_t_copula'")
 
     rng = np.random.default_rng(seed)
     keys = tuple(sorted(base_shock))
@@ -53,17 +84,37 @@ def generate_tail_scenarios(
     marginal_std = np.maximum(np.abs(center) * scale, 5.0)
     if correlation is None:
         correlation_matrix = np.eye(len(keys), dtype=float)
-        dependence_model = "independent_gaussian_baseline"
         correlation_source = "shock_scale"
     else:
         correlation_matrix = _validate_correlation(correlation, len(keys))
-        dependence_model = "supplied_correlation_gaussian"
         correlation_source = "caller_supplied"
 
-    covariance_matrix = (
-        marginal_std[:, None] * correlation_matrix * marginal_std[None, :]
-    )
-    samples = rng.multivariate_normal(center, covariance_matrix, size=draws)
+    if distribution == "student_t_copula":
+        standardized = _sample_student_t_copula(
+            rng,
+            correlation_matrix,
+            draws,
+            degrees_of_freedom,
+        )
+        samples = center + standardized * marginal_std
+        dependence_model = "student_t_copula"
+    else:
+        covariance_matrix = (
+            marginal_std[:, None]
+            * correlation_matrix
+            * marginal_std[None, :]
+        )
+        samples = rng.multivariate_normal(
+            center,
+            covariance_matrix,
+            size=draws,
+        )
+        dependence_model = (
+            "independent_gaussian_baseline"
+            if correlation is None
+            else "correlated_gaussian"
+        )
+
     sample_correlation = np.corrcoef(samples, rowvar=False)
     if np.ndim(sample_correlation) == 0:
         sample_correlation = np.asarray([[1.0]])
@@ -86,14 +137,22 @@ def generate_tail_scenarios(
             },
             "tail_score": round(float(score), 4),
         }
-        for idx, (row, score) in enumerate(zip(tail[:20], tail_scores[:20]))
+        for idx, (row, score) in enumerate(
+            zip(tail[:20], tail_scores[:20])
+        )
     ]
 
     return {
         "status": "BASELINE_GENERATED",
-        "method": "reproducible multivariate Monte-Carlo tail sampler",
+        "method": "reproducible multivariate tail sampler",
         "dependence_model": dependence_model,
         "correlation_source": correlation_source,
+        "distribution": distribution,
+        "degrees_of_freedom": (
+            float(degrees_of_freedom)
+            if distribution == "student_t_copula"
+            else None
+        ),
         "gfnets_status": "interface_ready_not_trained",
         "draws": draws,
         "tail_quantile": 0.90,
