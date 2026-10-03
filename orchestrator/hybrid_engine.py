@@ -138,6 +138,7 @@ class FinAIHybridEngine:
         language: str = "English",
         persona: str = "neutral",
         max_new_tokens: int = 256,
+        model_id: str | None = None,
     ):
 
         # ---------------------------------------------------------
@@ -402,6 +403,7 @@ class FinAIHybridEngine:
                             language=language,
                             persona=persona,
                             max_new_tokens=max_new_tokens,
+                            model_id=model_id,
                         )
                         generated = str(response_generation.get("response", "")).strip()
                         if generated:
@@ -546,6 +548,7 @@ class FinAIHybridEngine:
                     language=language,
                     persona=persona,
                     max_new_tokens=max_new_tokens,
+                    model_id=model_id,
                 )
 
             final_response = (
@@ -845,6 +848,7 @@ class FinAIHybridEngine:
                         language=language,
                         persona=persona,
                         max_new_tokens=max_new_tokens,
+                        model_id=model_id,
                     )
 
                 return {
