@@ -45,8 +45,19 @@ def _resolve_instrument_or_search(instrument: str):
         return _resolver.resolve_or_raise(instrument)
     except ValueError:
         from market_data.discovery import search_instruments
+        import re
 
-        matches = search_instruments(instrument, count=5)
+        normalized = str(instrument).strip()
+
+        # Dynamic discovery is accepted for explicit provider-like symbols.
+        # Free-form phrases remain a 404 here; callers should use /search first.
+        if not re.fullmatch(r"[A-Za-z0-9.^/_=-]{1,40}", normalized):
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unknown financial instrument: {instrument}",
+            )
+
+        matches = search_instruments(normalized, count=5)
         if not matches:
             raise HTTPException(
                 status_code=404,
@@ -64,8 +75,6 @@ def _resolve_instrument_or_search(instrument: str):
             aliases=(symbol.lower(), str(top["name"]).lower()),
             provider_symbols={"yfinance": symbol},
         )
-
-
 
 @router.get("/search")
 def search(
