@@ -159,7 +159,7 @@ def history(
             detail="start must not be after end.",
         )
 
-    item = _resolve_instrument(instrument)
+    item = _resolve_instrument_or_search(instrument)
 
     try:
         bars = _get_service().history(
@@ -213,7 +213,7 @@ def analytics(
             detail="start must not be after end.",
         )
 
-    item = _resolve_instrument(instrument)
+    item = _resolve_instrument_or_search(instrument)
 
     try:
         bars = _get_service().history(
