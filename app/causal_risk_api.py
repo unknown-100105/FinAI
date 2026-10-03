@@ -53,6 +53,8 @@ class CounterfactualRequest(BaseModel):
     allocation: Dict[str,float]=Field(default_factory=lambda:{"equity":55,"debt":30,"gold":10,"cash":5})
     include_tail_scenarios: bool = False
     use_empirical_tail_dependence: bool = False
+    tail_distribution: str = Field(default="gaussian", pattern="^(gaussian|student_t_copula)$")
+    tail_degrees_of_freedom: float = Field(default=5.0, gt=2.0, le=30.0)
 
 
 class DiscoveryRequest(BaseModel):
@@ -73,6 +75,8 @@ class TailScenarioRequest(BaseModel):
     draws: int = Field(default=256, ge=8, le=5000)
     seed: int = Field(default=42, ge=0, le=10_000_000)
     use_empirical_market_dependence: bool = False
+    distribution: str = Field(default="gaussian", pattern="^(gaussian|student_t_copula)$")
+    degrees_of_freedom: float = Field(default=5.0, gt=2.0, le=30.0)
 
 
 def _empirical_correlation_for_shock(shock: Dict[str, float]) -> list[list[float]] | None:
