@@ -147,6 +147,9 @@ def generate_tail_scenarios(
         "method": "reproducible multivariate tail sampler",
         "dependence_model": dependence_model,
         "correlation_source": correlation_source,
+        # Backward-compatible field retained for clients/tests that still
+        # describe the independent baseline in covariance terms.
+        "covariance_source": correlation_source,
         "distribution": distribution,
         "degrees_of_freedom": (
             float(degrees_of_freedom)
