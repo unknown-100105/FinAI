@@ -142,7 +142,7 @@ E. full proposed loop with causal-empirical reward.
 
 Measure candidate actions, full SCM evaluations, avoided evaluations, wall-clock latency, CPU memory, GPU memory, compute utilization, accepted trajectory count, high-risk trajectory recall, false-pruning rate, causal-constraint violation rate, empirical-support violation rate, tail-risk metric error, and scenario diversity.
 
-The strongest technical-effect evidence would be a reproducible reduction in expensive computation without unacceptable loss of valid high-risk trajectories. No invented performance number should appear in a patent or paper.
+The strongest technical-effect evidence would be a reproducible reduction in expensive computation without unacceptable loss of valid high-risk trajectories. A second supporting effect is reduction in interval-propagation work through descendant-cone incremental recomputation. No invented performance number should appear in a patent or paper.
 
 ## 10. Research experiments
 
@@ -199,6 +199,6 @@ Do not create a second application merely because a different ML model is added.
 
 Engineering: locally verified 467 tests passed; frontend production build passed; live API smoke checks passed.
 
-Patent-oriented engineering: causal-feasibility module implemented; constrained GFlowNet research wrapper implemented; API exposure implemented; regression tests implemented.
+Patent-oriented engineering: causal-feasibility module implemented; constrained GFlowNet research wrapper implemented; incremental reachability-state module implemented; API exposure implemented; exact-small-state pruning benchmark implemented; regression tests implemented.
 
 Still required: empirical dataset; real training; compute/recall benchmark; full ablation; broader non-patent literature search; claim-chart review against closest patent families; professional patent drafting and filing decision.
