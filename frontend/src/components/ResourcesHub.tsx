@@ -6,7 +6,7 @@ import "./PlatformModules.css";
 const tabs = ["All", "Government Schemes", "Investment Avenues", "Tax & Forms", "Study Material"];
 
 function titleForField(field: string) {
-  return field.replaceAll("_", " ").replace(/\w/g, (c) => c.toUpperCase());
+  return field.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export function ResourcesHub() {
@@ -95,7 +95,7 @@ export function ResourcesHub() {
             <>
               <div className="module-panel-head">
                 <div><div className="module-kicker">{selected.category}</div><h2>{selected.name}</h2></div>
-                <a className="source-link" href={selected.official_url} target="_blank" rel="noreferrer">Official source <ExternalLink size={12} /></a>
+                <a className="source-link" title="Current official link" href={selected.official_url} target="_blank" rel="noreferrer">Official source <ExternalLink size={12} /></a>
               </div>
               <p className="resource-summary">{selected.summary}</p>
               <div className="resource-facts">
