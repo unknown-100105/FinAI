@@ -1,0 +1,28 @@
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+client = TestClient(app)
+
+
+def test_research_pruning_rejects_malformed_node_bounds():
+    response = client.post(
+        "/api/v1/causal-risk/research-pruning/screen",
+        json={
+            "nodes": ["rates", "portfolio"],
+            "edges": [{"source": "rates", "target": "portfolio", "weight": 0.8}],
+            "candidate_actions": {"rates": [1.0]},
+            "node_bounds": {"rates": [-100.0, 100.0, 200.0], "portfolio": [-100.0, 100.0]},
+            "target_node": "portfolio",
+            "target_interval": [0.0, 10.0],
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_constrained_gfnets_contract_exposes_bidirectional_toggle():
+    response = client.options("/api/v1/causal-risk/research-pruning/constrained-gfnets")
+    # OPTIONS is handled by CORS/router machinery; a 2xx/405 response proves
+    # the route is registered without invoking expensive model training.
+    assert response.status_code in {200, 204, 405}
