@@ -79,12 +79,34 @@ FIU_REGISTERED_SNAPSHOT = (
 
 # Public connectors that are both present in CCXT in typical installations
 # and are present in the FIU registration snapshot.
-PUBLIC_CONNECTOR_MAP = {
+PUBLIC_CONNECTOR_CANDIDATES = {
     "binance": "Binance",
     "bybit": "Bybit",
     "kucoin": "KuCoin",
     "coinbase": "Coinbase India",
+    "coindcx": "Coin DCX",
+    "wazirx": "WazirX",
+    "bitbns": "Bitbns",
+    "koinbx": "KoinBX",
+    "flitpay": "Flitpay",
 }
+
+def public_connector_map() -> Dict[str, str]:
+    try:
+        ccxt = _ccxt()
+    except RuntimeError:
+        return {
+            "binance": "Binance",
+            "bybit": "Bybit",
+            "kucoin": "KuCoin",
+            "coinbase": "Coinbase India",
+        }
+
+    return {
+        exchange_id: trade_name
+        for exchange_id, trade_name in PUBLIC_CONNECTOR_CANDIDATES.items()
+        if hasattr(ccxt, exchange_id)
+    }
 
 _CACHE: Dict[str, Any] = {}
 _CACHE_LOCK = Lock()
@@ -99,6 +121,7 @@ def _ccxt():
 
 
 def supported_connectors() -> List[Dict[str, str]]:
+    connector_map = public_connector_map()
     return [
         {
             "exchange_id": exchange_id,
@@ -107,7 +130,7 @@ def supported_connectors() -> List[Dict[str, str]]:
             "snapshot_date": "2026-03-09",
             "source": REGULATORY_SOURCE,
         }
-        for exchange_id, trade_name in PUBLIC_CONNECTOR_MAP.items()
+        for exchange_id, trade_name in connector_map.items()
     ]
 
 
@@ -243,7 +266,7 @@ def all_exchange_tickers(
 
 def scan_all_pairs(
     *,
-    exchanges: Iterable[str] = tuple(PUBLIC_CONNECTOR_MAP),
+    exchanges: Iterable[str] | None = None,
     quote: str = "USDT",
     capital_quote: float = 1000.0,
     buy_fee_percent: float = 0.1,
@@ -256,11 +279,15 @@ def scan_all_pairs(
 ) -> Dict[str, Any]:
     from .arbitrage import estimate_arbitrage
 
+    connector_map = public_connector_map()
+    if exchanges is None:
+        exchanges = tuple(connector_map)
+
     snapshots: Dict[str, List[Dict[str, Any]]] = {}
     errors: Dict[str, str] = {}
 
     for exchange_id in dict.fromkeys(str(item).strip().lower() for item in exchanges if str(item).strip()):
-        if exchange_id not in PUBLIC_CONNECTOR_MAP:
+        if exchange_id not in connector_map:
             errors[exchange_id] = "Exchange is not in the FIU-registered public-connector snapshot."
             continue
         try:
