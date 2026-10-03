@@ -125,3 +125,47 @@ Do not mark the project fully verified until:
 3. the live causal-risk APIs return the expected research statuses;
 4. the Gemini final audit has been reviewed;
 5. all genuine audit findings have been fixed and re-tested.
+
+
+## Research-completion upgrade
+
+The implementation now includes a second-stage research path:
+
+- Empirical SCM channel calibration with chronological Ridge fitting and
+  versioned bundle selection through FINAI_RISK_CALIBRATION_PATH.
+- Adaptive NOTEARS augmented-Lagrangian penalty growth and convergence history.
+- Causal empirical GFlowNet reward combining tail severity, empirical support,
+  causal-direction alignment and portfolio relevance.
+- Chronological multi-snapshot TGAT training with future-only holdout evaluation,
+  deterministic seeding and CPU/CUDA device handling.
+- Trainable masked-modality multimodal financial encoder with missing-modality
+  support.
+- Additional API collection-size limits and research training endpoints.
+- Research-gap, novelty, competitive-landscape and training runbook documents.
+
+## New research endpoints
+
+- POST /api/v1/causal-risk/risk-calibration/fit-channels
+- POST /api/v1/causal-risk/temporal-gnn/train
+- POST /api/v1/causal-risk/multimodal/train
+- Existing POST /api/v1/causal-risk/gfnets/train now supports
+  reward_mode=causal_empirical.
+
+## What remains data-dependent
+
+The repository now contains the mechanisms needed to perform the stronger
+experiments, but the following cannot honestly be marked empirically validated
+until the owner supplies/approves a point-in-time dataset and runs the
+experiments:
+
+- empirical SCM coefficient promotion;
+- future-held-out TGAT validation;
+- causal empirical GFlowNet training and backtesting;
+- masked-modality multimodal pretraining;
+- tail-risk backtesting;
+- regime/OOD robustness;
+- ablations;
+- prior-art/patent novelty confirmation.
+
+See docs/research-gap-and-novelty.md and
+docs/research-training-runbook.md.
