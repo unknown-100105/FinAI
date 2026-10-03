@@ -719,9 +719,8 @@ def constrained_gfnets(request: ConstrainedGFlowNetGenerateRequest):
             if len(request.empirical_center) != len(request.factor_ids) or len(request.empirical_scale) != len(request.factor_ids):
                 raise ValueError("empirical center/scale must match factor_ids")
             reward = CausalStressReward(
-                tuple(request.empirical_center[str(k)] if str(k) in request.empirical_center else 0.0 for k in request.factor_ids)
-                if False else tuple(request.empirical_center[k] for k in sorted(request.empirical_center)),
-                tuple(request.empirical_scale[k] for k in sorted(request.empirical_scale)),
+                tuple(request.empirical_center[k] for k in request.factor_ids),
+                tuple(request.empirical_scale[k] for k in request.factor_ids),
             )
             objective = "causal_empirical_tail_reward"
         train_result = generator.train(
