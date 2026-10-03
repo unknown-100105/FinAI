@@ -97,6 +97,7 @@ def benchmark_patent_mechanism_variants(
         node_bounds,
         target_node=target_node,
         target_interval=target_interval,
+        intervened_nodes=remaining,
     )
     required = {
         str(node): tuple(float(v) for v in interval)
