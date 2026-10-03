@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRightLeft, Calculator, RefreshCw, ShieldCheck, TriangleAlert } from "lucide-react";
 import { estimateCryptoArbitrage, scanCryptoArbitrage } from "../api/crypto";
+import { getMarketHistory, getMarketQuote, type MarketBar, type MarketQuote } from "../api/market";
 import "./PlatformModules.css";
 
 function money(value: number) {
@@ -27,6 +28,47 @@ export function CryptoArbitrageHub() {
   const [scan, setScan] = useState<any | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [chartSymbol, setChartSymbol] = useState("BTC");
+  const [chartRange, setChartRange] = useState("1D");
+  const [chartInterval, setChartInterval] = useState("15m");
+  const [chartBars, setChartBars] = useState<MarketBar[]>([]);
+  const [chartQuote, setChartQuote] = useState<MarketQuote | null>(null);
+  const [chartError, setChartError] = useState("");
+  const chartRanges = [{ id: "1D", days: 1 }, { id: "7D", days: 7 }, { id: "30D", days: 30 }, { id: "90D", days: 90 }];
+  const chartPoints = useMemo(() => {
+    if (chartBars.length < 2) return "";
+    const closes = chartBars.map((bar) => bar.close);
+    const min = Math.min(...closes);
+    const max = Math.max(...closes);
+    const spread = max - min || 1;
+    return chartBars.map((bar, index) => {
+      const x = (index / Math.max(1, chartBars.length - 1)) * 720;
+      const y = 250 - ((bar.close - min) / spread) * 220;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+  }, [chartBars]);
+
+  const loadCryptoChart = async () => {
+    setChartError("");
+    const days = chartRanges.find((item) => item.id === chartRange)?.days ?? 1;
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - days);
+    try {
+      const [quote, history] = await Promise.all([
+        getMarketQuote(chartSymbol),
+        getMarketHistory(chartSymbol, start.toISOString(), end.toISOString(), chartInterval),
+      ]);
+      setChartQuote(quote.quote);
+      setChartBars(history.bars);
+    } catch (requestError) {
+      setChartBars([]);
+      setChartQuote(null);
+      setChartError(requestError instanceof Error ? requestError.message : "Crypto chart unavailable.");
+    }
+  };
+
+  useEffect(() => { void loadCryptoChart(); }, [chartSymbol, chartRange, chartInterval]);
 
   const runEstimate = async () => {
     setLoading(true);
@@ -87,6 +129,26 @@ export function CryptoArbitrageHub() {
         </div>
         <div className="module-orb"><Calculator size={23} /></div>
       </div>
+
+      <section className="workspace-panel crypto-chart-panel">
+        <div className="module-panel-head">
+          <div><div className="module-kicker">Crypto market feed</div><h2>{chartSymbol}/USD chart</h2></div>
+          <span className="source-chip">Provider snapshot</span>
+        </div>
+        <div className="crypto-chart-toolbar">
+          <div className="market-quick-list">{["BTC","ETH","SOL","DOGE"].map((symbol) => <button key={symbol} type="button" className={chartSymbol === symbol ? "active" : ""} onClick={() => setChartSymbol(symbol)}>{symbol}</button>)}</div>
+          <div className="range-tabs">{chartRanges.map((item) => <button key={item.id} type="button" className={chartRange === item.id ? "active" : ""} onClick={() => setChartRange(item.id)}>{item.id}</button>)}</div>
+          <div className="range-tabs">{["1m","5m","15m","1h","1d"].map((value) => <button key={value} type="button" className={chartInterval === value ? "active" : ""} disabled={chartRange === "90D" && ["1m","5m","15m","1h"].includes(value)} onClick={() => setChartInterval(value)}>{value}</button>)}</div>
+        </div>
+        {chartError && <div className="module-error">{chartError}</div>}
+        <div className="crypto-chart-meta">
+          <span>Last {chartQuote?.price ? money(Number(chartQuote.price)) : "—"}</span>
+          <span>{chartQuote?.timestamp ? new Date(chartQuote.timestamp).toLocaleString() : "latest available"}</span>
+        </div>
+        <div className="crypto-chart-wrap">
+          {chartBars.length > 1 ? <svg viewBox="0 0 720 270" preserveAspectRatio="none" role="img" aria-label={`${chartSymbol} crypto price chart`}><polyline points={chartPoints} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke" className="chart-line-positive" /></svg> : <div className="module-empty">{loading ? "Loading crypto market feed…" : "No crypto bars returned."}</div>}
+        </div>
+      </section>
 
       <div className="arb-layout">
         <section className="arb-panel">
