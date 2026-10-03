@@ -8,6 +8,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from causal_risk.gfnets import GFlowConfig, GFlowNetTailGenerator
+from causal_risk.constrained_gfnets import CausalConstrainedTailGenerator
+from causal_risk.feasibility_pruning import AdaptivePruningController, evaluate_prefix_feasibility
 from causal_risk.stress_objectives import CausalStressReward
 from causal_risk.multimodal_graph import GraphEdge, GraphNode, MultimodalGraph
 from causal_risk.multimodal_encoder import MultimodalEncoderConfig, train_multimodal_encoder
@@ -615,4 +617,140 @@ def causal_research_pipeline(request: CausalResearchPipelineRequest):
             seed=request.seed,
         )
     except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class FeasibilityScreenRequest(BaseModel):
+    nodes: List[str] = Field(min_length=2, max_length=100)
+    edges: List[Dict[str, Any]] = Field(max_length=1000)
+    prefix: Dict[str, float] = Field(default_factory=dict, max_length=100)
+    candidate_actions: Dict[str, List[float]]
+    node_bounds: Dict[str, List[float]]
+    target_node: str = Field(min_length=1, max_length=100)
+    target_interval: List[float] = Field(min_length=2, max_length=2)
+    empirical_center: Dict[str, float] | None = Field(default=None, max_length=100)
+    empirical_scale: Dict[str, float] | None = Field(default=None, max_length=100)
+    target_full_eval_fraction: float = Field(default=0.25, gt=0, le=1)
+    adaptive_margin: float = Field(default=0.0, ge=-1, le=1)
+
+
+@router.post("/research-pruning/screen")
+def feasibility_screen(request: FeasibilityScreenRequest):
+    try:
+        if len(request.edges) > 1000:
+            raise ValueError("at most 1000 edges are supported")
+        if len(request.candidate_actions) > 100:
+            raise ValueError("at most 100 candidate action groups are supported")
+        total_candidates = sum(len(values) for values in request.candidate_actions.values())
+        if total_candidates < 1 or total_candidates > 5000:
+            raise ValueError("candidate action count must be between 1 and 5000")
+        controller = AdaptivePruningController(
+            target_full_eval_fraction=request.target_full_eval_fraction,
+            current_margin=request.adaptive_margin,
+        )
+        from causal_risk.feasibility_pruning import screen_candidate_actions
+        return screen_candidate_actions(
+            request.nodes,
+            request.edges,
+            request.prefix,
+            request.candidate_actions,
+            request.node_bounds,
+            target_node=request.target_node,
+            target_interval=request.target_interval,
+            empirical_center=request.empirical_center,
+            empirical_scale=request.empirical_scale,
+            controller=controller,
+        )
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class ConstrainedGFlowNetTrainRequest(BaseModel):
+    factor_ids: List[str] = Field(min_length=1, max_length=20)
+    hidden_dim: int = Field(default=64, ge=8, le=256)
+    epochs: int = Field(default=150, ge=1, le=2000)
+    learning_rate: float = Field(default=1e-3, gt=0, le=0.1)
+    seed: int = Field(default=42, ge=0, le=10_000_000)
+    device: str = Field(default="auto", pattern="^(auto|cpu|cuda)$")
+    empirical_center: List[float] | None = Field(default=None, min_length=1, max_length=20)
+    empirical_scale: List[float] | None = Field(default=None, min_length=1, max_length=20)
+    correlation_inverse: List[List[float]] | None = Field(default=None, max_length=20)
+    edge_matrix: List[List[float]] | None = Field(default=None, max_length=20)
+    portfolio_weights: List[float] | None = Field(default=None, max_length=20)
+
+
+class ConstrainedGFlowNetGenerateRequest(BaseModel):
+    factor_ids: List[str] = Field(min_length=1, max_length=20)
+    center: Dict[str, float] = Field(min_length=1, max_length=20)
+    nodes: List[str] = Field(min_length=2, max_length=100)
+    edges: List[Dict[str, Any]] = Field(max_length=1000)
+    node_bounds: Dict[str, List[float]]
+    target_node: str = Field(min_length=1, max_length=100)
+    target_interval: List[float] = Field(min_length=2, max_length=2)
+    draws: int = Field(default=64, ge=1, le=5000)
+    scale: float = Field(default=0.35, gt=0, le=2)
+    seed: int = Field(default=42, ge=0, le=10_000_000)
+    hidden_dim: int = Field(default=64, ge=8, le=256)
+    epochs: int = Field(default=150, ge=1, le=2000)
+    device: str = Field(default="auto", pattern="^(auto|cpu|cuda)$")
+    adaptive_margin: float = Field(default=0.0, ge=-1, le=1)
+    target_full_eval_fraction: float = Field(default=0.25, gt=0, le=1)
+    empirical_center: Dict[str, float] | None = Field(default=None, max_length=100)
+    empirical_scale: Dict[str, float] | None = Field(default=None, max_length=100)
+
+
+@router.post("/research-pruning/constrained-gfnets")
+def constrained_gfnets(request: ConstrainedGFlowNetGenerateRequest):
+    try:
+        if len(request.factor_ids) != len(request.center):
+            raise ValueError("factor_ids and center must have matching dimensions")
+        config = GFlowConfig(
+            hidden_dim=request.hidden_dim,
+            epochs=request.epochs,
+            seed=request.seed,
+            device=request.device,
+        )
+        generator = CausalConstrainedTailGenerator(request.factor_ids, config)
+        reward = None
+        objective = "synthetic_tail_reward"
+        if request.empirical_center is not None or request.empirical_scale is not None:
+            if request.empirical_center is None or request.empirical_scale is None:
+                raise ValueError("empirical_center and empirical_scale must be supplied together")
+            if len(request.empirical_center) != len(request.factor_ids) or len(request.empirical_scale) != len(request.factor_ids):
+                raise ValueError("empirical center/scale must match factor_ids")
+            reward = CausalStressReward(
+                tuple(request.empirical_center[str(k)] if str(k) in request.empirical_center else 0.0 for k in request.factor_ids)
+                if False else tuple(request.empirical_center[k] for k in sorted(request.empirical_center)),
+                tuple(request.empirical_scale[k] for k in sorted(request.empirical_scale)),
+            )
+            objective = "causal_empirical_tail_reward"
+        train_result = generator.train(
+            reward_fn=reward,
+            objective_name=objective,
+            device=request.device,
+        )
+        controller = AdaptivePruningController(
+            target_full_eval_fraction=request.target_full_eval_fraction,
+            current_margin=request.adaptive_margin,
+        )
+        sample_result = generator.sample(
+            request.center,
+            nodes=request.nodes,
+            edges=request.edges,
+            node_bounds=request.node_bounds,
+            target_node=request.target_node,
+            target_interval=request.target_interval,
+            scale=request.scale,
+            draws=request.draws,
+            seed=request.seed,
+            controller=controller,
+            empirical_center=request.empirical_center,
+            empirical_scale=request.empirical_scale,
+        )
+        return {
+            "status": "CAUSAL_CONSTRAINED_GFNet_RESEARCH_READY",
+            "training": train_result,
+            "generation": sample_result,
+        }
+    except (RuntimeError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
