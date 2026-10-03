@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.advanced_causal_api import ConstrainedGFlowNetGenerateRequest
 
 
 client = TestClient(app)
@@ -22,7 +23,14 @@ def test_research_pruning_rejects_malformed_node_bounds():
 
 
 def test_constrained_gfnets_contract_exposes_bidirectional_toggle():
-    response = client.options("/api/v1/causal-risk/research-pruning/constrained-gfnets")
-    # OPTIONS is handled by CORS/router machinery; a 2xx/405 response proves
-    # the route is registered without invoking expensive model training.
-    assert response.status_code in {200, 204, 405}
+    request = ConstrainedGFlowNetGenerateRequest(
+        factor_ids=["rates"],
+        center={"rates": 10.0},
+        nodes=["rates", "portfolio"],
+        edges=[{"source": "rates", "target": "portfolio", "weight": 0.8}],
+        node_bounds={"rates": [-100.0, 100.0], "portfolio": [-100.0, 100.0]},
+        target_node="portfolio",
+        target_interval=[0.0, 10.0],
+    )
+    assert request.use_bidirectional_feasibility is True
+
