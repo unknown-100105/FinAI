@@ -3,6 +3,11 @@ import type { PointerEvent as ReactPointerEvent, WheelEvent } from "react";
 import type { MarketBar } from "../api/market";
 import "./CandleChart.css";
 
+function formatNumber(value: number) {
+  if (!Number.isFinite(value)) return "—";
+  return new Intl.NumberFormat("en-IN", { maximumFractionDigits: Math.abs(value) >= 1000 ? 2 : Math.abs(value) >= 1 ? 4 : 8 }).format(value);
+}
+
 type CandleChartProps = { bars: MarketBar[]; height?: number; maxBars?: number; selectedIndex?: number; onSelect?: (index: number) => void; showVolume?: boolean };
 
 function sampleBars(bars: MarketBar[], start: number, end: number, maxBars: number) {
