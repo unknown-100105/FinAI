@@ -76,6 +76,7 @@ export function getMarketHistory(
   instrument: string,
   start: string,
   end: string,
+  interval = "1d",
 ) {
   return getJson<{
     instrument: MarketInstrument;
@@ -83,7 +84,7 @@ export function getMarketHistory(
     count: number;
     bars: MarketBar[];
   }>(
-    `/api/v1/market/history?instrument=${encodeURIComponent(instrument)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+    `/api/v1/market/history?instrument=${encodeURIComponent(instrument)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&interval=${encodeURIComponent(interval)}`,
   );
 }
 
