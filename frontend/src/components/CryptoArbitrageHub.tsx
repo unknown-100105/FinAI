@@ -47,9 +47,11 @@ export function CryptoArbitrageHub() {
   const [loading, setLoading] = useState(false);
 
   const [connectors, setConnectors] = useState<any[]>([]);
-  const [selectedExchanges, setSelectedExchanges] = useState<string[]>(["binance", "bybit", "kucoin"]);
+  const [registeredServices, setRegisteredServices] = useState<any[]>([]);
+  const [selectedExchanges, setSelectedExchanges] = useState<string[]>(["binance", "bybit", "kucoin", "coinbase"]);
   const [scan, setScan] = useState<any | null>(null);
   const [tickerExchange, setTickerExchange] = useState("binance");
+  const [tickerQuote, setTickerQuote] = useState("USDT");
   const [tickerSearch, setTickerSearch] = useState("");
   const [tickers, setTickers] = useState<any[]>([]);
   const [tickerCount, setTickerCount] = useState(0);
@@ -112,13 +114,14 @@ export function CryptoArbitrageHub() {
   useEffect(() => {
     void getCryptoConnectors().then((data) => {
       setConnectors(data.connectors || []);
+      setRegisteredServices(data.registered_vda_services || []);
     }).catch(() => setConnectors([]));
   }, []);
 
   const loadTickers = async () => {
     setTickersBusy(true);
     try {
-      const result = await getCryptoTickers(tickerExchange, "USDT", tickerSearch, 500, 0);
+      const result = await getCryptoTickers(tickerExchange, tickerQuote, tickerSearch, 500, 0);
       setTickers(result.tickers || []);
       setTickerCount(Number(result.count || 0));
     } catch {
@@ -129,7 +132,7 @@ export function CryptoArbitrageHub() {
     }
   };
 
-  useEffect(() => { void loadTickers(); }, [tickerExchange]);
+  useEffect(() => { void loadTickers(); }, [tickerExchange, tickerQuote]);
 
   const runEstimate = async () => {
     setLoading(true);
@@ -217,17 +220,30 @@ export function CryptoArbitrageHub() {
           ))}
         </div>
         <p className="data-note">The Government's 30-03-2026 Lok Sabha answer says 54 VDA service providers were registered with FIU-IND as of 09-03-2026, while also warning that the register is not a public licence/endorsement list. FinAI therefore separates regulatory status from actual market connectivity.</p>
+        <details className="registry-details">
+          <summary>View 54-provider FIU-IND reporting-entity snapshot</summary>
+          <div className="registry-table-wrap">
+            <table className="ticker-table"><thead><tr><th>Trade name</th><th>Registered entity</th><th>Country</th><th>Status</th></tr></thead>
+              <tbody>{registeredServices.map((item: any, index: number) => <tr key={item.trade_name + item.registered_entity + index}><td><strong>{item.trade_name}</strong></td><td>{item.registered_entity}</td><td>{item.country}</td><td>{item.status}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </details>
       </section>
 
       <section className="workspace-panel crypto-universe-panel">
         <div className="module-panel-head">
-          <div><div className="module-kicker">All-pair market universe</div><h2>{tickerExchange.toUpperCase()} · {tickerCount.toLocaleString()} USDT pairs with public ticker snapshots</h2></div>
+          <div><div className="module-kicker">All-pair market universe</div><h2>{tickerExchange.toUpperCase()} · {tickerCount.toLocaleString()} {tickerQuote} pairs with public ticker snapshots</h2></div>
           <button className="market-refresh" type="button" onClick={() => void loadTickers()} disabled={tickersBusy}><RefreshCw size={13}/> Refresh</button>
         </div>
         <div className="crypto-universe-toolbar">
-          <select value={tickerExchange} onChange={(e) => setTickerExchange(e.target.value)}>
-            {connectors.map((item: any) => <option key={item.exchange_id} value={item.exchange_id}>{item.trade_name}</option>)}
-          </select>
+          <div className="crypto-selector-row">
+            <select value={tickerExchange} onChange={(e) => setTickerExchange(e.target.value)}>
+              {connectors.map((item: any) => <option key={item.exchange_id} value={item.exchange_id}>{item.trade_name}</option>)}
+            </select>
+            <select value={tickerQuote} onChange={(e) => setTickerQuote(e.target.value)}>
+              {["USDT","USDC","INR","BTC","ETH"].map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </div>
           <div className="compliance-search"><Search size={13}/><input value={tickerSearch} onChange={(e) => setTickerSearch(e.target.value)} placeholder="Filter pairs, e.g. BTC, ETH, SOL" /><button type="button" onClick={() => void loadTickers()}>Search</button></div>
         </div>
         <div className="ticker-table-wrap">
