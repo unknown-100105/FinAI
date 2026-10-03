@@ -231,9 +231,43 @@ class FinAIHybridEngine:
             # and makes the authority chain explicit.
             from knowledge.financial_catalog import build_answer as build_catalog_answer
             from knowledge.finance_encyclopedia import build_answer as build_encyclopedia_answer
+            from compliance_catalog import find_items
 
             catalog_result = build_catalog_answer(user_text)
             encyclopedia_result = build_encyclopedia_answer(user_text)
+            compliance_results = find_items(user_text)
+
+            compliance_hint = any(
+                term in user_text.lower()
+                for term in (
+                    "itr", "tax form", "tax forms", "tds", "form 16",
+                    "form 16a", "26as", "ais", "15g", "15h", "form 67",
+                    "gstr", "gst", "capital gains",
+                )
+            )
+
+            if compliance_hint and compliance_results:
+                item = compliance_results[0]
+                compliance_answer = (
+                    f"{item['name']}\\n{item['purpose']}\\n\\n"
+                    f"Who uses it: {item['who_uses_it']}\\n"
+                    f"Key inputs: {', '.join(item['key_inputs'])}\\n\\n"
+                    "Execution workflow:\\n"
+                    + "\\n".join(
+                        f"- {step}" for step in item["workflow"]
+                    )
+                    + f"\\n\\nOfficial source: {item['official_url']}\\n"
+                    f"Source: {item['source_name']}\\n"
+                    f"Note: {item['status_note']}"
+                )
+                compliance_knowledge = {
+                    "answer": compliance_answer,
+                    "matches": [item],
+                    "source": "compliance_catalog",
+                    "requires_current_data": True,
+                }
+            else:
+                compliance_knowledge = None
 
             # Use the encyclopedia for mechanics/history/crypto protocol
             # questions because it contains deeper "how it works" coverage.
@@ -248,7 +282,9 @@ class FinAIHybridEngine:
                 )
             )
 
-            if encyclopedia_result["found"] and mechanics_hint:
+            if compliance_knowledge:
+                knowledge_result = compliance_knowledge
+            elif encyclopedia_result["found"] and mechanics_hint:
                 knowledge_result = {
                     "answer": encyclopedia_result["answer"],
                     "matches": encyclopedia_result["matches"],
