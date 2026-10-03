@@ -96,6 +96,33 @@ ITEMS = (
         ("Submit return", "Generate verification", "Complete the permitted verification process", "Retain acknowledgement"),
         INCOME_TAX_URL, "Income Tax Department", "Follow the current e-filing verification workflow."),
     ComplianceItem(
+        "form10iea", "Form 10-IEA", "Income Tax", "AY 2026-27 / relevant assessment year",
+        "Declaration used by eligible taxpayers with business or professional income to opt out of the default new tax regime or, where permitted, re-enter it under section 115BAC.",
+        "Eligible individuals/HUF/AOP/BOI/AJP having business/professional income, subject to statutory conditions.",
+        ("PAN", "assessment year", "business/profession income", "tax-regime preference"),
+        ("Confirm business/profession status", "Choose applicable regime", "File Form 10-IEA within the prescribed time", "Use the selected regime in the return", "Retain acknowledgement"),
+        "https://www.incometax.gov.in/iec/foportal/newformpage/forms/form10-iea-UM", "Income Tax Department",
+        "Current portal guidance states the new regime is default and Form 10-IEA is used for eligible business/profession cases."
+    ),
+    ComplianceItem(
+        "form60", "Form 60", "PAN / KYC", "Current",
+        "Declaration used in specified circumstances where a person who is required to quote PAN does not have PAN, subject to the income-tax rules.",
+        "Persons meeting the conditions prescribed for Form 60.",
+        ("identity/address details", "transaction particulars", "reason PAN is not available"),
+        ("Check whether Form 60 is permitted", "Complete prescribed particulars", "Submit to the reporting person/entity", "Retain acknowledgement"),
+        "https://www.incometax.gov.in/iec/foportal/", "Income Tax Department",
+        "Form 60 use is transaction-specific; it should not be treated as a general substitute for PAN."
+    ),
+    ComplianceItem(
+        "fatca_crs", "FATCA / CRS self-certification", "KYC / International Tax", "Current",
+        "Tax-residency self-certification used by financial institutions for applicable international tax reporting and due-diligence obligations.",
+        "Account holders/investors with reportable foreign tax-residency circumstances.",
+        ("tax residency", "TIN where applicable", "citizenship/entity status", "controlling-person information where applicable"),
+        ("Identify tax residencies", "Complete the institution's FATCA/CRS self-certification", "Update on change of circumstances"),
+        "https://www.incometax.gov.in/iec/foportal/", "Income Tax Department",
+        "Institution-specific forms and foreign-jurisdiction rules can add requirements."
+    ),
+    ComplianceItem(
         "form16", "Form 16", "TDS", "FY 2025-26 / relevant payment year",
         "Salary TDS certificate issued by the employer.",
         "Employees receiving salary with TDS reporting.",
