@@ -7,6 +7,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from causal_risk.discovery import notears_linear
+from causal_risk.patent_benchmark import benchmark_patent_mechanism_variants
 from causal_risk.pruning_benchmark import benchmark_prefix_certificate
 from causal_risk.research_evaluation import perturb_features
 
@@ -163,7 +164,7 @@ def run_patent_mechanism_benchmark() -> dict[str, Any]:
         {"source": "equity", "target": "portfolio", "weight": 0.8},
     ]
     bounds = {node: (-100.0, 100.0) for node in nodes}
-    benchmark = benchmark_prefix_certificate(
+    benchmark = benchmark_patent_mechanism_variants(
         nodes,
         edges,
         ["rates", "credit"],
@@ -171,12 +172,17 @@ def run_patent_mechanism_benchmark() -> dict[str, Any]:
         [-1.0, -0.5, 0.5, 1.0],
         bounds,
         target_node="portfolio",
-        target_interval=(40.0, 70.0),
+        target_interval=(35.0, 55.0),
         prefix_depth=1,
     )
+    forward = benchmark["forward_certificate"]
+    compatibility = {
+        "false_prunes": forward["false_prunes"],
+        "evaluation_reduction_fraction": forward["estimated_evaluation_reduction_fraction"],
+    }
     return {
         "status": "PATENT_MECHANISM_BENCHMARK_READY",
-        "benchmark": benchmark,
+        "benchmark": {**compatibility, "variants": benchmark},
         "technical_effects_to_measure": [
             "expensive_SCM_evaluations_avoided",
             "latency",
@@ -185,7 +191,7 @@ def run_patent_mechanism_benchmark() -> dict[str, Any]:
             "false_pruning_rate",
         ],
         "research_boundary": (
-            "Small-state controlled benchmark only. Real financial validation "
+            "Finite-action controlled benchmark only. Real financial validation "
             "requires point-in-time external data and future-only evaluation."
         ),
     }
