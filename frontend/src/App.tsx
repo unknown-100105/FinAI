@@ -417,8 +417,9 @@ function AssistantWorkspace() {
         <section className="glass-panel side-card security-card">
           <div className="side-title"><LockKeyhole size={15} /> Account access</div>
           <p className="security-copy">
-            Protected banking actions require authentication. This local demo login
-            is only a workflow simulation and does not verify real identity.
+            {authRequired
+              ? "This request is waiting for authentication. Use the demo sign-in below to continue."
+              : "Protected banking actions require authentication. This local demo login is only a workflow simulation and does not verify real identity."}
           </p>
           <div className="security-status">
             <span className={authenticated ? "security-dot active" : "security-dot"} />
