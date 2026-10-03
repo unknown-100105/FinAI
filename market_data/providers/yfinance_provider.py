@@ -290,9 +290,26 @@ class YFinanceProvider(MarketDataProvider):
             # normalized; the conversion layer below remains defensive.
             pass
 
-        # A stock exchange may be closed for the requested calendar day
-        # (weekend/holiday). For short intraday windows, use the most recent
-        # provider session so the user gets an honest "latest session" chart.
+        # For a 1D intraday stock chart, a weekend/holiday should show
+        # the latest complete trading session rather than an empty/partial
+        # chart. Crypto stays continuous and is kept as a rolling time window.
+        if intraday and asset_type.upper() in {"EQUITY", "STOCK", "ETF", "INDEX"}:
+            try:
+                provider_frame = history.dropna(
+                    subset=["Open", "High", "Low", "Close"],
+                    how="all",
+                )
+                if not provider_frame.empty and (end - start).total_seconds() <= 36 * 3600:
+                    latest_session_date = provider_frame.index[-1].date()
+                    frame = provider_frame[
+                        pd.DatetimeIndex(provider_frame.index).date
+                        == latest_session_date
+                    ]
+            except Exception:
+                pass
+
+        # If the exact clipping window had no data, fall back to the latest
+        # available stock session so a closed market remains chartable.
         if frame.empty and intraday and asset_type.upper() in {"EQUITY", "STOCK", "ETF", "INDEX"}:
             try:
                 provider_frame = history.dropna(
