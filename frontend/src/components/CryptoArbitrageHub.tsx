@@ -9,7 +9,7 @@ import {
   getCryptoOHLCV,
   type ArbitrageEstimateRequest,
 } from "../api/crypto";
-import { getMarketHistory, getMarketQuote, type MarketBar, type MarketQuote } from "../api/market";
+import { getMarketQuote, type MarketBar, type MarketQuote } from "../api/market";
 import "./PlatformModules.css";
 
 function usd(value: unknown) {
