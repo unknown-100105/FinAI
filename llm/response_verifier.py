@@ -16,7 +16,7 @@ class FinancialResponseVerifier:
         expected = round(float(value), 2)
 
         number_tokens = re.findall(
-            r"(?<![\d.,])\d[\d,]*(?:\.\d+)?(?![\d,])",
+            r"(?<![\d.,])\d[\d,]*(?:\.\d+)?",
             response,
         )
 
