@@ -129,6 +129,7 @@ def benchmark_patent_mechanism_variants(
             node_bounds,
             target_node=target_node,
             target_interval=target_interval,
+            intervened_nodes=remaining,
         )
         forward_pruned = bool(forward_certificate.hard_infeasible)
         forward_hard_pruned += int(forward_pruned)
