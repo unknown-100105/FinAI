@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from crypto.arbitrage import estimate_arbitrage
 from crypto.scanner import scan_cross_exchange_arbitrage
+from crypto.universe import market_universe, scan_all_pairs, supported_connectors
 
 
 router = APIRouter(
@@ -68,3 +69,58 @@ def arbitrage_scan(request: ArbitrageScanRequest) -> Dict[str, Any]:
             status_code=502,
             detail=f"Cross-exchange scan failed: {exc}",
         ) from exc
+
+
+@router.get("/connectors")
+def crypto_connectors() -> Dict[str, Any]:
+    return {
+        "connectors": supported_connectors(),
+        "note": "Connector status is an FIU-IND reporting-entity snapshot, not a government endorsement.",
+    }
+
+
+@router.get("/markets")
+def crypto_markets(
+    exchange: str = "binance",
+    quote: str | None = None,
+    search: str | None = None,
+    limit: int = 1000,
+    offset: int = 0,
+) -> Dict[str, Any]:
+    try:
+        return market_universe(
+            exchange_id=exchange,
+            quote=quote,
+            search=search,
+            limit=limit,
+            offset=offset,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Crypto market universe unavailable: {exc}") from exc
+
+
+class AllPairsScanRequest(BaseModel):
+    exchanges: List[str] = Field(default_factory=lambda: ["binance", "bybit", "kucoin", "coinbase"], min_length=2, max_length=8)
+    quote: str = Field(default="USDT", min_length=2, max_length=10)
+    capital_quote: float = Field(default=1000.0, gt=0)
+    buy_fee_percent: float = Field(default=0.1, ge=0)
+    sell_fee_percent: float = Field(default=0.1, ge=0)
+    buy_slippage_percent: float = Field(default=0.05, ge=0)
+    sell_slippage_percent: float = Field(default=0.05, ge=0)
+    transfer_cost_quote: float = Field(default=0.0, ge=0)
+    tax_rate_percent: float = Field(default=0.0, ge=0)
+    top_n: int = Field(default=25, ge=1, le=100)
+
+
+@router.post("/arbitrage/scan-all")
+def arbitrage_scan_all(request: AllPairsScanRequest) -> Dict[str, Any]:
+    try:
+        return scan_all_pairs(**request.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"All-pairs scan failed: {exc}") from exc
