@@ -149,7 +149,7 @@ export function MarketTerminal() {
       const [quoteResult, historyResult, analyticsResult] = await Promise.all([
         getMarketQuote(instrument),
         getMarketHistory(instrument, dates.start, dates.end, selectedRange.interval),
-        getMarketAnalytics(instrument, dates.start, dates.end),
+        getMarketAnalytics(instrument, dates.start, dates.end, selectedRange.interval),
       ]);
       setQuote(quoteResult.quote);
       setBars(historyResult.bars);
