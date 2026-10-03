@@ -30,6 +30,7 @@ import {
   logoutSession,
   sendChat,
 } from "./api/finai";
+import { getFinAIModels, type FinAIModel } from "./api/models";
 import { MarketTerminal } from "./components/MarketTerminal";
 import { WealthWorkspace } from "./components/WealthWorkspace";
 import { PlatformHome } from "./components/PlatformHome";
