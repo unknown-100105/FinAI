@@ -25,12 +25,12 @@ def main() -> int:
     result = benchmark_patent_mechanism_variants(
         nodes,
         edges,
-        ["rates", "credit"],
-        {"rates": 10.0, "credit": 10.0},
-        [-1.0, -0.5, 0.5, 1.0],
+        ["credit", "rates"],
+        {"credit": 10.0, "rates": 10.0},
+        [-2.0, -1.0, 1.0, 2.0],
         bounds,
         target_node="portfolio",
-        target_interval=(35.0, 55.0),
+        target_interval=(5.0, 9.0),
         prefix_depth=1,
         scale=0.35,
     )
