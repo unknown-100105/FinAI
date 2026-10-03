@@ -213,7 +213,7 @@ def run_counterfactual(
         "research_status": {
             "notears": "module_available",
             "dynamic_discovery": "lagged_research_baseline_available",
-            "temporal_gnn": "architecture_stage",
+            "temporal_gnn": "trainable_research_implementation",
             "gfnets": "interface_ready_not_trained",
             "risk_calibration": calibration.get("status", "unknown"),
         },
@@ -252,9 +252,10 @@ def graph_snapshot() -> Dict[str, Any]:
             "learned_components_status": {
                 "notears_linear": "implemented",
                 "dynamic_lagged_discovery": "implemented_research_baseline",
-                "tgat": "architecture_stage",
-                "kg_embeddings": "research_prototype_available",
-                "gfnets": "research_prototype_available",
+                "tgat": "trainable_research_implementation",
+                "multimodal_graph": "typed_fusion_research_implementation",
+                "text_graph_alignment": "deterministic_embedding_alignment",
+                "gfnets": "trajectory_balance_research_prototype",
             },
             "graph_validation": validate_graph(DEFAULT_NODES, DEFAULT_EDGES),
             "risk_calibration": {
