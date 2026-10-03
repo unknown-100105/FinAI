@@ -10,6 +10,8 @@ import {
   FileSearch,
   FileText,
   Languages,
+  Menu,
+  X,
   MessageSquare,
   Newspaper,
   PiggyBank,
@@ -555,6 +557,7 @@ function ArrowPrompt() {
 
 function App() {
   const [section, setSection] = useState<Section>("overview");
+  const [navOpen, setNavOpen] = useState(false);
 
   const content = {
     overview: <PlatformHome onNavigate={(value) => setSection(value as Section)} />,
@@ -576,10 +579,48 @@ function App() {
     xai: <XAIExplorerHub />,
   }[section];
 
+  const activeItem = navigation.find((item) => item.id === section);
+
+  const navigate = (next: Section) => {
+    setSection(next);
+    setNavOpen(false);
+  };
+
+  const groupStarts = new Set<Section>([
+    "overview",
+    "news",
+    "causal",
+    "resources",
+  ]);
+
+  const groupLabels: Record<Section, string> = {
+    overview: "Core",
+    news: "Intelligence",
+    causal: "Research",
+    resources: "Tools",
+    assistant: "",
+    markets: "",
+    investments: "",
+    portfolio: "",
+    forms: "",
+    arbitrage: "",
+    knowledge: "",
+    analyst: "",
+    global: "",
+    study: "",
+    token: "",
+    diary: "",
+    xai: "",
+  };
+
   return (
     <div className="platform-shell">
       <header className="platform-topbar glass-panel">
-        <button className="platform-brand" type="button" onClick={() => setSection("overview")}>
+        <button className="mobile-menu-button" type="button" aria-label="Open navigation" onClick={() => setNavOpen((open) => !open)}>
+          {navOpen ? <X size={18} /> : <Menu size={18} />}
+        </button>
+
+        <button className="platform-brand" type="button" onClick={() => navigate("overview")}>
           <div className="brand-logo"><Bot size={20} /></div>
           <div>
             <strong>FinAI</strong>
@@ -587,30 +628,78 @@ function App() {
           </div>
         </button>
 
-        <nav className="platform-nav" aria-label="FinAI navigation">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                type="button"
-                key={item.id}
-                className={section === item.id ? "active" : ""}
-                onClick={() => setSection(item.id)}
-              >
-                <Icon size={14} />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
+        <div className="platform-topbar-center">
+          <span className="platform-breadcrumb">Workspace</span>
+          <strong>{activeItem?.label ?? "Overview"}</strong>
+        </div>
 
-        <div className="platform-status">
-          <span className="status-pip" />
-          Local environment
+        <div className="platform-topbar-actions">
+          <button className="ask-finai-button" type="button" onClick={() => navigate("assistant")}>
+            <MessageSquare size={14} />
+            Ask FinAI
+          </button>
+          <div className="platform-status">
+            <span className="status-pip" />
+            Local environment
+          </div>
         </div>
       </header>
 
-      <main className="platform-content">{content}</main>
+      <div className="platform-frame">
+        <div className={navOpen ? "platform-nav-overlay visible" : "platform-nav-overlay"} onClick={() => setNavOpen(false)} />
+
+        <aside className={navOpen ? "platform-sidebar open" : "platform-sidebar"}>
+          <div className="sidebar-heading">
+            <span>FINAI WORKSPACES</span>
+            <small>Navigate without horizontal scrolling</small>
+          </div>
+
+          <nav className="sidebar-nav" aria-label="FinAI navigation">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              const showGroup = groupStarts.has(item.id);
+              return (
+                <div key={item.id}>
+                  {showGroup && <div className="sidebar-group-label">{groupLabels[item.id]}</div>}
+                  <button
+                    type="button"
+                    className={section === item.id ? "active" : ""}
+                    onClick={() => navigate(item.id)}
+                  >
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                    {section === item.id && <i />}
+                  </button>
+                </div>
+              );
+            })}
+          </nav>
+
+          <div className="sidebar-footer">
+            <span className="status-pip" />
+            <div>
+              <strong>FinAI local stack</strong>
+              <small>API · Research · UI</small>
+            </div>
+          </div>
+        </aside>
+
+        <main className="platform-content">
+          <div className="platform-command-strip">
+            <div>
+              <span>FINAI / {activeItem?.label?.toUpperCase() ?? "OVERVIEW"}</span>
+              <strong>{section === "overview" ? "Financial command center" : activeItem?.label}</strong>
+            </div>
+            {section !== "assistant" && (
+              <button type="button" onClick={() => navigate("assistant")}>
+                <MessageSquare size={13} />
+                Open assistant
+              </button>
+            )}
+          </div>
+          {content}
+        </main>
+      </div>
     </div>
   );
 }
