@@ -115,6 +115,30 @@ def test_wrong_numeric_value_triggers_verified_fallback():
     assert "₹9,000.00" not in result["response"]
 
 
+def test_indian_number_grouping_is_verified_as_numeric_equivalent():
+
+    response = (
+        "Monthly EMI: ₹8,678.23. "
+        "Total payment: ₹20,82,775.76. "
+        "Total interest: ₹10,82,775.76."
+    )
+
+    gateway = FakeGateway(response)
+    service = ResponseService(gateway=gateway)
+
+    result = service.generate(
+        user_text="Calculate EMI",
+        intent="EMI_QUERY",
+        verified_result=VERIFIED,
+        source="deterministic_finance_engine",
+    )
+
+    assert result["status"] == "GENERATED_VERIFIED"
+    assert result["verification"]["passed"] is True
+    assert result["claim_verification"]["passed"] is True
+    assert result["response"] == response
+
+
 def test_rllm_model_id_is_preserved_in_verified_result():
 
     response = (
