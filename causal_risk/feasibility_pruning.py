@@ -24,6 +24,7 @@ class FeasibilityCertificate:
     target_interval: tuple[float, float]
     reachable_interval: tuple[float, float]
     hard_infeasible: bool
+    support_infeasible: bool = False
     margin: float
     empirical_support_ok: bool
     fixed_violations: tuple[str, ...]
@@ -36,6 +37,7 @@ class FeasibilityCertificate:
             "target_interval": list(self.target_interval),
             "reachable_interval": list(self.reachable_interval),
             "hard_infeasible": self.hard_infeasible,
+            "support_infeasible": self.support_infeasible,
             "margin": round(float(self.margin), 8),
             "empirical_support_ok": self.empirical_support_ok,
             "fixed_violations": list(self.fixed_violations),
@@ -182,10 +184,12 @@ def evaluate_prefix_feasibility(
         raise ValueError(f"fixed_values and intervened_nodes overlap: {overlap}")
 
     violations: list[str] = []
+    structural_violations: list[str] = []
+    support_violations: list[str] = []
     for node, value in fixed.items():
         lo, hi = _validate_interval(node_bounds[node], f"node_bounds[{node}]")
         if value < lo or value > hi:
-            violations.append(
+            structural_violations.append(
                 f"{node}={value:.6f} outside hard bounds [{lo:.6f},{hi:.6f}]"
             )
 
@@ -205,20 +209,21 @@ def evaluate_prefix_feasibility(
             z = abs((value - center) / scale)
             if z > max_standardized_deviation:
                 support_ok = False
-                violations.append(
+                support_violations.append(
                     f"{node} standardized deviation {z:.6f} exceeds "
                     f"{max_standardized_deviation:.6f}"
                 )
 
-    if violations:
+    if structural_violations:
         return FeasibilityCertificate(
             target_node=str(target_node),
             target_interval=(target_lo, target_hi),
             reachable_interval=(float("nan"), float("nan")),
             hard_infeasible=True,
+            support_infeasible=bool(support_violations),
             margin=float("-inf"),
             empirical_support_ok=support_ok,
-            fixed_violations=tuple(violations),
+            fixed_violations=tuple(structural_violations + support_violations),
             reason="fixed-prefix constraint violation",
             intervened_nodes=intervened,
         )
@@ -243,6 +248,7 @@ def evaluate_prefix_feasibility(
         target_interval=(target_lo, target_hi),
         reachable_interval=(reachable_lo, reachable_hi),
         hard_infeasible=hard_infeasible,
+        support_infeasible=bool(support_violations),
         margin=margin,
         empirical_support_ok=support_ok,
         fixed_violations=(),
