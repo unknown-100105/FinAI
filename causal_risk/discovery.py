@@ -30,7 +30,7 @@ def notears_linear(
     max_inner_iter: int = 120,
     threshold: float = 0.10,
     max_abs_weight: float = 2.0,
-    rho_growth: float = 2.0,
+    rho_growth: float = 4.0,
     rho_max: float = 1e6,
     h_tolerance: float = 1e-8,
 ) -> Dict[str, Any]:
