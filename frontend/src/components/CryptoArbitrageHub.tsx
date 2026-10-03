@@ -100,6 +100,14 @@ export function CryptoArbitrageHub() {
   };
 
   useEffect(() => { void loadChart(); }, [chartSymbol, chartRange]);
+  useEffect(() => {
+    const timer = window.setInterval(() => { void loadChart(); }, 10000);
+    return () => window.clearInterval(timer);
+  }, [chartSymbol, chartRange]);
+  useEffect(() => {
+    const timer = window.setInterval(() => { void loadTickers(); }, 15000);
+    return () => window.clearInterval(timer);
+  }, [tickerExchange, tickerSearch]);
 
   useEffect(() => {
     void getCryptoConnectors().then((data) => {
