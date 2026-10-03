@@ -158,18 +158,18 @@ def run_patent_mechanism_benchmark() -> dict[str, Any]:
     nodes = ["rates", "credit", "portfolio"]
     edges = [
         {"source": "rates", "target": "portfolio", "weight": 0.8},
-        {"source": "credit", "target": "portfolio", "weight": 0.5},
+        {"source": "credit", "target": "portfolio", "weight": 0.1},
     ]
-    bounds = {"rates": (-100.0, 100.0), "credit": (0.0, 1.0), "portfolio": (-100.0, 100.0)}
+    bounds = {"rates": (-100.0, 100.0), "credit": (0.0, 20.0), "portfolio": (-100.0, 100.0)}
     benchmark = benchmark_patent_mechanism_variants(
         nodes,
         edges,
         ["rates", "credit"],
-        {"rates": 10.0, "credit": 0.5},
+        {"rates": 10.0, "credit": 10.0},
         [-1.0, -0.5, 0.5, 1.0],
         bounds,
         target_node="portfolio",
-        target_interval=(8.0, 10.0),
+        target_interval=(8.0, 12.0),
         prefix_depth=1,
     )
     forward = benchmark["forward_certificate"]
