@@ -221,7 +221,10 @@ class FinAIHybridEngine:
         if (
             plan.decision == "EXECUTE"
             and plan.capability == "rag"
-            and intent == "FINANCIAL_PRODUCT_KNOWLEDGE"
+            and intent in {
+                "FINANCIAL_PRODUCT_KNOWLEDGE",
+                "FINANCIAL_GUIDANCE",
+            }
         ):
             # Common product concepts use structured, curated knowledge first.
             # This avoids slow generative routing for straightforward definitions
