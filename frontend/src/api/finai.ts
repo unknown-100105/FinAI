@@ -34,3 +34,42 @@ export async function sendChat(
 
   return response.json();
 }
+
+
+export async function authenticateSession(session_id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/session/authenticate`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `FinAI authentication error ${response.status}: ${await response.text()}`,
+    );
+  }
+
+  return response.json();
+}
+
+export async function logoutSession(session_id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/session/logout`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `FinAI logout error ${response.status}: ${await response.text()}`,
+    );
+  }
+
+  return response.json();
+}
