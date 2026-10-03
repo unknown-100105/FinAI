@@ -24,8 +24,6 @@ import {
   BookMarked,
   Sparkles,
   WalletCards,
-  Landmark,
-  GraduationCap,
 } from "lucide-react";
 import {
   authenticateSession,
