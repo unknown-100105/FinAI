@@ -17,9 +17,9 @@ These local results are separate from GitHub Actions and should be retained as t
 PR #5 has an open state and is not merged.
 
 The latest visible GitHub Actions run currently attached to the final branch
-head is run #520 (and subsequent runs in the same series) and its Backend,
-Frontend, and Patent mechanism jobs complete with `failure` while exposing
-empty step lists. The connector cannot retrieve a failure log because the job
+series is run #534 on commit `37ca0dace7b097372449404f3168281b3efa3d0a` and its
+Backend, Frontend, and Patent mechanism jobs complete with `failure` while
+exposing empty step lists. The connector cannot retrieve a failure log because the job
 log blob is unavailable. Therefore remote CI is **not green**, but the available
 metadata also does not provide evidence that repository test steps executed.
 This is an unresolved CI-environment/runner issue and must be disclosed as such
