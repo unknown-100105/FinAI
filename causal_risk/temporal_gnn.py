@@ -180,7 +180,8 @@ def architecture_metadata() -> dict[str, object]:
     return {
         "name": "FinAI Temporal Graph Attention",
         "family": "TGAT-style continuous-time message passing",
-        "status": "research_implementation",
+        "status": "architecture_implemented",
+        "maturity_status": "research_implementation",
         "training_status": "reproducible_training_routine_available",
         "inputs": ["node_features", "directed_temporal_edges", "time_delta"],
         "outputs": ["temporal_node_embeddings", "node_risk_score"],
