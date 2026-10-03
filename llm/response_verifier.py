@@ -1,8 +1,35 @@
 ﻿import re
-from typing import Dict, List
+from typing import Dict
 
 
 class FinancialResponseVerifier:
+
+    @staticmethod
+    def _contains_numeric_value(
+        response: str,
+        value: float,
+    ) -> bool:
+        """
+        Check for a numeric value independent of locale-specific
+        thousands separators (for example 2,082,775.76 vs 20,82,775.76).
+        """
+        expected = round(float(value), 2)
+
+        number_tokens = re.findall(
+            r"(?<![\d.,])\d[\d,]*(?:\.\d+)?(?![\d.,])",
+            response,
+        )
+
+        for token in number_tokens:
+            try:
+                mentioned = float(token.replace(",", ""))
+            except ValueError:
+                continue
+
+            if abs(mentioned - expected) < 0.01:
+                return True
+
+        return False
 
     def verify_emi(
         self,
@@ -24,7 +51,10 @@ class FinancialResponseVerifier:
 
             formatted = f"{float(value):,.2f}"
 
-            if formatted not in response:
+            if not self._contains_numeric_value(
+                response=response,
+                value=value,
+            ):
                 missing_values.append({
                     "field": field,
                     "value": formatted,
