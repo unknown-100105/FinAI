@@ -252,8 +252,8 @@ def train_temporal_sequence_model(
     node_count = None
     feature_count = None
     for index, snapshot in enumerate(snapshots):
-        X = snapshot.node_features.float()
-        y = snapshot.target.float()
+        X = torch.as_tensor(snapshot.node_features, dtype=torch.float32)
+        y = torch.as_tensor(snapshot.target, dtype=torch.float32)
         if X.ndim != 2 or y.ndim != 1 or X.shape[0] != y.shape[0]:
             raise ValueError(f"snapshot {index} has misaligned node features/target")
         if not torch.isfinite(X).all() or not torch.isfinite(y).all():
