@@ -15,6 +15,7 @@ export function TaxFormsHub() {
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<ComplianceItem[]>([]);
+  const [meta, setMeta] = useState<Record<string, string>>({});
   const [selectedId, setSelectedId] = useState("itr1");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -28,7 +29,7 @@ export function TaxFormsHub() {
   useEffect(() => {
     setLoading(true);
     void getComplianceCatalog(category === "All" ? undefined : category)
-      .then((data) => setItems(data.items))
+      .then((data) => { setItems(data.items); setMeta(data.meta); })
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "Compliance catalogue unavailable."))
       .finally(() => setLoading(false));
   }, [category]);
@@ -74,6 +75,13 @@ export function TaxFormsHub() {
       </div>
 
       {error && <div className="module-error">{error}</div>}
+      {meta.tax_year_transition && (
+        <div className="platform-banner">
+          <ShieldCheck size={15} />
+          <div><strong>2026 tax-law transition</strong><span>{meta.tax_year_transition}</span></div>
+        </div>
+      )}
+
 
       <div className="compliance-toolbar">
         <div className="compliance-search"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search ITR, TDS, AIS, GST, capital gains…" /></div>
