@@ -85,6 +85,7 @@ class CausalConstrainedTailGenerator:
                 node_bounds,
                 target_node=target_node,
                 target_interval=target_interval,
+                intervened_nodes=keys[step + 1:],
             )
             backward_required = {
                 str(node): (float(interval[0]), float(interval[1]))
