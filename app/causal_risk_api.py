@@ -10,6 +10,7 @@ from causal_risk.tail_scenarios import generate_tail_scenarios
 from causal_risk.temporal_gnn import architecture_metadata
 from causal_risk.stability import assess_discovery_stability
 from causal_risk.consensus import build_consensus_graph
+from causal_risk.research_graph import validate_research_graph
 from causal_risk.market_dataset import DEFAULT_CAUSAL_PROXIES, build_market_return_dataset
 from app.market_api import _get_service
 from market_data.resolver import InstrumentResolver
@@ -359,3 +360,25 @@ def market_graph_consensus(request: MarketConsensusRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Market causal consensus failed: {exc}") from exc
+
+
+class ResearchGraphGateRequest(BaseModel):
+    nodes: List[str]
+    edges: List[Dict[str, Any]]
+    min_selection_frequency: float = Field(default=0.75, ge=0.5, le=1.0)
+    require_sign_consistency: float = Field(default=0.90, ge=0.5, le=1.0)
+    approved: bool = False
+
+
+@router.post("/discover/market-graph/gate")
+def gate_research_graph(request: ResearchGraphGateRequest):
+    try:
+        return validate_research_graph(
+            request.nodes,
+            request.edges,
+            min_selection_frequency=request.min_selection_frequency,
+            require_sign_consistency=request.require_sign_consistency,
+            approved=request.approved,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

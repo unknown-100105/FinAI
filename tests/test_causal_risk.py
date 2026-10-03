@@ -236,3 +236,47 @@ def test_consensus_gate_preserves_stable_signed_edge():
     assert result["edges"][0]["source"] == "rates"
     assert result["edges"][0]["target"] == "credit"
     assert result["edges"][0]["weight"] == -0.21
+
+
+def test_research_graph_gate_requires_explicit_approval():
+    from causal_risk.research_graph import validate_research_graph
+
+    candidate = validate_research_graph(
+        ["rates", "credit", "oil"],
+        [
+            {"source": "rates", "target": "credit", "weight": -0.20, "lag": 0, "selection_frequency": 1.0, "sign_consistency": 1.0},
+            {"source": "rates", "target": "oil", "weight": 0.18, "lag": 0, "selection_frequency": 0.75, "sign_consistency": 1.0},
+        ],
+        approved=False,
+    )
+    assert candidate["research_eligible"] is True
+    assert candidate["counterfactual_ready"] is False
+    assert candidate["status"] == "RESEARCH_GRAPH_ELIGIBLE_PENDING_APPROVAL"
+
+    approved = validate_research_graph(
+        ["rates", "credit", "oil"],
+        [
+            {"source": "rates", "target": "credit", "weight": -0.20, "lag": 0, "selection_frequency": 1.0, "sign_consistency": 1.0},
+            {"source": "rates", "target": "oil", "weight": 0.18, "lag": 0, "selection_frequency": 0.75, "sign_consistency": 1.0},
+        ],
+        approved=True,
+    )
+    assert approved["status"] == "APPROVED_FOR_RESEARCH_COUNTERFACTUAL"
+    assert approved["counterfactual_ready"] is True
+
+
+def test_research_graph_gate_rejects_contemporaneous_cycle():
+    from causal_risk.research_graph import validate_research_graph
+
+    result = validate_research_graph(
+        ["a", "b", "c"],
+        [
+            {"source": "a", "target": "b", "weight": 0.2, "selection_frequency": 1.0, "sign_consistency": 1.0},
+            {"source": "b", "target": "c", "weight": 0.2, "selection_frequency": 1.0, "sign_consistency": 1.0},
+            {"source": "c", "target": "a", "weight": 0.2, "selection_frequency": 1.0, "sign_consistency": 1.0},
+        ],
+        approved=True,
+    )
+    assert result["status"] == "RESEARCH_GRAPH_REJECTED"
+    assert any("directed cycle" in error for error in result["errors"])
+    assert result["counterfactual_ready"] is False
