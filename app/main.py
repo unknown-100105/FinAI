@@ -12,6 +12,7 @@ from app.market_api import router as market_router
 from app.crypto_api import router as crypto_router
 from app.investment_api import router as investment_router
 from app.compliance_api import router as compliance_router
+from app.knowledge_api import router as knowledge_router
 
 
 APP_VERSION = "0.1.0"
@@ -45,6 +46,7 @@ app.include_router(market_router)
 app.include_router(crypto_router)
 app.include_router(investment_router)
 app.include_router(compliance_router)
+app.include_router(knowledge_router)
 
 
 _orchestrator: Optional[XAISessionOrchestrator] = None
