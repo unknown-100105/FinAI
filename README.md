@@ -109,3 +109,17 @@ Financial calculations and tool results are treated as system-owned authoritativ
 Large model weights, generated datasets, RAG indexes, caches, and XAI trace outputs are excluded from normal source control. For reproducible deployment, keep the source-code commit and the separately versioned model/data artifacts together.
 
 Before production deployment, replace the demo/session authentication flow with real identity and session validation, provision required data/model artifacts, configure CI, and run external provider smoke tests with real credentials.
+
+## Professional market intelligence
+
+The market workspace now includes an interactive candlestick terminal with wheel zoom, drag-to-pan, crosshair/inspection, reset and fullscreen controls. The Market Analyst adds a chronological model arena with Logistic Regression, Random Forest, Extra Trees, Gradient Boosting, HistGradientBoosting and MLP, plus ensemble probability, validation metrics and feature attribution.
+
+The Global Markets workspace provides a research registry across major regions and asset classes including equities, ETFs, government bonds, corporate bonds, deposits/FDs, funds, REITs, commodities and currencies. For an Indian resident, the eligibility workflow explicitly checks the areas that must be verified: FEMA/LRS, local foreign-investor rules, KYC, currency/repatriation, withholding and Indian tax/reporting.
+
+Prediction outputs are historical model benchmarks, not guaranteed forecasts or a claim of a universally best market-prediction model. Global eligibility is instrument-specific and conditional where current regulatory/product verification is required.
+
+### New intelligence APIs
+
+- `GET /api/v1/intelligence/prediction`
+- `GET /api/v1/intelligence/global-assets`
+- `GET /api/v1/intelligence/eligibility`
