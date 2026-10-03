@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from crypto.arbitrage import estimate_arbitrage
 from crypto.scanner import scan_cross_exchange_arbitrage
 from crypto.universe import all_exchange_tickers, market_universe, scan_all_pairs, supported_connectors
+from crypto.mining import btc_mining_snapshot
 
 
 router = APIRouter(
@@ -152,3 +153,19 @@ def crypto_tickers(
         }
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Crypto tickers unavailable: {exc}") from exc
+
+
+class MiningRequest(BaseModel):
+    hashrate_ths: float = Field(default=200.0, gt=0)
+    power_watts: float = Field(default=3500.0, gt=0)
+    electricity_usd_kwh: float = Field(default=0.10, ge=0)
+
+
+@router.post("/mining/btc")
+def mining_btc(request: MiningRequest) -> Dict[str, Any]:
+    try:
+        return btc_mining_snapshot(**request.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Live mining data unavailable: {exc}") from exc
