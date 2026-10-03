@@ -92,25 +92,36 @@ class OpenAIProvider:
         language: str = "English",
         persona: str = "neutral",
         max_new_tokens: int = 160,
+        web_search: Optional[bool] = None,
     ) -> Dict[str, Any]:
         if not self.client:
             raise RuntimeError("OpenAI client is not initialized.")
 
-        response = self.client.responses.create(
-            model=self.model,
-            instructions=self._system_instructions(
+        use_web_search = (
+            web_search
+            if web_search is not None
+            else os.getenv("OPENAI_WEB_SEARCH", "0").strip().lower()
+            in {"1", "true", "yes", "on"}
+        )
+        request_kwargs = {
+            "model": self.model,
+            "instructions": self._system_instructions(
                 intent=intent,
                 source=source,
                 language=language,
                 persona=persona,
             ),
-            input=self._build_input(
+            "input": self._build_input(
                 user_text=user_text,
                 verified_result=verified_result,
             ),
-            max_output_tokens=max_new_tokens,
-            store=False,
-        )
+            "max_output_tokens": max_new_tokens,
+            "store": False,
+        }
+        if use_web_search:
+            request_kwargs["tools"] = [{"type": "web_search"}]
+
+        response = self.client.responses.create(**request_kwargs)
 
         text = str(
             getattr(response, "output_text", "") or ""
