@@ -556,7 +556,6 @@ function App() {
     news: <NewsHub />,
     forms: <ResourcesHub defaultCategory="Tax & Forms" />,
     arbitrage: <CryptoArbitrageHub />,
-    token: <TokenLab />,
     knowledge: <KnowledgeHub />,
     analyst: <MarketAnalystHub />,
     resources: <ResourcesHub />,
