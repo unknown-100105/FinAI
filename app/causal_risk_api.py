@@ -114,6 +114,8 @@ def counterfactual(request:CounterfactualRequest):
             request.allocation,
             include_tail_scenarios=request.include_tail_scenarios,
             tail_correlation=tail_correlation,
+            tail_distribution=request.tail_distribution,
+            tail_degrees_of_freedom=request.tail_degrees_of_freedom,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -156,6 +158,8 @@ def tail_scenarios(request: TailScenarioRequest):
             draws=request.draws,
             seed=request.seed,
             correlation=correlation,
+            distribution=request.distribution,
+            degrees_of_freedom=request.degrees_of_freedom,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
