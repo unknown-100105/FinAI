@@ -167,6 +167,10 @@ def enabled_models():
             spec.model_id == "openai-luna"
             and bool(os.getenv("OPENAI_API_KEY"))
         )
+        or (
+            spec.model_id == "openrouter-cloud"
+            and bool(os.getenv("OPENROUTER_API_KEY"))
+        )
     ]
 
 
