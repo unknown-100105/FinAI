@@ -21,7 +21,8 @@ OFFICIAL_MARKET_SOURCES = {
 "CL":"https://www.cmfchile.cl/","CO":"https://www.superfinanciera.gov.co/","ZA":"https://www.fsca.co.za/",
 "EG":"https://fra.gov.eg/","NG":"https://sec.gov.ng/","KE":"https://www.cma.or.ke/",
 }
-\nASSET_CLASSES=[
+
+ASSET_CLASSES=[
 {"id":"equity","label":"Equities","description":"Listed company shares and eligible depositary receipts."},{"id":"etf","label":"ETFs","description":"Exchange-traded funds subject to venue and investor-access rules."},{"id":"index","label":"Indices","description":"Benchmarks for research; an index is not necessarily investable."},{"id":"government_bond","label":"Government bonds","description":"Sovereign bills and bonds subject to local and Indian rules."},{"id":"corporate_bond","label":"Corporate bonds","description":"Issuer debt securities subject to intermediary and market-access rules."},{"id":"deposit","label":"Bank deposits / FD","description":"Foreign time deposits; residency, KYC, FX and repatriation rules vary."},{"id":"fund","label":"Funds","description":"Mutual funds and other pooled investment vehicles."},{"id":"reit","label":"REITs","description":"Listed real-estate investment vehicles where available."},{"id":"commodity","label":"Commodities","description":"Gold, energy, agricultural and industrial commodity exposures."},{"id":"forex","label":"Currencies","description":"FX data for research; retail access is jurisdiction-dependent."},
 ]
 SPECIAL={
