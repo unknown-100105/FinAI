@@ -159,6 +159,8 @@ export function CandleChart({
             <g
               key={candle.originalIndex}
               className={candle.up ? "candle candle-up" : "candle candle-down"}
+              onMouseEnter={() => setHoveredIndex(candle.originalIndex)}
+              onMouseLeave={() => setHoveredIndex(null)}
               onClick={() => onSelect?.(candle.originalIndex)}
             >
               <line
@@ -217,6 +219,16 @@ export function CandleChart({
               );
             })}
         </svg>
+        {hoveredIndex !== null && bars[hoveredIndex] && (
+          <div className="candle-hover-details">
+            <strong>{new Date(bars[hoveredIndex].timestamp).toLocaleString()}</strong>
+            <span>O {formatNumber(Number(bars[hoveredIndex].open))}</span>
+            <span>H {formatNumber(Number(bars[hoveredIndex].high))}</span>
+            <span>L {formatNumber(Number(bars[hoveredIndex].low))}</span>
+            <span>C {formatNumber(Number(bars[hoveredIndex].close))}</span>
+            <span>V {formatNumber(Number(bars[hoveredIndex].volume ?? 0))}</span>
+          </div>
+        )}
       </div>
     </div>
   );
