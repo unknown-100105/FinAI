@@ -4,41 +4,7 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence
 
 import numpy as np
-
-
-def _fit_standardized(
-    X: np.ndarray,
-    y: np.ndarray,
-    feature_mean: np.ndarray | None = None,
-    feature_std: np.ndarray | None = None,
-    target_mean: float | None = None,
-    target_std: float | None = None,
-):
-    feature_mean = np.mean(X, axis=0) if feature_mean is None else feature_mean
-    feature_std = np.std(X, axis=0) if feature_std is None else feature_std
-    feature_std = np.where(feature_std < 1e-12, 1.0, feature_std)
-    target_mean = float(np.mean(y)) if target_mean is None else float(target_mean)
-    target_std = float(np.std(y)) if target_std is None else float(target_std)
-    target_std = 1.0 if target_std < 1e-12 else target_std
-
-    Xs = (X - feature_mean) / feature_std
-    ys = (y - target_mean) / target_std
-    design = np.column_stack([np.ones(len(Xs)), Xs])
-    coef = np.linalg.lstsq(design, ys, rcond=None)[0][1:]
-    return coef, feature_mean, feature_std, target_mean, target_std
-
-
-def _predict_standardized(
-    X: np.ndarray,
-    coef: np.ndarray,
-    feature_mean: np.ndarray,
-    feature_std: np.ndarray,
-    target_mean: float,
-    target_std: float,
-    intercept: float,
-):
-    Xs = (X - feature_mean) / feature_std
-    return (intercept + Xs @ coef) * target_std + target_mean
+from sklearn.linear_model import Ridge
 
 
 def _r2(y_true: np.ndarray, y_pred: np.ndarray) -> float:
@@ -49,7 +15,11 @@ def _r2(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return 1.0 - float(np.sum((y_true - y_pred) ** 2)) / total
 
 
-def _block_indices(n: int, block_size: int, rng: np.random.Generator) -> np.ndarray:
+def _block_indices(
+    n: int,
+    block_size: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
     block_size = max(1, min(int(block_size), n))
     starts = rng.integers(
         0,
@@ -58,7 +28,9 @@ def _block_indices(n: int, block_size: int, rng: np.random.Generator) -> np.ndar
     )
     indices = []
     for start in starts:
-        indices.extend(range(int(start), min(int(start) + block_size, n)))
+        indices.extend(
+            range(int(start), min(int(start) + block_size, n))
+        )
         if len(indices) >= n:
             break
     return np.asarray(indices[:n], dtype=int)
@@ -73,12 +45,14 @@ def calibrate_consensus_edges(
     bootstrap_draws: int = 100,
     block_size: int = 10,
     seed: int = 42,
+    ridge_alpha: float = 1.0,
 ) -> dict[str, Any]:
     """Estimate empirical coefficient diagnostics for consensus candidates.
 
-    The coefficients are standardized conditional associations measured out of
-    sample; they are not identified causal effects and must not be interpreted
-    as causal estimates without additional identification assumptions.
+    Coefficients are standardized conditional associations measured out of
+    sample. Ridge regularization is used to reduce instability from
+    multicollinear market proxies. These remain empirical associations, not
+    identified causal effects.
     """
     X = np.asarray(samples, dtype=float)
     labels = [str(node).strip() for node in node_ids]
@@ -98,6 +72,8 @@ def calibrate_consensus_edges(
         raise ValueError("bootstrap_draws must be between 20 and 1000")
     if block_size < 1 or block_size > X.shape[0]:
         raise ValueError("block_size must be between 1 and the sample count")
+    if ridge_alpha <= 0:
+        raise ValueError("ridge_alpha must be positive")
     if not np.isfinite(X).all():
         raise ValueError("samples contain non-finite values")
     if not edges:
@@ -146,10 +122,6 @@ def calibrate_consensus_edges(
                 raise ValueError(
                     f"lag {lag} is too large for the calibration window"
                 )
-
-            # A lagged research candidate means target_t is calibrated from
-            # predictors observed at t-lag. Apply the same alignment inside
-            # each chronological split so no future observation is introduced.
             return (
                 matrix[:-lag, predictor_indices],
                 matrix[lag:, target_idx],
@@ -171,14 +143,27 @@ def calibrate_consensus_edges(
         y_std = 1.0 if y_std < 1e-12 else y_std
         Xs = (train_x - mean) / std
         ys = (train_y - y_mean) / y_std
-        design = np.column_stack([np.ones(len(Xs)), Xs])
-        beta = np.linalg.lstsq(design, ys, rcond=None)[0]
+
+        model = Ridge(alpha=float(ridge_alpha), fit_intercept=True)
+        model.fit(Xs, ys)
+        beta = model.coef_
         train_pred = (
-            beta[0] + ((train_x - mean) / std) @ beta[1:]
-        ) * y_std + y_mean
+            model.predict((train_x - mean) / std) * y_std + y_mean
+        )
         test_pred = (
-            beta[0] + ((test_x - mean) / std) @ beta[1:]
-        ) * y_std + y_mean
+            model.predict((test_x - mean) / std) * y_std + y_mean
+        )
+
+        singular_values = np.linalg.svd(
+            Xs,
+            compute_uv=False,
+            full_matrices=False,
+        )
+        condition_number = (
+            float(singular_values[0] / max(singular_values[-1], 1e-12))
+            if len(singular_values)
+            else 0.0
+        )
 
         bootstrap_values = []
         for _ in range(bootstrap_draws):
@@ -194,15 +179,20 @@ def calibrate_consensus_edges(
             by_mean = float(np.mean(by))
             by_std = float(np.std(by))
             by_std = 1.0 if by_std < 1e-12 else by_std
-            bx_std = (bx - bmean) / bstd
             by_stdized = (by - by_mean) / by_std
-            bdesign = np.column_stack([np.ones(len(bx_std)), bx_std])
-            bcoef = np.linalg.lstsq(bdesign, by_stdized, rcond=None)[0]
-            bootstrap_values.append(float(bcoef[1:][source_col]))
+            bmodel = Ridge(
+                alpha=float(ridge_alpha),
+                fit_intercept=True,
+            )
+            bmodel.fit(
+                (bx - bmean) / bstd,
+                by_stdized,
+            )
+            bootstrap_values.append(float(bmodel.coef_[source_col]))
 
         boot = np.asarray(bootstrap_values, dtype=float)
         q_low, q_high = np.quantile(boot, [0.025, 0.975])
-        source_beta = float(beta[1:][source_col])
+        source_beta = float(beta[source_col])
         consensus_weight = float(raw_edge.get("weight", 0.0))
         sign_matches = (
             float(np.mean(np.sign(boot) == np.sign(source_beta)))
@@ -240,6 +230,7 @@ def calibrate_consensus_edges(
                 abs(source_beta - consensus_weight),
                 6,
             ),
+            "condition_number": round(condition_number, 6),
             "bootstrap_ci_contains_zero": bool(q_low <= 0.0 <= q_high),
             "alignment": (
                 "target_t_on_predictors_t_minus_lag"
@@ -261,6 +252,8 @@ def calibrate_consensus_edges(
         "train_samples": int(len(train)),
         "test_samples": int(len(test)),
         "split_method": "chronological",
+        "estimator": "Ridge",
+        "ridge_alpha": float(ridge_alpha),
         "bootstrap": {
             "draws": bootstrap_draws,
             "block_size": block_size,
