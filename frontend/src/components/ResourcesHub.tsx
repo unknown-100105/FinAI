@@ -9,8 +9,8 @@ function titleForField(field: string) {
   return field.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function ResourcesHub() {
-  const [category, setCategory] = useState("All");
+export function ResourcesHub({ defaultCategory = "All" }: { defaultCategory?: string }) {
+  const [category, setCategory] = useState(defaultCategory);
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<OfficialResource[]>([]);
   const [selectedId, setSelectedId] = useState("ppf");
