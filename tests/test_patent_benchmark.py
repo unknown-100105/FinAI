@@ -16,7 +16,7 @@ def _case():
         [-1.0, -0.5, 0.5, 1.0],
         bounds,
         target_node="portfolio",
-        target_interval=(35.0, 55.0),
+        target_interval=(8.0, 12.0),
         prefix_depth=1,
         scale=0.35,
     )
@@ -28,7 +28,7 @@ def test_patent_benchmark_is_deterministic_and_reports_correctness():
     assert one["status"] == "PATENT_MECHANISM_VARIANT_BENCHMARK_READY"
     assert one["baseline"]["candidate_prefixes"] == 4
     assert one["baseline"]["exact_completion_evaluations"] == 16
-    assert one["correctness"]["finite_action_space_high_risk_prefixes"] == 1
+    assert one["correctness"]["finite_action_space_high_risk_prefixes"] == 2
     assert one["forward_certificate"]["hard_pruned_prefixes"] == 1
     assert one["bidirectional_necessary_interval"]["necessary_interval_pruned_prefixes"] == 1
     assert one["correctness"]["forward_no_false_prune"] is True
