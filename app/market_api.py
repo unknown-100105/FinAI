@@ -138,6 +138,11 @@ def history(
         ...,
         description="End datetime in ISO-8601 format.",
     ),
+    interval: str = Query(
+        default="1d",
+        pattern="^(1m|2m|5m|15m|30m|60m|90m|1h|1d|5d|1wk|1mo|3mo)$",
+        description="OHLCV interval supported by the configured market-data provider.",
+    ),
 ):
     if start > end:
         raise HTTPException(
@@ -155,6 +160,7 @@ def history(
             start=start,
             end=end,
             provider_id="yfinance",
+            interval=interval,
         )
     except Exception as exc:
         raise HTTPException(
