@@ -37,10 +37,12 @@ class ResponseService:
     }
 
     FALLBACK_MODEL_IDS_BY_CAPABILITY = {
+        # Generic responses should remain on general-purpose providers.
+        # The specialized financial-QA model is only a fallback for
+        # financial_qa capability requests.
         "response_generation": (
             "gemini-cloud",
             "openrouter-cloud",
-            "rllm-finqa-4b",
         ),
         "financial_qa": (
             "gemini-cloud",
