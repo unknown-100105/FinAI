@@ -161,6 +161,10 @@ export function MarketTerminal() {
   };
 
   useEffect(() => { void load(); }, [instrument, range, interval]);
+  useEffect(() => {
+    const timer = window.setInterval(() => { void load(); }, interval === "1m" || interval === "5m" || interval === "15m" || interval === "30m" ? 15000 : 60000);
+    return () => window.clearInterval(timer);
+  }, [instrument, range, interval]);
   useEffect(() => { void loadSide(); }, [instrument]);
 
   const points = useMemo(() => chartPoints(bars), [bars]);
