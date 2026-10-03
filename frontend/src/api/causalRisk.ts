@@ -60,10 +60,14 @@ export type CounterfactualResult = {
       systemic_stress_p90: number;
       systemic_stress_p95: number;
       systemic_stress_p99: number;
+      systemic_stress_cvar90: number;
+      systemic_stress_cvar95: number;
       mean_portfolio_impact: number;
       absolute_portfolio_impact_p90: number;
       absolute_portfolio_impact_p95: number;
       absolute_portfolio_impact_p99: number;
+      absolute_portfolio_impact_cvar90: number;
+      absolute_portfolio_impact_cvar95: number;
       highest_stress_scenario_id: string | null;
     };
     scenarios: Array<{
