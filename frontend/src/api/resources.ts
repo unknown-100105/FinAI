@@ -4,13 +4,16 @@ export type OfficialResource = {
   resource_id: string;
   name: string;
   category: string;
-  audience: string[];
+  subcategory: string;
+  summary: string;
+  who: string;
+  current_status: string;
   official_url: string;
+  form_url: string | null;
   authority: string;
-  description: string;
-  form_title: string;
+  source_date: string;
+  notes: string;
   form_fields: string[];
-  current_source: boolean;
 };
 
 async function getJson<T>(path: string): Promise<T> {
