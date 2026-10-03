@@ -77,26 +77,26 @@ class CausalConstrainedTailGenerator:
             "accepted": 0,
             "forward_certificate_evaluations": 0,
         }
-        backward_required: dict[str, tuple[float, float]] = {}
-        if use_bidirectional_feasibility:
-            backward_result = backward_target_cone(
-                nodes,
-                edges,
-                node_bounds,
-                target_node=target_node,
-                target_interval=target_interval,
-                intervened_nodes=keys[step + 1:],
-            )
-            backward_required = {
-                str(node): (float(interval[0]), float(interval[1]))
-                for node, interval in backward_result["required_intervals"].items()
-            }
-
         with torch.no_grad():
             for draw_index in range(draws):
                 state = torch.zeros((1, len(keys)), dtype=torch.float32, device=device)
                 prefix: dict[str, float] = {}
                 for step, factor in enumerate(keys):
+                    backward_required: dict[str, tuple[float, float]] = {}
+                    if use_bidirectional_feasibility:
+                        backward_result = backward_target_cone(
+                            nodes,
+                            edges,
+                            node_bounds,
+                            target_node=target_node,
+                            target_interval=target_interval,
+                            intervened_nodes=keys[step + 1:],
+                        )
+                        backward_required = {
+                            str(node): (float(interval[0]), float(interval[1]))
+                            for node, interval in backward_result["required_intervals"].items()
+                        }
+
                     logits = self.generator.policy(state, step)
                     probs = torch.softmax(logits, dim=-1).squeeze(0)
 
