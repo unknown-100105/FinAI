@@ -152,6 +152,16 @@ ITEMS = (
         ("Collect foreign tax proof", "Compute eligible credit", "Submit Form 67 within applicable requirements", "Claim credit in return"),
         INCOME_TAX_URL, "Income Tax Department", "Treat DTAA and timing requirements as current-law questions."),
     ComplianceItem(
+        "vda_tax", "Virtual Digital Asset (VDA) tax reference", "Investment Tax", "Tax Year 2026-27 / current law",
+        "Reference item for income from transfer of virtual digital assets. The current notified ITR schedules contain a 30% special-rate line for VDA income.",
+        "Taxpayers reporting VDA income, subject to the applicable law and facts.",
+        ("transaction ledger", "purchase cost", "sale proceeds", "transfer records", "TDS records"),
+        ("Reconcile exchange/wallet records", "Identify taxable transfers", "Prepare supporting computation", "Report in the appropriate return schedules", "Reconcile TDS information"),
+        "https://www.incometax.gov.in/iec/foportal/",
+        "Income Tax Department",
+        "The 30% special-rate reference is statutory and should be checked against the current law and taxpayer facts before filing."
+    ),
+    ComplianceItem(
         "gstr1", "GSTR-1", "GST", "Tax period",
         "Statement of outward supplies of goods and services for registered taxpayers required to furnish it.",
         "Applicable registered taxpayers.",
@@ -231,5 +241,7 @@ def metadata() -> Dict[str, str]:
         "income_tax_source": INCOME_TAX_URL,
         "itr_download_source": ITR_DOWNLOAD_URL,
         "gst_source": "https://www.gst.gov.in/",
+        "tax_year_transition": "The Income Tax Act, 2025 uses Tax Year from 01-Apr-2026; AY 2026-27 filings for FY 2025-26 remain under the Income Tax Act, 1961.",
+        "tds_transition": "For payments/credits on or after 01-Apr-2026, the applicable TDS provisions are under the Income Tax Act, 2025.",
         "note": "Use this module as a navigator/worksheet. Official filing portals, current rules and taxpayer-specific eligibility remain authoritative.",
     }
