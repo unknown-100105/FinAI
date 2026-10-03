@@ -252,15 +252,15 @@ Keep the inventive implementation and experimental records versioned and timesta
 - Empirical research validation: not yet completed.
 - Patent novelty: not established.
 - Prior-art review: initial search completed; deeper claim-by-claim search required.
-- Patent filing: requires a patent professional to review the actual invention disclosure and inventorship.
+- Patent filing: requires a patent professional to review the actual invention disclosure, inventorship, claim scope, and jurisdiction-specific prior art.
 
 ## Next execution order
 
 1. Independent Gemini code/research audit.
 2. Resolve GitHub CI failure on commit 31fd118.
 3. Freeze an engineering baseline.
-4. Build the point-in-time dataset and dataset card.
-5. Implement/verify the prefix feasibility + adaptive pruning prototype.
+4. Audit the patent-oriented prototype with the new causal-feasibility tests and API checks.
+5. Build the point-in-time dataset and dataset card.
 6. Run baseline and ablation experiments.
 7. Run tail-risk, regime and OOD evaluation.
 8. Quantify computational savings and valid-scenario recall.
