@@ -112,7 +112,7 @@ def generate_tail_scenarios(
         dependence_model = (
             "independent_gaussian_baseline"
             if correlation is None
-            else "correlated_gaussian"
+            else "supplied_correlation_gaussian"
         )
 
     sample_correlation = np.corrcoef(samples, rowvar=False)
