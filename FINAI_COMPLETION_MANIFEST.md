@@ -169,3 +169,19 @@ experiments:
 
 See docs/research-gap-and-novelty.md and
 docs/research-training-runbook.md.
+
+
+## Patent-mechanism verification additions
+
+The final verification cycle now also runs:
+`python scripts/run_patent_mechanism_benchmark.py --output patent-benchmark.json`.
+
+The benchmark compares exhaustive completion evaluation with forward
+certificate and bidirectional necessary-interval screening and records
+incremental interval-evaluation accounting. It is deterministic in its logical
+metrics; wall-clock measurements are environment-dependent.
+
+The previously added `causal_risk/finai_control_plane.py` was found to be
+unreferenced by the PR diff and has been removed to avoid maintaining two
+overlapping research control-plane implementations. The retained
+`causal_risk/research_control_plane.py` is explicitly research-only.
