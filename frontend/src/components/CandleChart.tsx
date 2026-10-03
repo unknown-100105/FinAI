@@ -37,7 +37,7 @@ export function CandleChart({
     const minPrice = Math.min(...lows);
     const spread = maxPrice - minPrice || 1;
     const chartHeight = showVolume ? 235 : 310;
-    const slot = 720 / Math.max(1, view.length);
+    const chartWidth = Math.max(720, view.length * 6);\n    const slot = chartWidth / Math.max(1, view.length);
     const bodyWidth = Math.max(1.8, Math.min(8, slot * 0.62));
     return view.map(({ bar, originalIndex }, index) => {
       const x = index * slot + slot / 2;
@@ -55,7 +55,7 @@ export function CandleChart({
     });
   }, [view, showVolume]);
 
-  const volumes = view.map(({ bar }) => Math.max(0, Number(bar.volume ?? 0)));
+  const volumes = view.map(({ bar }) => Math.max(0, Number(bar.volume ?? 0)));\n  const chartWidth = candleGeometry[0]?.chartWidth ?? 720;
   const volumeMax = Math.max(...volumes, 1);
 
   if (!bars.length) {
@@ -90,7 +90,7 @@ export function CandleChart({
           </g>
         ))}
         {showVolume && view.map(({ bar }, index) => {
-          const slot = 720 / Math.max(1, view.length);
+          const slot = chartWidth / Math.max(1, view.length);
           const width = Math.max(1, slot * 0.58);
           const value = Math.max(0, Number(bar.volume ?? 0));
           const barHeight = (value / volumeMax) * 70;
