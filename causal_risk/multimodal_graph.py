@@ -41,8 +41,6 @@ class MultimodalGraph:
         self._validate()
 
     def _validate(self) -> None:
-        if len(self.nodes) != len(list(self.nodes)):
-            raise ValueError("node ids must be unique")
         for node in self.nodes.values():
             if node.modality not in self.ALLOWED_MODALITIES:
                 raise ValueError(f"unsupported node modality: {node.modality}")
