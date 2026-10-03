@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BadgeIndianRupee, BarChart3, Banknote, Calculator, CheckCircle2, Landmark, PieChart, ShieldCheck, SlidersHorizontal, TrendingUp } from "lucide-react";
+import { BarChart3, Calculator, CheckCircle2, PieChart, ShieldCheck, SlidersHorizontal, TrendingUp } from "lucide-react";
 import { getInvestmentCatalog, priceBond, projectFd, projectSip, projectSmallSavings, type InvestmentProduct, type MutualFundCategory } from "../api/investments";
 import "./InvestmentHub.css";
 
