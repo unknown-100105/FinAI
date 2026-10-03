@@ -12,17 +12,6 @@ type CandleChartProps = {
   showVolume?: boolean;
 };
 
-function normalize(bars: MarketBar[], maxBars: number) {
-  if (bars.length <= maxBars) {
-    return bars.map((bar, index) => ({ bar, originalIndex: index }));
-  }
-  const step = bars.length / maxBars;
-  return Array.from({ length: maxBars }, (_, index) => {
-    const originalIndex = Math.min(bars.length - 1, Math.floor(index * step));
-    return { bar: bars[originalIndex], originalIndex };
-  });
-}
-
 export function CandleChart({
   bars,
   height = 360,
