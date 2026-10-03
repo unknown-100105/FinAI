@@ -415,6 +415,8 @@ def research_status():
             "research_counterfactual": "explicit-approval-only",
             "causal_feasibility_pruning": "conservative_prefix_certificate",
             "constrained_gflownet": "action_masked_research_prototype",
+            "incremental_feasibility_cache": "descendant_cone_recomputation",
+            "patent_mechanism_benchmark": "exact_small_state_comparison_available",
         },
         "production_boundary": (
             "Research components remain isolated from production investment "
