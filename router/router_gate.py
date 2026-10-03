@@ -90,6 +90,23 @@ FINANCIAL_GUIDANCE_ACTION_TERMS = (
 )
 
 
+FINANCIAL_PRODUCT_TERMS = (
+    "mutual fund", "mutual funds", "sip", "systematic investment",
+    "bond", "bonds", "fixed income", "money market",
+    "treasury bill", "t-bill", "t bills",
+    "fixed deposit", "fixed deposits", "recurring deposit", "recurring deposits",
+    "post office", "post office scheme", "post office schemes", "small savings",
+    "ppf", "nsc", "scss", "sukanya", "kisan vikas", "kvp",
+    "crypto", "cryptocurrency", "bitcoin", "ethereum",
+    "etf", "etfs", "gold investment", "gold",
+)
+
+FINANCIAL_PRODUCT_QUESTION_TERMS = (
+    "what is", "what are", "explain", "meaning", "how does",
+    "how do", "difference", "compare", "guide", "tell me about",
+)
+
+
 FINANCIAL_CATEGORY_CLARIFICATIONS = {
     "transaction": (
         ("TRANSACTION_HISTORY", "transaction history"),
@@ -211,6 +228,30 @@ class FinAIRouterGate:
                 "risk_level": "low",
                 "requires_clarification": False,
                 "reason": ood_reason,
+                "top_k": [],
+            }
+
+        normalized_for_rules = " ".join(
+            str(text).strip().lower().split()
+        )
+
+        if (
+            any(term in normalized_for_rules for term in FINANCIAL_PRODUCT_TERMS)
+            and any(
+                term in normalized_for_rules
+                for term in FINANCIAL_PRODUCT_QUESTION_TERMS
+            )
+        ):
+            return {
+                "intent": "FINANCIAL_PRODUCT_KNOWLEDGE",
+                "raw_prediction": None,
+                "confidence": 1.0,
+                "margin": 1.0,
+                "decision": "ROUTE",
+                "risk_level": "low",
+                "requires_clarification": False,
+                "reason": "financial_product_knowledge_rule",
+                "confidence_source": "deterministic_rule",
                 "top_k": [],
             }
 
