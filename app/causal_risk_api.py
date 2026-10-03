@@ -75,7 +75,7 @@ class TailScenarioRequest(BaseModel):
     use_empirical_market_dependence: bool = False
 
 
-def _empirical_covariance_for_shock(shock: Dict[str, float]) -> list[list[float]] | None:
+def _empirical_correlation_for_shock(shock: Dict[str, float]) -> list[list[float]] | None:
     proxy_items = [(key, DEFAULT_CAUSAL_PROXIES[key]) for key in sorted(shock) if key in DEFAULT_CAUSAL_PROXIES]
     if len(proxy_items) < 2:
         raise ValueError("at least two shock factors need known market proxies for empirical dependence")
@@ -87,7 +87,7 @@ def _empirical_covariance_for_shock(shock: Dict[str, float]) -> list[list[float]
     )
     covariance = np.asarray(dataset.get("empirical_covariance"), dtype=float)
     if covariance.shape != (len(proxy_items), len(proxy_items)):
-        raise ValueError("empirical market covariance is unavailable for the requested factors")
+        raise ValueError("empirical market correlation is unavailable for the requested factors")
     return covariance.tolist()
 
 
@@ -104,7 +104,7 @@ def architecture():
 @router.post("/counterfactual")
 def counterfactual(request:CounterfactualRequest):
     try:
-        tail_covariance = (
+        tail_correlation = (
             _empirical_covariance_for_shock(request.shock)
             if request.use_empirical_tail_dependence
             else None
@@ -113,7 +113,7 @@ def counterfactual(request:CounterfactualRequest):
             request.shock,
             request.allocation,
             include_tail_scenarios=request.include_tail_scenarios,
-            tail_covariance=tail_covariance,
+            tail_correlation=tail_correlation,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -146,7 +146,7 @@ def discover_dynamic(request: DynamicDiscoveryRequest):
 @router.post("/tail-scenarios")
 def tail_scenarios(request: TailScenarioRequest):
     try:
-        covariance = (
+        correlation = (
             _empirical_covariance_for_shock(request.shock)
             if request.use_empirical_market_dependence
             else None
@@ -155,7 +155,7 @@ def tail_scenarios(request: TailScenarioRequest):
             request.shock,
             draws=request.draws,
             seed=request.seed,
-            covariance=covariance,
+            correlation=correlation,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
