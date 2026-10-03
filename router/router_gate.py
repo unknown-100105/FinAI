@@ -133,7 +133,41 @@ FINANCIAL_CATEGORY_CLARIFICATIONS = {
         ("KYC_DOCUMENTS", "KYC documents"),
         ("KYC_UPDATE", "KYC update"),
     ),
-}
+    "investment": (
+        ("FINANCIAL_PRODUCT_KNOWLEDGE", "investment products"),
+        ("MARKET_DATA_QUERY", "market investments and prices"),
+        ("PORTFOLIO_GUIDANCE", "portfolio planning"),
+    ),
+    "investments": (
+        ("FINANCIAL_PRODUCT_KNOWLEDGE", "investment products"),
+        ("MARKET_DATA_QUERY", "market investments and prices"),
+        ("PORTFOLIO_GUIDANCE", "portfolio planning"),
+    ),
+    "saving": (
+        ("FINANCIAL_PRODUCT_KNOWLEDGE", "savings products"),
+        ("FINANCIAL_GUIDANCE", "personal-finance guidance"),
+    ),
+    "savings": (
+        ("FINANCIAL_PRODUCT_KNOWLEDGE", "savings products"),
+        ("FINANCIAL_GUIDANCE", "personal-finance guidance"),
+    ),
+    "crypto": (
+        ("FINANCIAL_PRODUCT_KNOWLEDGE", "crypto assets"),
+        ("MARKET_DATA_QUERY", "crypto market data"),
+    ),
+    "bonds": (
+        ("FINANCIAL_PRODUCT_KNOWLEDGE", "bonds"),
+        ("MARKET_DATA_QUERY", "bond/market data"),
+    ),
+    "money market": (
+        ("FINANCIAL_PRODUCT_KNOWLEDGE", "money-market instruments"),
+        ("MARKET_DATA_QUERY", "market data"),
+    ),
+    "post office": (
+        ("FINANCIAL_PRODUCT_KNOWLEDGE", "Post Office small-savings schemes"),
+        ("KYC_DOCUMENTS", "account/KYC requirements"),
+    ),
+};
 
 
 def _category_clarification_query(text: str):
