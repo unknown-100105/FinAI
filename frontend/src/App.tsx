@@ -43,6 +43,7 @@ import { TokenGeneratorHub } from "./components/TokenGeneratorHub";
 import { StudyHub } from "./components/StudyHub";
 import { ResourcesHub } from "./components/ResourcesHub";
 import { MarketAnalystHub } from "./components/MarketAnalystHub";
+import { XAIExplorerHub } from "./components/XAIExplorerHub";
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
@@ -68,6 +69,7 @@ const navigation = [
   { id: "study", label: "Study Centre", icon: GraduationCap },
   { id: "token", label: "Token Lab", icon: Code2 },
   { id: "diary", label: "Investment Diary", icon: BookMarked },
+  { id: "xai", label: "Explainability", icon: ShieldCheck },
 ] as const;
 
 type Section = (typeof navigation)[number]["id"];
@@ -560,6 +562,7 @@ function App() {
     study: <StudyHub />,
     token: <TokenGeneratorHub />,
     diary: <InvestmentDiaryHub />,
+    xai: <XAIExplorerHub />,
   }[section];
 
   return (
