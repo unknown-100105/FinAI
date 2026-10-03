@@ -49,6 +49,9 @@ jobs:
             tests/test_causal_risk.py \
             tests/test_new_api_routes.py \
             tests/test_research_upgrades.py \
+            tests/test_feasibility_pruning.py \
+            tests/test_constrained_gfnets.py \
+            tests/test_patent_research_loop.py \
             tests/test_authority_contract.py \
             tests/test_claim_contract.py \
             tests/test_claim_extractor.py \
