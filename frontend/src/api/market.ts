@@ -137,6 +137,7 @@ export function getMarketAnalytics(
   instrument: string,
   start: string,
   end: string,
+  interval = "1d",
 ) {
   return getJson<{
     instrument: MarketInstrument;
@@ -144,6 +145,6 @@ export function getMarketAnalytics(
     analytics: Record<string, number | null>;
     data_points: number;
   }>(
-    `/api/v1/market/analytics?instrument=${encodeURIComponent(instrument)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+    `/api/v1/market/analytics?instrument=${encodeURIComponent(instrument)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&interval=${encodeURIComponent(interval)}`,
   );
 }
