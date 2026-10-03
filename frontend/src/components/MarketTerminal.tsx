@@ -1,24 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity,
-  ArrowDownRight,
-  ArrowUpRight,
-  BarChart3,
-  ExternalLink,
-  Newspaper,
-  RefreshCw,
-  ShieldCheck,
+  Activity, ArrowDownRight, ArrowUpRight, BarChart3, ExternalLink,
+  Newspaper, RefreshCw, ShieldCheck,
 } from "lucide-react";
 import {
-  getMarketAnalytics,
-  getMarketHistory,
-  getMarketNews,
-  getMarketOverview,
-  getMarketQuote,
-  type MarketBar,
-  type MarketNewsItem,
-  type MarketOverviewItem,
-  type MarketQuote,
+  getMarketAnalytics, getMarketHistory, getMarketNews, getMarketOverview,
+  getMarketQuote, type MarketBar, type MarketNewsItem,
+  type MarketOverviewItem, type MarketQuote,
 } from "../api/market";
 import { MarketSearchBox } from "./MarketSearchBox";
 import "./MarketTerminal.css";
@@ -32,77 +20,75 @@ const ranges = [
   { id: "5Y", days: 1825, interval: "1d" },
 ] as const;
 
-const quickSymbols = ["TCS", "INFY", "RELIANCE", "HDFCBANK", "NIFTY 50", "SENSEX", "BTC"];
+const intervals = ["1m", "5m", "15m", "30m", "1h", "1d", "1wk"] as const;
+const quickSymbols = [
+  "TCS", "INFY", "RELIANCE", "HDFCBANK", "ICICIBANK", "SBIN",
+  "ITC", "LT", "NIFTY 50", "SENSEX", "BTC", "ETH",
+];
 
-function toNumber(value: number | null | undefined) {
-  return Number.isFinite(Number(value)) ? Number(value) : null;
+function finite(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
-function formatPrice(value: number | null | undefined, currency = "INR") {
-  const number = toNumber(value);
-  if (number === null) return "—";
+function money(value: unknown, currency = "INR") {
+  const n = finite(value);
+  if (n === null) return "—";
   try {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: currency || "INR",
+      currency,
       maximumFractionDigits: 2,
-    }).format(number);
+    }).format(n);
   } catch {
-    return number.toFixed(2);
+    return n.toFixed(2);
   }
 }
 
-function formatPercent(value: number | null | undefined) {
-  const number = toNumber(value);
-  if (number === null) return "—";
-  return `${number >= 0 ? "+" : ""}${(number * 100).toFixed(2)}%`;
+function percent(value: unknown) {
+  const n = finite(value);
+  return n === null ? "—" : `${n >= 0 ? "+" : ""}${(n * 100).toFixed(2)}%`;
 }
 
-function formatRatio(value: number | null | undefined) {
-  const number = toNumber(value);
-  return number === null ? "—" : number.toFixed(2);
+function volume(value: unknown) {
+  const n = finite(value);
+  if (n === null) return "—";
+  if (n >= 1e7) return `${(n / 1e7).toFixed(1)}Cr`;
+  if (n >= 1e5) return `${(n / 1e5).toFixed(1)}L`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
+  return Math.round(n).toString();
 }
 
-function formatVolume(value: number | null | undefined) {
-  const number = toNumber(value);
-  if (number === null) return "—";
-  if (number >= 10000000) return `${(number / 10000000).toFixed(1)}Cr`;
-  if (number >= 100000) return `${(number / 100000).toFixed(1)}L`;
-  if (number >= 1000) return `${(number / 1000).toFixed(1)}K`;
-  return Math.round(number).toString();
-}
-
-function rangeDates(days: number) {
+function datesFor(days: number) {
   const end = new Date();
   const start = new Date();
   start.setDate(end.getDate() - days);
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
-function linePoints(bars: MarketBar[], width: number, height: number) {
-  if (!bars.length) return "";
-  const closes = bars.map((bar) => bar.close);
-  const min = Math.min(...closes);
-  const max = Math.max(...closes);
+function chartPoints(bars: MarketBar[], width = 720, height = 220) {
+  if (bars.length < 2) return "";
+  const values = bars.map((bar) => bar.close);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
   const spread = max - min || 1;
   return bars.map((bar, index) => {
     const x = (index / Math.max(1, bars.length - 1)) * width;
-    const y = height - ((bar.close - min) / spread) * height;
+    const y = 15 + (1 - (bar.close - min) / spread) * (height - 30);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(" ");
 }
 
 function MiniMover({ item }: { item: MarketOverviewItem }) {
-  const change = toNumber(item.change_percent);
-  const positive = change !== null && change >= 0;
+  const change = finite(item.change_percent);
   return (
     <div className="mover-row">
       <div>
         <strong>{item.instrument?.display_name ?? "—"}</strong>
-        <span>{item.instrument?.exchange ?? item.instrument?.asset_type}</span>
+        <span>{item.instrument?.exchange ?? item.instrument?.asset_type ?? "market"}</span>
       </div>
-      <div className={positive ? "market-positive" : "market-negative"}>
-        {change === null ? "—" : formatPercent(change)}
+      <div className={change !== null && change >= 0 ? "market-positive" : "market-negative"}>
+        {percent(change)}
       </div>
     </div>
   );
@@ -111,6 +97,7 @@ function MiniMover({ item }: { item: MarketOverviewItem }) {
 export function MarketTerminal() {
   const [instrument, setInstrument] = useState("TCS");
   const [range, setRange] = useState("1M");
+  const [interval, setInterval] = useState("1d");
   const [quote, setQuote] = useState<MarketQuote | null>(null);
   const [bars, setBars] = useState<MarketBar[]>([]);
   const [analytics, setAnalytics] = useState<Record<string, number | null>>({});
@@ -118,77 +105,65 @@ export function MarketTerminal() {
   const [losers, setLosers] = useState<MarketOverviewItem[]>([]);
   const [news, setNews] = useState<MarketNewsItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [overviewLoading, setOverviewLoading] = useState(true);
-  const [newsLoading, setNewsLoading] = useState(true);
+  const [sideLoading, setSideLoading] = useState(true);
   const [error, setError] = useState("");
-  const [lastUpdated, setLastUpdated] = useState("");
 
   const selectedRange = ranges.find((item) => item.id === range) ?? ranges[2];
+  const intradayAllowed = selectedRange.days <= 30;
 
-  const points = useMemo(() => linePoints(bars, 720, 260), [bars]);
+  useEffect(() => {
+    setInterval(selectedRange.interval);
+  }, [range]);
 
-  const priceChange = useMemo(() => {
-    if (bars.length < 2) return null;
-    const first = bars[0].close;
-    const last = bars[bars.length - 1].close;
-    return first ? last / first - 1 : null;
-  }, [bars]);
-
-  const loadMarket = async () => {
+  const load = async () => {
     setLoading(true);
     setError("");
     setQuote(null);
     setBars([]);
     setAnalytics({});
+    const window = datesFor(selectedRange.days);
 
     try {
-      const dates = rangeDates(selectedRange.days);
-      const [quoteResult, historyResult, analyticsResult] = await Promise.all([
+      const [q, h, a] = await Promise.all([
         getMarketQuote(instrument),
-        getMarketHistory(instrument, dates.start, dates.end, selectedRange.interval),
-        getMarketAnalytics(instrument, dates.start, dates.end, selectedRange.interval),
+        getMarketHistory(instrument, window.start, window.end, interval),
+        getMarketAnalytics(instrument, window.start, window.end, interval),
       ]);
-      setQuote(quoteResult.quote);
-      setBars(historyResult.bars);
-      setAnalytics(analyticsResult.analytics);
-      setLastUpdated(new Date().toLocaleTimeString());
+      setQuote(q.quote);
+      setBars(h.bars);
+      setAnalytics(a.analytics);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Market data is unavailable.");
+      setError(requestError instanceof Error ? requestError.message : "Market data unavailable.");
     } finally {
       setLoading(false);
     }
   };
 
-  const loadOverview = async () => {
-    setOverviewLoading(true);
+  const loadSide = async () => {
+    setSideLoading(true);
     try {
-      const overview = await getMarketOverview();
+      const [overview, headlines] = await Promise.all([
+        getMarketOverview(),
+        getMarketNews(instrument, 8),
+      ]);
       setGainers(overview.gainers);
       setLosers(overview.losers);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Market movers are unavailable.");
-    } finally {
-      setOverviewLoading(false);
-    }
-  };
-
-  const loadNews = async () => {
-    setNewsLoading(true);
-    try {
-      const result = await getMarketNews(instrument, 8);
-      setNews(result.articles);
+      setNews(headlines.articles);
     } catch {
       setNews([]);
     } finally {
-      setNewsLoading(false);
+      setSideLoading(false);
     }
   };
 
-  useEffect(() => { void loadMarket(); }, [instrument, range]);
-  useEffect(() => { void loadOverview(); }, []);
-  useEffect(() => { void loadNews(); }, [instrument]);
+  useEffect(() => { void load(); }, [instrument, range, interval]);
+  useEffect(() => { void loadSide(); }, [instrument]);
 
-  const positive = priceChange !== null && priceChange >= 0;
+  const points = useMemo(() => chartPoints(bars), [bars]);
+  const firstClose = bars.length ? bars[0].close : null;
+  const lastClose = bars.length ? bars[bars.length - 1].close : null;
+  const periodChange = firstClose ? (lastClose ?? firstClose) / firstClose - 1 : null;
+  const positive = periodChange !== null && periodChange >= 0;
   const currency = quote?.currency || "INR";
 
   return (
@@ -196,15 +171,10 @@ export function MarketTerminal() {
       <div className="market-header">
         <div>
           <div className="market-kicker"><BarChart3 size={14} /> Market intelligence</div>
-          <h2>Live market terminal</h2>
-          <p>Searchable instruments, multi-horizon charts, quantitative analytics, movers and instrument-specific news.</p>
+          <h2>Market & crypto terminal</h2>
+          <p>Search instruments, inspect intraday or long-horizon price action, calculate indicators and open instrument-specific news.</p>
         </div>
-        <button
-          className="market-refresh"
-          type="button"
-          onClick={() => { void loadMarket(); void loadOverview(); void loadNews(); }}
-          disabled={loading}
-        >
+        <button className="market-refresh" type="button" onClick={() => { void load(); void loadSide(); }} disabled={loading}>
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
@@ -218,7 +188,7 @@ export function MarketTerminal() {
               <MarketSearchBox value={instrument} onSelect={setInstrument} />
               <div className="market-quick-list">
                 {quickSymbols.map((symbol) => (
-                  <button type="button" key={symbol} onClick={() => setInstrument(symbol)} className={instrument === symbol ? "active" : ""}>
+                  <button key={symbol} type="button" className={instrument === symbol ? "active" : ""} onClick={() => setInstrument(symbol)}>
                     {symbol}
                   </button>
                 ))}
@@ -227,29 +197,15 @@ export function MarketTerminal() {
             <div className="market-control-groups">
               <div className="control-group">
                 <span>Range</span>
-                <div className="range-tabs">
-                  {ranges.map((item) => (
-                    <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => setRange(item.id)}>
-                      {item.id}
-                    </button>
-                  ))}
-                </div>
+                <div className="range-tabs">{ranges.map((item) => (
+                  <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => setRange(item.id)}>{item.id}</button>
+                ))}</div>
               </div>
               <div className="control-group">
                 <span>Interval</span>
-                <div className="range-tabs interval-tabs">
-                  {["1m", "5m", "15m", "30m", "1h", "1d", "1wk"].map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={interval === value ? "active" : ""}
-                      disabled={!intradayAllowed && !["1d", "1wk"].includes(value)}
-                      onClick={() => setInterval(value)}
-                    >
-                      {value}
-                    </button>
-                  ))}
-                </div>
+                <div className="range-tabs interval-tabs">{intervals.map((value) => (
+                  <button key={value} type="button" className={interval === value ? "active" : ""} disabled={!intradayAllowed && !["1d","1wk"].includes(value)} onClick={() => setInterval(value)}>{value}</button>
+                ))}</div>
               </div>
             </div>
           </div>
@@ -263,46 +219,46 @@ export function MarketTerminal() {
                 </div>
                 <span className="market-live-chip"><span /> Provider snapshot</span>
               </div>
-
               <div className="quote-strip">
-                <div><span>Last price</span><strong>{formatPrice(quote.price, currency)}</strong></div>
-                <div><span>Period change</span><strong className={positive ? "market-positive" : "market-negative"}>{formatPercent(priceChange)}</strong></div>
-                <div><span>Day range</span><strong>{formatPrice(quote.low, currency)} — {formatPrice(quote.high, currency)}</strong></div>
-                <div><span>Volume</span><strong>{formatVolume(quote.volume)}</strong></div>
+                <div><span>Last price</span><strong>{money(quote.price, currency)}</strong></div>
+                <div><span>Period change</span><strong className={positive ? "market-positive" : "market-negative"}>{percent(periodChange)}</strong></div>
+                <div><span>High / low</span><strong>{money(quote.high, currency)} — {money(quote.low, currency)}</strong></div>
+                <div><span>Volume</span><strong>{volume(quote.volume)}</strong></div>
               </div>
             </>
           )}
 
           <div className="chart-card">
             <div className="chart-head">
-              <div><span>{instrument}</span><small>{lastUpdated ? `Updated ${lastUpdated} · ${interval}` : "Loading market feed"}</small></div>
+              <div><span>{instrument}</span><small>{loading ? "Loading…" : `${bars.length} bars · ${interval}`}</small></div>
               <div className="chart-badge"><Activity size={13} /> {quote?.source ?? "market feed"}</div>
             </div>
-            <div className="chart-wrap">
+            <div className="chart-wrap chart-grid">
               {bars.length > 1 ? (
-                <svg viewBox="0 0 720 260" preserveAspectRatio="none" role="img" aria-label={`${instrument} historical price chart`}>
-                  <polyline points={points} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke" className={positive ? "chart-line-positive" : "chart-line-negative"} />
-                </svg>
-              ) : (
-                <div className="chart-empty">{loading ? "Loading price history…" : "No historical data available for this timeframe."}</div>
-              )}
+                <>
+                  <div className="chart-axis-labels"><span>High</span><span>Low</span></div>
+                  <svg viewBox="0 0 720 220" preserveAspectRatio="none" role="img" aria-label={`${instrument} ${interval} price chart`}>
+                    <polyline points={points} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke" className={positive ? "chart-line-positive" : "chart-line-negative"} />
+                  </svg>
+                </>
+              ) : <div className="chart-empty">{loading ? "Loading price history…" : "No bars returned for this range/interval."}</div>}
+            </div>
+            <div className="chart-footer">
+              <span>{bars[0]?.timestamp ? new Date(bars[0].timestamp).toLocaleString() : "—"}</span>
+              <span>{bars.at(-1)?.timestamp ? new Date(bars.at(-1)!.timestamp).toLocaleString() : "—"}</span>
             </div>
           </div>
 
           <div className="analytics-grid">
             {[
-              ["SMA 20", formatPrice(analytics.sma_20, currency)],
-              ["SMA 50", formatPrice(analytics.sma_50, currency)],
-              ["EMA 20", formatPrice(analytics.ema_20, currency)],
-              ["RSI 14", formatRatio(analytics.rsi_14)],
-              ["Annualized volatility", formatPercent(analytics.annualized_volatility)],
-              ["Maximum drawdown", formatPercent(analytics.maximum_drawdown)],
+              ["SMA 20", money(analytics.sma_20, currency)],
+              ["SMA 50", money(analytics.sma_50, currency)],
+              ["EMA 20", money(analytics.ema_20, currency)],
+              ["RSI 14", finite(analytics.rsi_14)?.toFixed(2) ?? "—"],
+              ["Annualized volatility", percent(analytics.annualized_volatility)],
+              ["Maximum drawdown", percent(analytics.maximum_drawdown)],
             ].map(([label, value]) => (
-              <div key={label} className="analytics-card">
-                <span>{label}</span>
-                <strong>{value}</strong>
-                <small>Calculated from the selected history window</small>
-              </div>
+              <div className="analytics-card" key={label}><span>{label}</span><strong>{value}</strong><small>Calculated from selected bars</small></div>
             ))}
           </div>
         </div>
@@ -310,27 +266,24 @@ export function MarketTerminal() {
         <aside className="market-side">
           <div className="market-side-card">
             <div className="side-card-heading"><span>Top gainers</span><ArrowUpRight size={15} /></div>
-            {overviewLoading ? <div className="news-loading">Loading movers…</div> : gainers.length ? gainers.map((item) => <MiniMover key={item.instrument.instrument_id} item={item} />) : <div className="news-loading">No movers returned.</div>}
+            {sideLoading ? <div className="news-loading">Loading…</div> : gainers.map((item) => <MiniMover key={item.instrument.instrument_id} item={item} />)}
           </div>
-
           <div className="market-side-card">
             <div className="side-card-heading"><span>Top losers</span><ArrowDownRight size={15} /></div>
-            {overviewLoading ? <div className="news-loading">Loading movers…</div> : losers.length ? losers.map((item) => <MiniMover key={item.instrument.instrument_id} item={item} />) : <div className="news-loading">No movers returned.</div>}
+            {sideLoading ? <div className="news-loading">Loading…</div> : losers.map((item) => <MiniMover key={item.instrument.instrument_id} item={item} />)}
           </div>
-
-          <div className="market-side-card">
+          <div className="market-side-card news-card">
             <div className="side-card-heading"><span>{instrument} news</span><Newspaper size={15} /></div>
-            {newsLoading ? <div className="news-loading">Fetching headlines…</div> : news.length ? news.map((item, index) => (
-              <a key={`${item.title}-${index}`} className="news-item" href={item.link || "#"} target="_blank" rel="noreferrer">
-                <div><strong>{item.title}</strong><span>{item.publisher || "Financial news"} · {item.published_at || "Latest"}</span></div>
+            {sideLoading ? <div className="news-loading">Fetching headlines…</div> : news.length ? news.map((item, index) => (
+              <a key={item.title + index} className="news-item" href={item.link || "#"} target="_blank" rel="noreferrer">
+                <div><strong>{item.title}</strong><span>{item.publisher || "Financial news"} · {item.published_at || "latest"}</span></div>
                 <ExternalLink size={13} />
               </a>
             )) : <div className="news-loading">No instrument-specific news returned.</div>}
           </div>
-
           <div className="market-side-card market-evidence-card">
             <div className="side-card-heading"><span>Data discipline</span><ShieldCheck size={15} /></div>
-            <p>Market values are provider snapshots, not guaranteed execution prices. Verify exchange availability, timestamp and liquidity before acting.</p>
+            <p>Values are provider snapshots. Intraday stock data is bounded by provider retention; when an exchange is closed, the chart uses the latest available session and keeps the timestamp visible.</p>
           </div>
         </aside>
       </div>
