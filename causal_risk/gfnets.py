@@ -8,6 +8,8 @@ import numpy as np
 import torch
 from torch import nn
 
+from causal_risk.stress_objectives import CausalStressReward
+
 
 @dataclass(frozen=True)
 class GFlowConfig:
@@ -62,7 +64,13 @@ class GFlowNetTailGenerator:
         diversity = torch.std(trajectory, dim=1)
         return torch.exp(1.5 * magnitude + 0.25 * diversity).clamp_min(1e-8)
 
-    def train(self, *, seed: int | None = None) -> dict[str, Any]:
+    def train(
+        self,
+        *,
+        seed: int | None = None,
+        reward_fn: Any | None = None,
+        objective_name: str = "synthetic_tail_reward",
+    ) -> dict[str, Any]:
         seed = self.config.seed if seed is None else int(seed)
         torch.manual_seed(seed)
         optimizer = torch.optim.Adam(
@@ -79,7 +87,15 @@ class GFlowNetTailGenerator:
                 action = dist.sample()
                 log_pf += dist.log_prob(action)
                 batch[:, step] = self.levels[action]
-            reward = self._reward(batch)
+            reward = (
+                self._reward(batch)
+                if reward_fn is None
+                else reward_fn(batch)
+            )
+            if reward.ndim != 1 or reward.shape[0] != batch.shape[0]:
+                raise ValueError("reward_fn must return one finite reward per trajectory")
+            if not torch.isfinite(reward).all() or torch.any(reward <= 0):
+                raise ValueError("reward_fn must return finite strictly positive rewards")
             loss = torch.mean((self.log_z + log_pf - torch.log(reward)) ** 2)
             optimizer.zero_grad()
             loss.backward()
@@ -95,6 +111,12 @@ class GFlowNetTailGenerator:
             "seed": seed,
             "factors": self.n_factors,
             "levels": list(self.config.levels),
+            "objective": objective_name,
+            "reward_metadata": (
+                reward_fn.metadata()
+                if hasattr(reward_fn, "metadata")
+                else {"objective": objective_name}
+            ),
         }
 
     def sample(
