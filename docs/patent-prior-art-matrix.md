@@ -118,3 +118,22 @@ Dependent embodiments can cover:
 - optional hardware acceleration.
 
 A second patent family should be considered only if research demonstrates a separate technical mechanism with distinct prior-art separation.
+
+
+## Non-patent literature cross-check
+
+The patent search is supplemented by non-patent literature because the
+underlying components are established independently:
+
+- GFlowNet sequential generation (Bengio et al., NeurIPS 2021).
+- Trajectory-balance training for GFlowNets (Malkin et al., 2022).
+- GFlowNet DAG pruning / backward trajectory guidance (Chen et al., 2025).
+- NOTEARS continuous DAG structure learning (Zheng et al., NeurIPS 2018).
+
+The strongest implication is that the candidate invention cannot rely on
+"GFlowNet + pruning" or "causal DAG + generation" alone. The narrower research
+target remains the financial prefix-feasibility certificate loop, including
+forward reachable intervals, backward necessary intervals, pre-expensive-SCM
+action masking, and measured compute/recall effects.
+
+See `docs/non-patent-literature-landscape.md` for the full cross-check.
