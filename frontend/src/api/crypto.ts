@@ -115,3 +115,17 @@ export function scanAllCryptoPairs(request: {
     return response.json();
   });
 }
+
+export function getCryptoTickers(exchange: string, quote = "USDT", search = "", limit = 500, offset = 0) {
+  const params = new URLSearchParams({
+    exchange,
+    quote,
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (search) params.set("search", search);
+  return fetch(API_BASE_URL + "/api/v1/crypto/tickers?" + params.toString()).then(async (response) => {
+    if (!response.ok) throw new Error("Crypto ticker error " + response.status + ": " + await response.text());
+    return response.json();
+  });
+}
