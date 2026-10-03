@@ -341,3 +341,46 @@ def test_empirical_calibration_supports_lagged_candidates_without_reverse_alignm
     item = result["calibrations"][0]
     assert item["empirical_standardized_coefficient"] > 0
     assert item["diagnostic_status"] == "SIGNAL_ALIGNS_WITH_CONSENSUS"
+
+
+
+def test_discovery_api_rejects_oversized_row_count():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    samples = np.ones((5001, 2)).tolist()
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/causal-risk/discover/notears",
+        json={"samples": samples},
+    )
+    assert response.status_code == 422
+    assert "maximum of 5000 rows" in response.json()["detail"]
+
+
+def test_discovery_api_rejects_oversized_variable_count():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    samples = np.ones((20, 101)).tolist()
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/causal-risk/discover/dynamic",
+        json={"samples": samples},
+    )
+    assert response.status_code == 422
+    assert "maximum of 100 variables" in response.json()["detail"]
+
+
+def test_discovery_api_rejects_ragged_sample_matrix():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    samples = [[1.0, 2.0], [3.0]]
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/causal-risk/discover/graph",
+        json={"samples": samples},
+    )
+    assert response.status_code == 422
+    assert "rectangular matrix" in response.json()["detail"]
