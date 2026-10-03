@@ -130,3 +130,19 @@ export function searchMarketInstruments(query: string, count = 10) {
     `/api/v1/market/search?query=${encodeURIComponent(query)}&count=${count}`,
   );
 }
+
+
+export function getMarketAnalytics(
+  instrument: string,
+  start: string,
+  end: string,
+) {
+  return getJson<{
+    instrument: MarketInstrument;
+    range: { start: string; end: string };
+    analytics: Record<string, number | null>;
+    data_points: number;
+  }>(
+    `/api/v1/market/analytics?instrument=${encodeURIComponent(instrument)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+  );
+}
