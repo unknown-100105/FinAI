@@ -229,11 +229,32 @@ class FinAIHybridEngine:
             # Common product concepts use structured, curated knowledge first.
             # This avoids slow generative routing for straightforward definitions
             # and makes the authority chain explicit.
-            from knowledge.financial_catalog import build_answer
+            from knowledge.financial_catalog import build_answer as build_catalog_answer
+            from knowledge.finance_encyclopedia import build_answer as build_encyclopedia_answer
 
-            knowledge_result = build_answer(user_text)
+            catalog_result = build_catalog_answer(user_text)
+            encyclopedia_result = build_encyclopedia_answer(user_text)
 
-            if knowledge_result["found"]:
+            # Prefer the focused product catalog for product-specific questions;
+            # otherwise use the broader finance/crypto encyclopedia.
+            if catalog_result["found"]:
+                knowledge_result = {
+                    "answer": catalog_result["answer"],
+                    "matches": catalog_result["matches"],
+                    "source": "structured_financial_catalog",
+                    "requires_current_data": False,
+                }
+            elif encyclopedia_result["found"]:
+                knowledge_result = {
+                    "answer": encyclopedia_result["answer"],
+                    "matches": encyclopedia_result["matches"],
+                    "source": "finance_encyclopedia",
+                    "requires_current_data": encyclopedia_result["requires_current_data"],
+                }
+            else:
+                knowledge_result = None
+
+            if knowledge_result:
                 final_response = knowledge_result["answer"]
 
                 return {
@@ -250,9 +271,10 @@ class FinAIHybridEngine:
                         "tool": plan.tool,
                     },
                     "knowledge": {
-                        "source": "structured_financial_catalog",
+                        "source": knowledge_result["source"],
                         "matches": knowledge_result["matches"],
                         "answer": knowledge_result["answer"],
+                        "requires_current_data": knowledge_result["requires_current_data"],
                     },
                     "tool": None,
                     "message": final_response,
