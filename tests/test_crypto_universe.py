@@ -12,7 +12,7 @@ def test_scan_all_pairs_ranks_by_net_return(monkeypatch):
         universe,
         "all_exchange_tickers",
         lambda exchange, quote=None: [
-            {"symbol": "BTC/USDT", "bid": 99 if exchange == "buy" else 100, "ask": 100 if exchange == "buy" else 101,
+            {"symbol": "BTC/USDT", "bid": 99 if exchange == "buy" else 101, "ask": 100 if exchange == "buy" else 102,
              "last": 100, "bid_volume": 10, "ask_volume": 10, "base_volume": 0, "quote_volume": 0, "timestamp": None}
         ],
     )
