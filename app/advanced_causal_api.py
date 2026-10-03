@@ -413,6 +413,8 @@ def research_status():
             "microstructure_features": "implemented",
             "text_graph_alignment": "implemented",
             "research_counterfactual": "explicit-approval-only",
+            "causal_feasibility_pruning": "conservative_prefix_certificate",
+            "constrained_gflownet": "action_masked_research_prototype",
         },
         "production_boundary": (
             "Research components remain isolated from production investment "
@@ -718,9 +720,23 @@ def constrained_gfnets(request: ConstrainedGFlowNetGenerateRequest):
                 raise ValueError("empirical_center and empirical_scale must be supplied together")
             if len(request.empirical_center) != len(request.factor_ids) or len(request.empirical_scale) != len(request.factor_ids):
                 raise ValueError("empirical center/scale must match factor_ids")
+            missing_center = [k for k in request.factor_ids if k not in request.empirical_center]
+            missing_scale = [k for k in request.factor_ids if k not in request.empirical_scale]
+            if missing_center or missing_scale:
+                raise ValueError(
+                    f"empirical center/scale missing factor ids: {sorted(set(missing_center + missing_scale))}"
+                )
+            factor_index = {factor: index for index, factor in enumerate(request.factor_ids)}
+            edge_matrix = np.zeros((len(request.factor_ids), len(request.factor_ids)), dtype=float)
+            for edge in request.edges:
+                source = str(edge.get("source", ""))
+                target = str(edge.get("target", ""))
+                if source in factor_index and target in factor_index and int(edge.get("lag", 0)) == 0:
+                    edge_matrix[factor_index[source], factor_index[target]] = float(edge.get("weight", 0.0))
             reward = CausalStressReward(
                 tuple(request.empirical_center[k] for k in request.factor_ids),
                 tuple(request.empirical_scale[k] for k in request.factor_ids),
+                edge_matrix=tuple(tuple(float(v) for v in row) for row in edge_matrix),
             )
             objective = "causal_empirical_tail_reward"
         train_result = generator.train(
