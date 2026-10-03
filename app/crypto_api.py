@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from crypto.arbitrage import estimate_arbitrage
 from crypto.scanner import scan_cross_exchange_arbitrage
-from crypto.universe import all_exchange_tickers, market_universe, scan_all_pairs, supported_connectors, registered_vda_services
+from crypto.universe import all_exchange_tickers, exchange_ohlcv, market_universe, scan_all_pairs, supported_connectors, registered_vda_services
 from crypto.mining import btc_mining_snapshot
 
 
@@ -171,3 +171,30 @@ def mining_btc(request: MiningRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Live mining data unavailable: {exc}") from exc
+
+
+@router.get("/ohlcv")
+def crypto_ohlcv(
+    exchange: str = "binance",
+    symbol: str = "BTC/USDT",
+    timeframe: str = "15m",
+    limit: int = 200,
+) -> Dict[str, Any]:
+    try:
+        candles = exchange_ohlcv(
+            exchange_id=exchange,
+            symbol=symbol,
+            timeframe=timeframe,
+            limit=limit,
+        )
+        return {
+            "exchange": exchange,
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "count": len(candles),
+            "candles": candles,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Crypto OHLCV unavailable: {exc}") from exc
