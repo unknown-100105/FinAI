@@ -534,7 +534,7 @@ function App() {
     investments: <InvestmentHub />,
     portfolio: <WealthWorkspace />,
     news: <NewsHub />,
-    forms: <TaxFormsHub />,
+    forms: <ResourcesHub defaultCategory="Tax & Forms" />,
     arbitrage: <CryptoArbitrageHub />,
     knowledge: <KnowledgeHub />,
     analyst: <MarketAnalystHub />,
