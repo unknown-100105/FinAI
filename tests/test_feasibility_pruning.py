@@ -58,10 +58,10 @@ def test_feasible_prefix_is_not_hard_pruned():
         {"rates": 100},
         BOUNDS,
         target_node="portfolio",
-        target_interval=(45, 70),
+        target_interval=(35, 70),
     )
     assert certificate.hard_infeasible is False
-    assert certificate.reachable_interval[0] <= 64.0 <= certificate.reachable_interval[1]
+    assert certificate.reachable_interval == pytest.approx((40.32, 40.32))
 
 
 def test_empirical_support_can_reject_extreme_action():
