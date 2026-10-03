@@ -320,3 +320,24 @@ def test_empirical_calibration_rejects_unknown_edge_nodes():
         assert "unknown node" in str(exc)
     else:
         raise AssertionError("expected unknown edge node to fail")
+
+
+def test_empirical_calibration_supports_lagged_candidates_without_reverse_alignment():
+    from causal_risk.calibration import calibrate_consensus_edges
+
+    rng = np.random.default_rng(789)
+    source = rng.normal(size=100)
+    target = np.zeros(100)
+    target[1:] = 0.7 * source[:-1] + rng.normal(scale=0.2, size=99)
+    samples = np.column_stack([source, target])
+    result = calibrate_consensus_edges(
+        samples,
+        ["rates", "credit"],
+        [{"source": "rates", "target": "credit", "weight": 0.7, "lag": 1}],
+        bootstrap_draws=20,
+        block_size=5,
+        seed=3,
+    )
+    item = result["calibrations"][0]
+    assert item["empirical_standardized_coefficient"] > 0
+    assert item["diagnostic_status"] == "SIGNAL_ALIGNS_WITH_CONSENSUS"

@@ -11,6 +11,7 @@ from causal_risk.temporal_gnn import architecture_metadata
 from causal_risk.stability import assess_discovery_stability
 from causal_risk.consensus import build_consensus_graph
 from causal_risk.research_graph import validate_research_graph
+from causal_risk.calibration import calibrate_consensus_edges
 from causal_risk.market_dataset import DEFAULT_CAUSAL_PROXIES, build_market_return_dataset
 from app.market_api import _get_service
 from market_data.resolver import InstrumentResolver

@@ -120,11 +120,12 @@ def calibrate_consensus_edges(
         target_idx = labels.index(target)
 
         def aligned(matrix: np.ndarray):
+            predictor_indices = [i for i in range(matrix.shape[1]) if i != target_idx]
             if lag <= 0:
-                return matrix[:, [i for i in range(matrix.shape[1]) if i != target_idx]], matrix[:, target_idx], [labels[i] for i in range(matrix.shape[1]) if i != target_idx]
+                return matrix[:, predictor_indices], matrix[:, target_idx], [labels[i] for i in predictor_indices]
             if lag >= len(matrix):
-                raise ValueError(f"lag {lag} is too large for the training window")
-            return matrix[lag:][:, [i for i in range(matrix.shape[1]) if i != target_idx]], matrix[:-lag, target_idx], [labels[i] for i in range(matrix.shape[1]) if i != target_idx]
+                raise ValueError(f"lag {lag} is too large for the calibration window")
+            return matrix[lag:, predictor_indices], matrix[lag:, target_idx], [labels[i] for i in predictor_indices]
 
         source_position = [i for i, name in enumerate(labels) if name != target]
         train_x, train_y, predictor_labels = aligned(train)
