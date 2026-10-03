@@ -24,12 +24,12 @@ class FeasibilityCertificate:
     target_interval: tuple[float, float]
     reachable_interval: tuple[float, float]
     hard_infeasible: bool
-    support_infeasible: bool = False
     margin: float
     empirical_support_ok: bool
     fixed_violations: tuple[str, ...]
     reason: str
     intervened_nodes: tuple[str, ...] = ()
+    support_infeasible: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         return {
