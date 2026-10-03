@@ -24,7 +24,6 @@ import {
   BookMarked,
   Sparkles,
   WalletCards,
-  Globe2,
 } from "lucide-react";
 import {
   authenticateSession,
@@ -45,6 +44,8 @@ import { StudyHub } from "./components/StudyHub";
 import { ResourcesHub } from "./components/ResourcesHub";
 import { MarketAnalystHub } from "./components/MarketAnalystHub";
 import { GlobalInvestmentHub } from "./components/GlobalInvestmentHub";
+import { XAIExplorerHub } from "./components/XAIExplorerHub";
+import { PlatformGuide } from "./components/PlatformGuide";
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
@@ -71,6 +72,7 @@ const navigation = [
   { id: "study", label: "Study Centre", icon: GraduationCap },
   { id: "token", label: "Token Lab", icon: Code2 },
   { id: "diary", label: "Investment Diary", icon: BookMarked },
+  { id: "xai", label: "Explainability", icon: ShieldCheck },
 ] as const;
 
 type Section = (typeof navigation)[number]["id"];
@@ -158,7 +160,7 @@ function traceValue(value: string) {
   return value.replaceAll("_", " ");
 }
 
-function AssistantWorkspace() {
+function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => void }) {
   const [language, setLanguage] = useState("English");
   const [persona, setPersona] = useState("neutral");
   const [models, setModels] = useState<FinAIModel[]>([]);
@@ -508,6 +510,8 @@ function AssistantWorkspace() {
           </div>
         </section>
 
+        <PlatformGuide onNavigate={(section) => onNavigate(section as Section)} />
+
         <section className="glass-panel side-card">
           <div className="side-title"><Languages size={15} /> Preferences</div>
           <label>Language<select value={language} onChange={(event) => setLanguage(event.target.value)} disabled={loading}>{languages.map((item) => <option key={item}>{item}</option>)}</select></label>
@@ -550,7 +554,7 @@ function App() {
 
   const content = {
     overview: <PlatformHome onNavigate={(value) => setSection(value as Section)} />,
-    assistant: <AssistantWorkspace />,
+    assistant: <AssistantWorkspace onNavigate={setSection} />,
     markets: <MarketTerminal />,
     investments: <InvestmentHub />,
     portfolio: <WealthWorkspace />,
@@ -564,6 +568,7 @@ function App() {
     study: <StudyHub />,
     token: <TokenGeneratorHub />,
     diary: <InvestmentDiaryHub />,
+    xai: <XAIExplorerHub />,
   }[section];
 
   return (
