@@ -91,3 +91,87 @@ def tail_scenarios(request: TailScenarioRequest):
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class DiscoveryGraphRequest(BaseModel):
+    samples: List[List[float]]
+    node_ids: List[str] | None = None
+    lambda1: float = Field(default=0.02, ge=0, le=2)
+    threshold: float = Field(default=0.10, ge=0, le=2)
+    lags: int = Field(default=1, ge=1, le=8)
+    alpha: float = Field(default=1.0, gt=0, le=100)
+
+
+@router.post("/discover/graph")
+def discover_graph(request: DiscoveryGraphRequest):
+    try:
+        x = np.asarray(request.samples, dtype=float)
+        if x.ndim != 2 or x.shape[1] < 2:
+            raise ValueError("samples must contain at least 2 variables")
+        if request.node_ids is not None:
+            if len(request.node_ids) != x.shape[1]:
+                raise ValueError("node_ids length must match the sample variable count")
+            if len(set(request.node_ids)) != len(request.node_ids):
+                raise ValueError("node_ids must be unique")
+            node_ids = [str(node_id).strip() for node_id in request.node_ids]
+            if any(not node_id for node_id in node_ids):
+                raise ValueError("node_ids must not be empty")
+        else:
+            node_ids = [f"var_{index}" for index in range(x.shape[1])]
+
+        note = notears_linear(
+            x,
+            lambda1=request.lambda1,
+            threshold=request.threshold,
+        )
+        dynamic = discover_lagged_graph(
+            x,
+            lags=request.lags,
+            alpha=request.alpha,
+            threshold=request.threshold,
+        )
+
+        contemporaneous_edges = []
+        for src, row in enumerate(note["adjacency"]):
+            for dst, weight in enumerate(row):
+                numeric_weight = float(weight)
+                if numeric_weight:
+                    contemporaneous_edges.append({
+                        "source": node_ids[src],
+                        "target": node_ids[dst],
+                        "weight": round(numeric_weight, 6),
+                        "lag": 0,
+                        "modality": "NOTEARS-linear",
+                    })
+
+        lagged_edges = [
+            {
+                **edge,
+                "source": node_ids[edge["source"]],
+                "target": node_ids[edge["target"]],
+                "modality": "DYNOTEARS-style-temporal-ridge",
+            }
+            for edge in dynamic["edges"]
+        ]
+
+        return {
+            "status": "research_graph_ready",
+            "n_samples": int(x.shape[0]),
+            "n_variables": int(x.shape[1]),
+            "node_ids": node_ids,
+            "contemporaneous": {
+                "method": note["method"],
+                "status": note["status"],
+                "acyclicity": note["acyclicity"],
+                "edges": contemporaneous_edges,
+            },
+            "temporal": {
+                "method": dynamic["method"],
+                "status": dynamic["status"],
+                "lags": dynamic["lags"],
+                "edges": lagged_edges,
+            },
+            "semantics": "Research discovery outputs combine a contemporaneous NOTEARS baseline with lagged temporal screening; they are not validated causal identification.",
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

@@ -69,3 +69,48 @@ def test_tail_sampler_is_reproducible_and_gfn_ready():
     second = generate_tail_scenarios({"rates": 75, "supply": 60}, draws=32, seed=11)
     assert first == second
     assert first["gfnets_status"] == "interface_ready_not_trained"
+
+
+def test_combined_graph_discovery_returns_labeled_structural_and_temporal_edges():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    rng = np.random.default_rng(123)
+    x1 = rng.normal(size=80)
+    x2 = 0.7 * x1 + rng.normal(scale=0.25, size=80)
+    x3 = rng.normal(size=80)
+    samples = np.column_stack([x1, x2, x3])
+    samples[1:, 2] += 0.6 * samples[:-1, 0]
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/causal-risk/discover/graph",
+        json={
+            "samples": samples.tolist(),
+            "node_ids": ["rates", "credit", "equity"],
+            "lags": 1,
+            "threshold": 0.05,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "research_graph_ready"
+    assert payload["node_ids"] == ["rates", "credit", "equity"]
+    assert payload["contemporaneous"]["status"] == "research_implemented"
+    assert payload["temporal"]["status"] == "research_baseline"
+    assert all(edge["source"] in payload["node_ids"] for edge in payload["temporal"]["edges"])
+    assert all(edge["modality"] == "DYNOTEARS-style-temporal-ridge" for edge in payload["temporal"]["edges"])
+
+
+def test_combined_graph_discovery_rejects_node_id_length_mismatch():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    samples = np.ones((20, 3)).tolist()
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/causal-risk/discover/graph",
+        json={"samples": samples, "node_ids": ["rates", "credit"]},
+    )
+    assert response.status_code == 422
+    assert "node_ids length" in response.json()["detail"]
