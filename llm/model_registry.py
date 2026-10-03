@@ -12,6 +12,22 @@ class ModelSpec:
 
 
 MODEL_REGISTRY = {
+    "openai-astra": ModelSpec(
+        model_id="openai-astra",
+        model_name="gpt-6-astra",
+        role="openai_deep_reasoning",
+        capabilities=("response_generation","financial_qa","financial_reasoning","financial_explanation","tool_assisted_qa"),
+        enabled=False,
+    ),
+
+    "openai-sol": ModelSpec(
+        model_id="openai-sol",
+        model_name="gpt-6.1-sol",
+        role="openai_balanced_reasoning",
+        capabilities=("response_generation","financial_qa","financial_reasoning","financial_explanation","tool_assisted_qa"),
+        enabled=False,
+    ),
+
     "openai-luna": ModelSpec(
         model_id="openai-luna",
         model_name="gpt-6-luna",
@@ -25,6 +41,14 @@ MODEL_REGISTRY = {
             "table_reasoning",
             "tool_assisted_qa",
         ),
+        enabled=False,
+    ),
+
+    "gemini-pro-cloud": ModelSpec(
+        model_id="gemini-pro-cloud",
+        model_name="gemini-3.1-pro-preview",
+        role="gemini_deep_reasoning",
+        capabilities=("response_generation","financial_qa","financial_reasoning","financial_explanation","tool_assisted_qa"),
         enabled=False,
     ),
 
@@ -164,7 +188,7 @@ def enabled_models():
         for spec in MODEL_REGISTRY.values()
         if spec.enabled
         or (
-            spec.model_id == "openai-luna"
+            spec.model_id.startswith("openai-")
             and bool(os.getenv("OPENAI_API_KEY"))
         )
         or (
