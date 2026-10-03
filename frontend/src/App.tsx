@@ -29,7 +29,7 @@ import { WealthWorkspace } from "./components/WealthWorkspace";
 import { PlatformHome } from "./components/PlatformHome";
 import { InvestmentHub } from "./components/InvestmentHub";
 import { NewsHub } from "./components/NewsHub";
-import { FormsHub } from "./components/FormsHub";
+import { TaxFormsHub } from "./components/TaxFormsHub";
 import { CryptoArbitrageHub } from "./components/CryptoArbitrageHub";
 import "./index.css";
 
@@ -48,7 +48,7 @@ const navigation = [
   { id: "investments", label: "Investments", icon: PiggyBank },
   { id: "portfolio", label: "Portfolio", icon: WalletCards },
   { id: "news", label: "News", icon: Newspaper },
-  { id: "forms", label: "Forms", icon: FileText },
+  { id: "forms", label: "Tax & Forms", icon: FileText },
   { id: "arbitrage", label: "Crypto Arbitrage", icon: ArrowRightLeft },
 ] as const;
 
@@ -500,7 +500,7 @@ function App() {
     investments: <InvestmentHub />,
     portfolio: <WealthWorkspace />,
     news: <NewsHub />,
-    forms: <FormsHub />,
+    forms: <TaxFormsHub />,
     arbitrage: <CryptoArbitrageHub />,
   }[section];
 
