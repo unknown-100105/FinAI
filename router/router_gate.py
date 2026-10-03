@@ -139,8 +139,50 @@ FINANCIAL_PRODUCT_TERMS = (
 
 FINANCIAL_PRODUCT_QUESTION_TERMS = (
     "what is", "what are", "explain", "meaning", "how does",
-    "how do", "difference", "compare", "guide", "tell me about",
+    "how do", "how", "works", "work", "mechanism", "difference",
+    "compare", "guide", "tell me about", "history", "why",
 )
+
+
+FINANCE_MECHANICS_TERMS = (
+    "money market", "market structure", "stock market", "bond market",
+    "banking", "central bank", "monetary policy", "repo", "treasury bill",
+    "derivative", "derivatives", "futures", "options", "order book",
+    "price discovery", "upi", "rtgs", "neft", "payments", "settlement",
+    "cryptocurrency", "bitcoin", "blockchain", "proof of work",
+    "proof of stake", "stablecoin", "defi", "wallet", "custody",
+    "arbitrage", "capital gains", "tds", "tax",
+)
+
+
+def _is_finance_mechanics_query(text: str) -> bool:
+    normalized = " ".join(str(text).strip().lower().split())
+    if not normalized:
+        return False
+
+    has_topic = any(term in normalized for term in FINANCE_MECHANICS_TERMS)
+    has_mechanics_word = any(
+        term in normalized
+        for term in (
+            "how", "works", "work", "mechanism", "history",
+            "why", "process", "explain",
+        )
+    )
+    has_live_term = any(
+        term in normalized
+        for term in (
+            "latest", "current", "live", "today", "quote",
+            "price", "chart", "market data",
+        )
+    )
+    high_risk_action = any(
+        term in normalized
+        for term in (
+            "lost card", "stolen card", "unauthorized", "fraud",
+            "dispute", "block my card", "transaction failed",
+        )
+    )
+    return has_topic and has_mechanics_word and not has_live_term and not high_risk_action
 
 
 FINANCIAL_CATEGORY_CLARIFICATIONS = {
@@ -321,6 +363,20 @@ class FinAIRouterGate:
                 "risk_level": "low",
                 "requires_clarification": False,
                 "reason": "financial_guidance_rule",
+                "confidence_source": "deterministic_rule",
+                "top_k": [],
+            }
+
+        if _is_finance_mechanics_query(text):
+            return {
+                "intent": "FINANCIAL_GUIDANCE",
+                "raw_prediction": None,
+                "confidence": 1.0,
+                "margin": 1.0,
+                "decision": "ROUTE",
+                "risk_level": "low",
+                "requires_clarification": False,
+                "reason": "finance_mechanics_rule",
                 "confidence_source": "deterministic_rule",
                 "top_k": [],
             }
