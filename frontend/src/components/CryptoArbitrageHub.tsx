@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRightLeft, Calculator, RefreshCw, Search, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ArrowRightLeft, Calculator, RefreshCw, Search, TriangleAlert } from "lucide-react";
 import {
   estimateCryptoArbitrage,
   getCryptoConnectors,
   getCryptoTickers,
   scanAllCryptoPairs,
+  getBitcoinMiningSnapshot,
   type ArbitrageEstimateRequest,
 } from "../api/crypto";
 import { getMarketHistory, getMarketQuote, type MarketBar, type MarketQuote } from "../api/market";
