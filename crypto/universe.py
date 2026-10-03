@@ -381,14 +381,55 @@ def scan_all_pairs(
             continue
 
     candidates.sort(key=lambda item: float(item.get("net_return_percent", 0.0)), reverse=True)
-    return {
-        "status": "LIVE_SNAPSHOT",
+
+    # Validate only the leading candidates against live order books. Scanning
+    # every order book would create substantial API load and rate-limit risk.
+    from .scanner import fetch_orderbook_snapshot
+
+    validated = []
+    for candidate in candidates[: min(len(candidates), 10)]:
+        try:
+            buy_book = fetch_orderbook_snapshot(candidate["buy_venue"], candidate["asset"])
+            sell_book = fetch_orderbook_snapshot(candidate["sell_venue"], candidate["asset"])
+            validated_result = estimate_arbitrage(
+                asset=candidate["asset"],
+                buy_venue=candidate["buy_venue"],
+                sell_venue=candidate["sell_venue"],
+                capital_quote=capital_quote,
+                buy_price=buy_book["best_ask"],
+                sell_price=sell_book["best_bid"],
+                buy_fee_percent=buy_fee_percent,
+                sell_fee_percent=sell_fee_percent,
+                buy_slippage_percent=buy_slippage_percent,
+                sell_slippage_percent=sell_slippage_percent,
+                transfer_cost_quote=transfer_cost_quote,
+                fx_cost_percent=0.0,
+                tax_rate_percent=tax_rate_percent,
+                max_quantity=min(buy_book["best_ask_amount"], sell_book["best_bid_amount"]),
+            )
+            validated_result["snapshot_at"] = datetime.now(timezone.utc).isoformat()
+            validated_result["execution_validated"] = True
+            validated_result["validation_type"] = "top-of-book"
+            validated.append(validated_result)
+        except Exception as exc:
+            candidate["execution_validated"] = False
+            candidate["validation_type"] = "ticker-only"
+            candidate["validation_error"] = str(exc)
+            validated.append(candidate)
+
+    candidates = sorted(
+        validated + candidates[10:],
+        key=lambda item: float(item.get("net_return_percent", 0.0)),
+        reverse=True,
+    )
+    return {        "status": "LIVE_SNAPSHOT",
         "quote_currency": quote,
         "exchanges_requested": list(dict.fromkeys(str(item).strip().lower() for item in exchanges if str(item).strip())),
         "exchanges_scanned": sorted(snapshots),
         "pair_count": len(per_symbol),
         "opportunity_count": len(candidates),
         "opportunities": candidates[: max(1, min(int(top_n), 100))],
+        "validation": "Top 10 ticker candidates attempt live top-of-book validation; remaining rows are ticker snapshots.",
         "errors": errors,
         "regulatory_source": REGULATORY_SOURCE_URL,
         "regulatory_snapshot_date": "2026-03-09",
