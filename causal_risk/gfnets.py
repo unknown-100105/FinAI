@@ -63,7 +63,9 @@ class GFlowNetTailGenerator:
 
     def _reward(self, trajectory: torch.Tensor) -> torch.Tensor:
         magnitude = torch.linalg.vector_norm(trajectory, dim=1)
-        diversity = torch.std(trajectory, dim=1)
+        # Use population standard deviation so a one-factor trajectory has a
+        # well-defined diversity score instead of NaN from an unbiased estimate.
+        diversity = torch.std(trajectory, dim=1, unbiased=False)
         return torch.exp(1.5 * magnitude + 0.25 * diversity).clamp_min(1e-8)
 
     def train(
