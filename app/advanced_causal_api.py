@@ -11,6 +11,7 @@ from causal_risk.gfnets import GFlowConfig, GFlowNetTailGenerator
 from causal_risk.multimodal_graph import GraphEdge, GraphNode, MultimodalGraph
 from causal_risk.regime_benchmark import assign_regimes, evaluate_predictions
 from causal_risk.risk_calibration import calibrate_risk_target
+from causal_risk.research_counterfactual import run_research_counterfactual
 
 router = APIRouter(prefix="/api/v1/causal-risk", tags=["causal-risk-research"])
 
@@ -214,3 +215,25 @@ def research_status():
             "decision logic unless explicitly validated and approved."
         ),
     }
+
+
+class ResearchCounterfactualRequest(BaseModel):
+    shock: Dict[str, float]
+    allocation: Dict[str, float]
+    nodes: List[str]
+    edges: List[Dict[str, Any]]
+    approved: bool = False
+
+
+@router.post("/research-counterfactual")
+def research_counterfactual(request: ResearchCounterfactualRequest):
+    try:
+        return run_research_counterfactual(
+            request.shock,
+            request.allocation,
+            request.nodes,
+            request.edges,
+            approved=request.approved,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
