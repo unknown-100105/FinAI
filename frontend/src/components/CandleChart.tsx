@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent, WheelEvent } from "react";
+import { useMemo, useState, type WheelEvent } from "react";
+import { Minus, Plus, RotateCcw } from "lucide-react";
 import type { MarketBar } from "../api/market";
 import "./CandleChart.css";
 
@@ -8,138 +8,224 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("en-IN", { maximumFractionDigits: Math.abs(value) >= 1000 ? 2 : Math.abs(value) >= 1 ? 4 : 8 }).format(value);
 }
 
-type CandleChartProps = { bars: MarketBar[]; height?: number; maxBars?: number; selectedIndex?: number; onSelect?: (index: number) => void; showVolume?: boolean };
+type CandleChartProps = {
+  bars: MarketBar[];
+  height?: number;
+  maxBars?: number;
+  selectedIndex?: number;
+  onSelect?: (index: number) => void;
+  showVolume?: boolean;
+};
 
-function sampleBars(bars: MarketBar[], start: number, end: number, maxBars: number) {
-  const source = bars.slice(start, end);
-  if (source.length <= maxBars) return source.map((bar, i) => ({ bar, originalIndex: start + i }));
-  const step = source.length / maxBars;
-  return Array.from({ length: maxBars }, (_, i) => {
-    const offset = Math.min(source.length - 1, Math.floor(i * step));
-    return { bar: source[offset], originalIndex: start + offset };
-  });
-}
-function price(value: number) {
-  return Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: 4 }) : "—";
-}
+export function CandleChart({
+  bars,
+  height = 360,
+  maxBars = 420,
+  selectedIndex,
+  onSelect,
+  showVolume = true,
+}: CandleChartProps) {
+  const [visibleCount, setVisibleCount] = useState(Math.min(maxBars, Math.max(30, Math.min(120, bars.length || 30))));
+  const [endIndex, setEndIndex] = useState(Math.max(0, bars.length - 1));
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [dragStart, setDragStart] = useState<number | null>(null);
 
-export function CandleChart({ bars, height = 360, maxBars = 520, selectedIndex, onSelect, showVolume = true }: CandleChartProps) {
-  const shellRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ x: number; start: number; end: number } | null>(null);
-  const [window, setWindow] = useState({ start: 0, end: bars.length });
-  const [hover, setHover] = useState<number | null>(null);
-
-  const effective = useMemo(() => {
-    const start = Math.max(0, Math.min(window.start, Math.max(0, bars.length - 2)));
-    const end = Math.max(start + 1, Math.min(window.end, bars.length));
-    return sampleBars(bars, start, end, maxBars);
-  }, [bars, window, maxBars]);
+  const view = useMemo(() => {
+    if (!bars.length) return [];
+    const count = Math.min(visibleCount, bars.length);
+    const end = Math.min(Math.max(endIndex, count - 1), bars.length - 1);
+    const start = Math.max(0, end - count + 1);
+    return bars.slice(start, end + 1).map((bar, index) => ({ bar, originalIndex: start + index }));
+  }, [bars, visibleCount, endIndex]);
 
   const geometry = useMemo(() => {
-    if (!effective.length) return { items: [], width: 900, volumeMax: 1 };
-    const highs = effective.map(({ bar }) => Number(bar.high));
-    const lows = effective.map(({ bar }) => Number(bar.low));
-    const max = Math.max(...highs);
-    const min = Math.min(...lows);
-    const spread = max - min || Math.max(1, max * 0.01);
-    const width = Math.max(900, effective.length * 8);
-    const chartHeight = showVolume ? 250 : 310;
-    const slot = width / effective.length;
-    const bodyWidth = Math.max(2, Math.min(9, slot * 0.66));
-    const items = effective.map(({ bar, originalIndex }, i) => {
-      const x = i * slot + slot / 2;
-      const y = (v: number) => 12 + (1 - (v - min) / spread) * (chartHeight - 24);
-      return { x, high: y(bar.high), low: y(bar.low), open: y(bar.open), close: y(bar.close), bodyWidth, originalIndex, up: bar.close >= bar.open };
-    });
-    const volumes = effective.map(({ bar }) => Math.max(0, Number(bar.volume ?? 0)));
-    return { items, width, volumeMax: Math.max(...volumes, 1) };
-  }, [effective, showVolume]);
+    if (!view.length) {
+      return { items: [], chartWidth: 720, volumeMax: 1 };
+    }
 
-  const zoom = (factor: number, anchor = 0.5) => {
-    if (bars.length < 2) return;
-    setWindow((current) => {
-      const size = current.end - current.start;
-      const nextSize = Math.max(20, Math.min(bars.length, Math.round(size * factor)));
-      const center = current.start + size * anchor;
-      let start = Math.round(center - nextSize * anchor);
-      start = Math.max(0, Math.min(start, bars.length - nextSize));
-      return { start, end: start + nextSize };
+    const highs = view.map(({ bar }) => Number(bar.high));
+    const lows = view.map(({ bar }) => Number(bar.low));
+    const maxPrice = Math.max(...highs);
+    const minPrice = Math.min(...lows);
+    const spread = maxPrice - minPrice || 1;
+    const chartHeight = showVolume ? 245 : 310;
+    const chartWidth = Math.max(720, view.length * 6);
+    const slot = chartWidth / view.length;
+    const bodyWidth = Math.max(2.1, Math.min(8, slot * 0.72));
+
+    const items = view.map(({ bar, originalIndex }, index) => {
+      const x = index * slot + slot / 2;
+      const y = (value: number) =>
+        14 + (1 - (value - minPrice) / spread) * (chartHeight - 28);
+
+      return {
+        x,
+        high: y(bar.high),
+        low: y(bar.low),
+        open: y(bar.open),
+        close: y(bar.close),
+        bodyWidth,
+        originalIndex,
+        up: bar.close >= bar.open,
+      };
+    });
+
+    const volumeValues = view.map(({ bar }) => Math.max(0, Number(bar.volume ?? 0)));
+
+    return {
+      items,
+      chartWidth,
+      volumeMax: Math.max(...volumeValues, 1),
+    };
+  }, [view, showVolume]);
+
+  const zoom = (factor: number) => {
+    setVisibleCount((current) => {
+      const next = Math.round(current * factor);
+      return Math.min(Math.max(12, next), Math.max(12, Math.min(maxBars, bars.length)));
     });
   };
-  const reset = () => setWindow({ start: 0, end: bars.length });
+
+  const reset = () => {
+    setVisibleCount(Math.min(maxBars, Math.max(30, Math.min(120, bars.length))));
+    setEndIndex(Math.max(0, bars.length - 1));
+  };
+
   const onWheel = (event: WheelEvent<HTMLDivElement>) => {
-    if (bars.length < 2) return;
     event.preventDefault();
-    const rect = event.currentTarget.getBoundingClientRect();
-    const anchor = rect.width ? Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) : 0.5;
-    zoom(event.deltaY > 0 ? 1.18 : 0.84, anchor);
+    zoom(event.deltaY < 0 ? 0.72 : 1.4);
   };
-  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    dragRef.current = { x: event.clientX, start: window.start, end: window.end };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current || !bars.length) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const pixelsPerBar = rect.width / Math.max(1, dragRef.current.end - dragRef.current.start);
-    const delta = pixelsPerBar ? Math.round((dragRef.current.x - event.clientX) / pixelsPerBar) : 0;
-    const size = dragRef.current.end - dragRef.current.start;
-    let start = dragRef.current.start + delta;
-    start = Math.max(0, Math.min(start, bars.length - size));
-    setWindow({ start, end: start + size });
-  };
-  const toggleFullscreen = () => {
-    const element = shellRef.current;
-    if (!element) return;
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void element.requestFullscreen?.();
-  };
-  const hovered = hover === null ? null : bars[hover];
 
-  if (!bars.length) return <div className="candle-empty">No OHLC candles returned for this interval/range.</div>;
+  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragStart(event.clientX);
+  };
+
+  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragStart === null || !view.length) return;
+    const pxPerBar = Math.max(3, event.currentTarget.clientWidth / view.length);
+    const deltaBars = Math.round((dragStart - event.clientX) / pxPerBar);
+    setEndIndex(Math.max(visibleCount - 1, Math.min(bars.length - 1, endIndex + deltaBars)));
+  };
+
+  const onPointerUp = () => setDragStart(null);
+
+  if (!bars.length) {
+    return <div className="candle-empty">No OHLC candles returned for this interval/range.</div>;
+  }
 
   return (
-    <div ref={shellRef} className="candle-chart-shell">
+    <div className="candle-chart" style={{ height }} onWheel={onWheel}>
       <div className="candle-toolbar">
         <div className="candle-toolbar-group">
-          <button type="button" onClick={() => zoom(0.7)} aria-label="Zoom in">+</button>
-          <button type="button" onClick={() => zoom(1.45)} aria-label="Zoom out">−</button>
-          <button type="button" onClick={reset}>Reset</button>
-          <button type="button" onClick={toggleFullscreen}>Full screen</button>
+          <button type="button" onClick={() => zoom(1.4)} title="Zoom out"><Minus size={12}/></button>
+          <button type="button" onClick={() => zoom(0.72)} title="Zoom in"><Plus size={12}/></button>
+          <button type="button" onClick={reset} title="Reset view"><RotateCcw size={12}/></button>
         </div>
-        <div className="candle-toolbar-status">
-          {hovered ? [new Date(hovered.timestamp).toLocaleString(), "O " + price(hovered.open), "H " + price(hovered.high), "L " + price(hovered.low), "C " + price(hovered.close)].join(" · ") : "Wheel = zoom · Drag = pan · Click = inspect"}
-        </div>
+        <span>Wheel to zoom · drag to pan · click a candle</span>
+        <em>{view.length} / {bars.length} candles</em>
       </div>
-      <div className="candle-chart" style={{ height }} onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={() => { dragRef.current = null; }} onPointerLeave={() => { dragRef.current = null; setHover(null); }}
-        onMouseMove={(event) => {
-          const rect = event.currentTarget.getBoundingClientRect();
-          const index = Math.max(0, Math.min(effective.length - 1, Math.floor(((event.clientX - rect.left) / rect.width) * effective.length)));
-          setHover(effective[index]?.originalIndex ?? null);
-        }}>
-        <div className="candle-scroll">
-          <svg viewBox={"0 0 " + geometry.width + " 340"} width={geometry.width} height="340" role="img" aria-label="Interactive OHLC candlestick chart">
-            <g className="candle-grid">{[0, 1, 2, 3, 4].map((line) => <line key={line} x1="0" x2={geometry.width} y1={22 + line * 55} y2={22 + line * 55} />)}</g>
-            {geometry.items.map((candle) => (
-              <g key={candle.originalIndex} className={candle.up ? "candle candle-up" : "candle candle-down"} onClick={() => onSelect?.(candle.originalIndex)}>
-                <line x1={candle.x} x2={candle.x} y1={candle.high} y2={candle.low} className="candle-wick" vectorEffect="non-scaling-stroke" />
-                <rect x={candle.x - candle.bodyWidth / 2} y={Math.min(candle.open, candle.close)} width={candle.bodyWidth} height={Math.max(2.5, Math.abs(candle.close - candle.open))} rx="0.8" className="candle-body" vectorEffect="non-scaling-stroke" />
-                {selectedIndex === candle.originalIndex && <line x1={candle.x} x2={candle.x} y1="0" y2="340" className="candle-selected" vectorEffect="non-scaling-stroke" />}
-                {hover === candle.originalIndex && <line x1={candle.x} x2={candle.x} y1="0" y2="340" className="candle-crosshair" vectorEffect="non-scaling-stroke" />}
-              </g>
+      <div className={"candle-scroll " + (dragStart !== null ? "dragging" : "")}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}>
+        <svg
+          viewBox={"0 0 " + geometry.chartWidth + " 340"}
+          width={geometry.chartWidth}
+          height="340"
+          role="img"
+          aria-label="OHLC candlestick chart"
+        >
+          <g className="candle-grid">
+            {[0, 1, 2, 3, 4].map((line) => (
+              <line
+                key={line}
+                x1="0"
+                x2={geometry.chartWidth}
+                y1={22 + line * 55}
+                y2={22 + line * 55}
+              />
             ))}
-            {showVolume && effective.map(({ bar }, index) => {
-              const slot = geometry.width / effective.length;
+          </g>
+
+          {geometry.items.map((candle) => (
+            <g
+              key={candle.originalIndex}
+              className={candle.up ? "candle candle-up" : "candle candle-down"}
+              onMouseEnter={() => setHoveredIndex(candle.originalIndex)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              onClick={() => onSelect?.(candle.originalIndex)}
+            >
+              <line
+                x1={candle.x}
+                x2={candle.x}
+                y1={candle.high}
+                y2={candle.low}
+                className="candle-wick"
+                vectorEffect="non-scaling-stroke"
+              />
+              <rect
+                x={candle.x - candle.bodyWidth / 2}
+                y={Math.min(candle.open, candle.close)}
+                width={candle.bodyWidth}
+                height={Math.max(2.5, Math.abs(candle.close - candle.open))}
+                rx="0.8"
+                className="candle-body"
+                vectorEffect="non-scaling-stroke"
+              />
+              {selectedIndex === candle.originalIndex && (
+                <line
+                  x1={candle.x}
+                  x2={candle.x}
+                  y1="0"
+                  y2="340"
+                  className="candle-selected"
+                  vectorEffect="non-scaling-stroke"
+                />
+              )}
+            </g>
+          ))}
+
+          {hoveredIndex !== null && bars[hoveredIndex] && (
+            <line
+              x1={geometry.items.find((item) => item.originalIndex === hoveredIndex)?.x ?? 0}
+              x2={geometry.items.find((item) => item.originalIndex === hoveredIndex)?.x ?? 0}
+              y1="0" y2="340" className="candle-hover-line" vectorEffect="non-scaling-stroke"
+            />
+          )}
+
+          {showVolume &&
+            view.map(({ bar }, index) => {
+              const slot = geometry.chartWidth / view.length;
               const width = Math.max(1.2, slot * 0.58);
               const value = Math.max(0, Number(bar.volume ?? 0));
               const barHeight = (value / geometry.volumeMax) * 72;
-              return <rect key={"volume-" + index} x={index * slot + slot / 2 - width / 2} y={333 - barHeight} width={width} height={barHeight} className="candle-volume" />;
+              return (
+                <rect
+                  key={"volume-" + index}
+                  x={index * slot + slot / 2 - width / 2}
+                  y={333 - barHeight}
+                  width={width}
+                  height={barHeight}
+                  className="candle-volume"
+                />
+              );
             })}
-          </svg>
-        </div>
-        {hovered && <div className="candle-tooltip"><strong>{new Date(hovered.timestamp).toLocaleString()}</strong><span>O {price(hovered.open)} · H {price(hovered.high)}</span><span>L {price(hovered.low)} · C {price(hovered.close)}</span><span>Volume {Number(hovered.volume ?? 0).toLocaleString()}</span></div>}
+        </svg>
+        {hoveredIndex !== null && bars[hoveredIndex] && (
+          <div className="candle-hover-details">
+            <strong>{new Date(bars[hoveredIndex].timestamp).toLocaleString()}</strong>
+            <span>O {formatNumber(Number(bars[hoveredIndex].open))}</span>
+            <span>H {formatNumber(Number(bars[hoveredIndex].high))}</span>
+            <span>L {formatNumber(Number(bars[hoveredIndex].low))}</span>
+            <span>C {formatNumber(Number(bars[hoveredIndex].close))}</span>
+            <span>V {formatNumber(Number(bars[hoveredIndex].volume ?? 0))}</span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
 export default CandleChart;
