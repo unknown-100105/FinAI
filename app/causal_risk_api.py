@@ -18,6 +18,35 @@ from market_data.resolver import InstrumentResolver
 
 router=APIRouter(prefix="/api/v1/causal-risk",tags=["causal-risk"])
 
+MAX_DISCOVERY_ROWS = 5_000
+MAX_DISCOVERY_VARIABLES = 100
+MAX_DISCOVERY_CELLS = 250_000
+
+
+def _validate_discovery_samples(samples: List[List[float]]) -> None:
+    """Reject oversized or ragged discovery inputs before NumPy allocation."""
+    rows = len(samples)
+    if rows == 0:
+        raise ValueError("samples must contain at least one row")
+    if rows > MAX_DISCOVERY_ROWS:
+        raise ValueError(f"samples exceed the maximum of {MAX_DISCOVERY_ROWS} rows")
+
+    widths = {len(row) for row in samples}
+    if len(widths) != 1:
+        raise ValueError("samples must be a rectangular matrix")
+    columns = next(iter(widths), 0)
+    if columns < 2:
+        raise ValueError("samples must contain at least 2 variables")
+    if columns > MAX_DISCOVERY_VARIABLES:
+        raise ValueError(
+            f"samples exceed the maximum of {MAX_DISCOVERY_VARIABLES} variables"
+        )
+    if rows * columns > MAX_DISCOVERY_CELLS:
+        raise ValueError(
+            f"samples exceed the maximum of {MAX_DISCOVERY_CELLS} cells"
+        )
+
+
 
 class CounterfactualRequest(BaseModel):
     shock: Dict[str,float]=Field(default_factory=dict)
@@ -69,6 +98,7 @@ def counterfactual(request:CounterfactualRequest):
 @router.post("/discover/notears")
 def discover_notears(request: DiscoveryRequest):
     try:
+        _validate_discovery_samples(request.samples)
         x = np.asarray(request.samples, dtype=float)
         return notears_linear(x, lambda1=request.lambda1, threshold=request.threshold)
     except ValueError as exc:
@@ -78,6 +108,7 @@ def discover_notears(request: DiscoveryRequest):
 @router.post("/discover/dynamic")
 def discover_dynamic(request: DynamicDiscoveryRequest):
     try:
+        _validate_discovery_samples(request.samples)
         return discover_lagged_graph(
             request.samples,
             lags=request.lags,
@@ -112,9 +143,8 @@ class DiscoveryGraphRequest(BaseModel):
 @router.post("/discover/graph")
 def discover_graph(request: DiscoveryGraphRequest):
     try:
+        _validate_discovery_samples(request.samples)
         x = np.asarray(request.samples, dtype=float)
-        if x.ndim != 2 or x.shape[1] < 2:
-            raise ValueError("samples must contain at least 2 variables")
         if request.node_ids is not None:
             if len(request.node_ids) != x.shape[1]:
                 raise ValueError("node_ids length must match the sample variable count")
