@@ -7,6 +7,7 @@
 - Base: `feature/end-to-end-finai`
 - Head: `feature/professional-token-lab-ui`
 - PR remains open and unmerged.
+- Final audited branch tip is tracked by the PR's current `head_sha`.
 
 ## Software evidence
 
@@ -35,9 +36,9 @@ The branch now contains:
 
 ## Remote CI
 
-GitHub Actions currently reports failure for Backend, Frontend, and Patent
-mechanism benchmark jobs on the final branch series, with empty step lists and
-no retrievable job-log blob through the connected GitHub interface.
+GitHub Actions run #534 currently reports failure for Backend, Frontend, and
+Patent mechanism benchmark jobs, with empty step lists. The connected
+GitHub job-log endpoint also has no retrievable log blob.
 
 Do not convert this into a claim that the code failed its tests. The precise
 statement is: "Remote CI is failing before usable step/log evidence is available."
