@@ -90,6 +90,40 @@ FINANCIAL_GUIDANCE_ACTION_TERMS = (
 )
 
 
+FINANCIAL_CATEGORY_CLARIFICATIONS = {
+    "transaction": (
+        ("TRANSACTION_HISTORY", "transaction history"),
+        ("PAYMENT_SUCCESS", "payment status"),
+        ("DISPUTE_TRANSACTION", "transaction dispute"),
+    ),
+    "transactions": (
+        ("TRANSACTION_HISTORY", "transaction history"),
+        ("PAYMENT_SUCCESS", "payment status"),
+        ("DISPUTE_TRANSACTION", "transaction dispute"),
+    ),
+    "payment": (
+        ("PAYMENT_SUCCESS", "payment status"),
+        ("PAYMENT_FAILED", "failed payment"),
+        ("PAYMENT_PENDING", "pending payment"),
+    ),
+    "payments": (
+        ("PAYMENT_SUCCESS", "payment status"),
+        ("PAYMENT_FAILED", "failed payment"),
+        ("PAYMENT_PENDING", "pending payment"),
+    ),
+    "kyc": (
+        ("KYC_STATUS", "KYC status"),
+        ("KYC_DOCUMENTS", "KYC documents"),
+        ("KYC_UPDATE", "KYC update"),
+    ),
+}
+
+
+def _category_clarification_query(text: str):
+    normalized = " ".join(str(text).strip().lower().split())
+    return FINANCIAL_CATEGORY_CLARIFICATIONS.get(normalized)
+
+
 def _is_financial_guidance_query(text: str) -> bool:
     """Recognize clearly informational financial guidance queries."""
 
@@ -178,6 +212,27 @@ class FinAIRouterGate:
                 "requires_clarification": False,
                 "reason": ood_reason,
                 "top_k": [],
+            }
+
+        category_options = _category_clarification_query(text)
+        if category_options:
+            return {
+                "intent": "UNKNOWN",
+                "raw_prediction": None,
+                "confidence": 1.0,
+                "margin": 1.0,
+                "decision": "CLARIFY",
+                "risk_level": "medium",
+                "requires_clarification": True,
+                "reason": "category_clarification",
+                "top_k": [
+                    {
+                        "intent": intent,
+                        "confidence": 0.0,
+                        "description": description,
+                    }
+                    for intent, description in category_options
+                ],
             }
 
         # The trained classifier contains the existing 50 intents.
