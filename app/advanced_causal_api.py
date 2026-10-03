@@ -18,6 +18,7 @@ from causal_risk.multimodal_ingestion import (
 )
 from causal_risk.regime_benchmark import assign_regimes, evaluate_predictions
 from causal_risk.risk_calibration import calibrate_risk_target
+from causal_risk.channel_calibration import fit_channel_calibration
 from causal_risk.pipeline import run_causal_research_pipeline
 from causal_risk.research_counterfactual import run_research_counterfactual
 
@@ -27,9 +28,9 @@ _gfn_registry: dict[str, GFlowNetTailGenerator] = {}
 
 
 class RiskCalibrationRequest(BaseModel):
-    samples: List[List[float]]
-    target: List[float]
-    feature_names: List[str]
+    samples: List[List[float]] = Field(min_length=60, max_length=5000)
+    target: List[float] = Field(min_length=60, max_length=5000)
+    feature_names: List[str] = Field(min_length=2, max_length=100)
     alpha: float = Field(default=1.0, gt=0, le=100)
 
 
@@ -52,6 +53,31 @@ class GFlowTrainRequest(BaseModel):
     epochs: int = Field(default=150, ge=1, le=2000)
     learning_rate: float = Field(default=1e-3, gt=0, le=0.1)
     seed: int = Field(default=42, ge=0, le=10_000_000)
+    empirical_center: List[float] | None = Field(default=None, min_length=1, max_length=20)
+    empirical_scale: List[float] | None = Field(default=None, min_length=1, max_length=20)
+
+
+class ChannelCalibrationRequest(BaseModel):
+    scm_samples: List[Dict[str, float]] = Field(min_length=80, max_length=5000)
+    observed_channels: Dict[str, List[float]]
+    alpha: float = Field(default=1.0, gt=0, le=100)
+
+
+@router.post("/risk-calibration/fit-channels")
+def fit_channel_risk_calibration(request: ChannelCalibrationRequest):
+    try:
+        lengths = {len(values) for values in request.observed_channels.values()}
+        if lengths != {len(request.scm_samples)}:
+            raise ValueError("all observed channel arrays must align with scm_samples")
+        if len(request.scm_samples) * max(len(request.scm_samples[0]), 1) > 250_000:
+            raise ValueError("calibration input exceeds the maximum of 250000 cells")
+        return fit_channel_calibration(
+            request.scm_samples,
+            request.observed_channels,
+            alpha=request.alpha,
+        )
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/gfnets/train")
@@ -107,26 +133,26 @@ def gfnets_generate(request: GFlowGenerateRequest):
 
 
 class MultimodalNodeRequest(BaseModel):
-    node_id: str
-    node_type: str
-    modality: str
-    features: List[float]
-    provenance: str
+    node_id: str = Field(min_length=1, max_length=128)
+    node_type: str = Field(min_length=1, max_length=64)
+    modality: str = Field(min_length=1, max_length=32)
+    features: List[float] = Field(max_length=256)
+    provenance: str = Field(min_length=1, max_length=512)
 
 
 class MultimodalEdgeRequest(BaseModel):
-    source: str
-    target: str
-    relation: str
+    source: str = Field(min_length=1, max_length=128)
+    target: str = Field(min_length=1, max_length=128)
+    relation: str = Field(min_length=1, max_length=128)
     weight: float
-    modality: str
-    provenance: str
+    modality: str = Field(min_length=1, max_length=32)
+    provenance: str = Field(min_length=1, max_length=512)
 
 
 class MultimodalEncodeRequest(BaseModel):
-    nodes: List[MultimodalNodeRequest]
-    edges: List[MultimodalEdgeRequest]
-    target_node: str
+    nodes: List[MultimodalNodeRequest] = Field(min_length=1, max_length=500)
+    edges: List[MultimodalEdgeRequest] = Field(max_length=2000)
+    target_node: str = Field(min_length=1, max_length=128)
     modality_vectors: Dict[str, List[float]]
     output_dim: int = Field(default=16, ge=1, le=256)
 
@@ -173,9 +199,9 @@ def multimodal_encode(request: MultimodalEncodeRequest):
 
 
 class RegimeBenchmarkRequest(BaseModel):
-    samples: List[List[float]]
-    y_true: List[float]
-    y_pred: List[float]
+    samples: List[List[float]] = Field(min_length=22, max_length=5000)
+    y_true: List[float] = Field(min_length=22, max_length=5000)
+    y_pred: List[float] = Field(min_length=22, max_length=5000)
     volatility_window: int = Field(default=20, ge=2, le=250)
     high_vol_quantile: float = Field(default=0.80, gt=0.5, lt=1)
 
@@ -231,8 +257,8 @@ def research_status():
 class ResearchCounterfactualRequest(BaseModel):
     shock: Dict[str, float]
     allocation: Dict[str, float]
-    nodes: List[str]
-    edges: List[Dict[str, Any]]
+    nodes: List[str] = Field(min_length=1, max_length=100)
+    edges: List[Dict[str, Any]] = Field(max_length=1000)
     approved: bool = False
 
 
@@ -252,8 +278,8 @@ def research_counterfactual(request: ResearchCounterfactualRequest):
  
  
 class MicrostructureRequest(BaseModel):
-    bids: List[List[float]]
-    asks: List[List[float]]
+    bids: List[List[float]] = Field(min_length=1, max_length=1000)
+    asks: List[List[float]] = Field(min_length=1, max_length=1000)
 
 
 @router.post("/microstructure")
@@ -268,10 +294,10 @@ def microstructure(request: MicrostructureRequest):
 
 
 class MultimodalIngestionRequest(BaseModel):
-    documents: List[Dict[str, Any]] = Field(default_factory=list)
-    events: List[Dict[str, Any]] = Field(default_factory=list)
-    relations: List[Dict[str, Any]] = Field(default_factory=list)
-    portfolio_exposures: List[Dict[str, Any]] = Field(default_factory=list)
+    documents: List[Dict[str, Any]] = Field(default_factory=list, max_length=1000)
+    events: List[Dict[str, Any]] = Field(default_factory=list, max_length=1000)
+    relations: List[Dict[str, Any]] = Field(default_factory=list, max_length=2000)
+    portfolio_exposures: List[Dict[str, Any]] = Field(default_factory=list, max_length=2000)
 
 
 @router.post("/multimodal/ingest")
@@ -299,8 +325,8 @@ def multimodal_ingest(request: MultimodalIngestionRequest):
 
 
 class CausalResearchPipelineRequest(BaseModel):
-    samples: List[List[float]]
-    node_ids: List[str]
+    samples: List[List[float]] = Field(min_length=60, max_length=5000)
+    node_ids: List[str] = Field(min_length=2, max_length=100)
     lambda1: float = Field(default=0.02, ge=0, le=2)
     threshold: float = Field(default=0.08, ge=0, le=2)
     lags: int = Field(default=2, ge=1, le=8)
