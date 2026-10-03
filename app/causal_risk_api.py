@@ -72,7 +72,6 @@ class TailScenarioRequest(BaseModel):
     shock: Dict[str,float]
     draws: int = Field(default=256, ge=8, le=5000)
     seed: int = Field(default=42, ge=0, le=10_000_000)
-    ridge_alpha: float = Field(default=1.0, gt=0, le=100)
     use_empirical_market_dependence: bool = False
 
 
@@ -463,6 +462,7 @@ class MarketCalibrationRequest(BaseModel):
     bootstrap_draws: int = Field(default=100, ge=20, le=1000)
     block_size: int = Field(default=10, ge=1, le=365)
     seed: int = Field(default=42, ge=0, le=10_000_000)
+    ridge_alpha: float = Field(default=1.0, gt=0, le=100)
 
 
 @router.post("/discover/market-graph/calibration")
