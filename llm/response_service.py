@@ -11,9 +11,9 @@ from xai.claims import build_finance_claims
 
 from llm.response_adapter import SarvamResponseAdapter
 from llm.rllm_finqa_adapter import RLLMFinQAModelAdapter
-from llm.cloud.gemini_adapter import GeminiResponseAdapter
+from llm.cloud.gemini_adapter import GeminiProResponseAdapter, GeminiResponseAdapter
 from llm.cloud.openrouter_adapter import OpenRouterResponseAdapter
-from llm.cloud.openai_adapter import OpenAIResponseAdapter
+from llm.cloud.openai_adapter import OpenAIAstraResponseAdapter, OpenAISolResponseAdapter, OpenAIResponseAdapter
 
 
 class ResponseService:
@@ -32,6 +32,9 @@ class ResponseService:
         "gemini-cloud": GeminiResponseAdapter,
         "openrouter-cloud": OpenRouterResponseAdapter,
         "openai-luna": OpenAIResponseAdapter,
+        "openai-astra": OpenAIAstraResponseAdapter,
+        "openai-sol": OpenAISolResponseAdapter,
+        "gemini-pro-cloud": GeminiProResponseAdapter,
         "rllm-finqa-4b": RLLMFinQAModelAdapter,
         "sarvam-1": SarvamResponseAdapter,
     }
