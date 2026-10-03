@@ -168,12 +168,6 @@ def benchmark_patent_mechanism_variants(
         })
 
     # Incremental-vs-full propagation accounting on the same candidate set.
-    incremental_state = IncrementalIntervalState.build(
-        labels,
-        edges,
-        node_bounds,
-        {},
-    )
     start_full = perf_counter()
     full_node_evaluations = 0
     full_snapshots: list[dict[str, tuple[float, float]]] = []
@@ -188,71 +182,22 @@ def benchmark_patent_mechanism_variants(
 
     start_incremental = perf_counter()
     incremental_node_evaluations = 0
-    for prefix in candidate_prefixes:
-        if not prefix:
-            continue
-        # Measure a one-action incremental preview for each candidate prefix.
+    incremental_matches = 0
+    for prefix, expected in zip(candidate_prefixes, full_snapshots):
+        state = IncrementalIntervalState.build(labels, edges, node_bounds, {})
+        last: dict[str, Any] | None = None
         for node, value in prefix.items():
-            preview = incremental_state.preview_change(node, value)
-            incremental_node_evaluations += int(preview["node_evaluations"])
+            last = state.apply_change(node, value)
+        if last is not None:
+            incremental_node_evaluations += sum(
+                len(state._descendants_in_order(node)) for node in prefix
+            )
+            incremental_matches += int(state.intervals == expected)
     incremental_elapsed = perf_counter() - start_incremental
 
-    incremental_match_rate = 1.0
-    if candidate_prefixes:
-        # Verify exact equality separately using a direct one-prefix update.
-        matches = 0
-        for prefix, expected in zip(candidate_prefixes, full_snapshots):
-            state = IncrementalIntervalState.build(labels, edges, node_bounds, {})
-            state.set_fixed(prefix)
-            if state.intervals == expected:
-                matches += 1
-        incremental_match_rate = matches / len(candidate_prefixes)
-
-    baseline = {
-        "candidate_prefixes": len(candidate_prefixes),
-        "exact_completion_evaluations": exact_completion_evaluations,
-        "full_evaluations_retained": exact_completion_evaluations,
-    }
-    forward = {
-        "candidate_prefixes": len(candidate_prefixes),
-        "hard_pruned_prefixes": forward_hard_pruned,
-        "retained_prefixes": forward_retained,
-        "false_prunes": forward_false_prunes,
-        "high_risk_prefix_recall": (
-            (exact_feasible_prefixes - forward_false_prunes) / exact_feasible_prefixes
-            if exact_feasible_prefixes else 1.0
-        ),
-        "estimated_exact_evaluations_after_screen": sum(
-            len(action_levels) ** len(remaining) for record in prefix_records
-            if not record["forward_hard_pruned"]
-        ),
-    }
-    backward_result = {
-        "candidate_prefixes": len(candidate_prefixes),
-        "necessary_interval_pruned_prefixes": backward_pruned,
-        "retained_prefixes": backward_retained,
-        "false_prunes": backward_false_prunes,
-        "high_risk_prefix_recall": (
-            (exact_feasible_prefixes - backward_false_prunes) / exact_feasible_prefixes
-            if exact_feasible_prefixes else 1.0
-        ),
-        "estimated_exact_evaluations_after_screen": sum(
-            len(action_levels) ** len(remaining) for record in prefix_records
-            if not record["backward_pruned"]
-        ),
-        "required_intervals": backward["required_intervals"],
-        "ancestor_nodes": backward["ancestor_nodes"],
-    }
-
-    for variant in (forward, backward_result):
-        baseline_evals = baseline["exact_completion_evaluations"]
-        kept_evals = int(variant["estimated_exact_evaluations_after_screen"])
-        variant["estimated_expensive_evaluations_avoided"] = max(
-            baseline_evals - kept_evals, 0
-        )
-        variant["estimated_evaluation_reduction_fraction"] = (
-            1.0 - kept_evals / baseline_evals if baseline_evals else 0.0
-        )
+    incremental_match_rate = (
+        incremental_matches / len(candidate_prefixes) if candidate_prefixes else 1.0
+    )
 
     return {
         "status": "PATENT_MECHANISM_VARIANT_BENCHMARK_READY",
