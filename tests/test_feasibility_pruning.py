@@ -120,3 +120,22 @@ def test_controller_recall_guard_overrides_compute_budget():
     )
     assert controller.update(0.10, observed_high_risk_recall=0.80) == -0.5
     assert controller.metadata()["minimum_high_risk_recall"] == 0.95
+
+
+def test_future_intervention_is_respected_by_feasibility_certificate():
+    from causal_risk.feasibility_pruning import evaluate_prefix_feasibility
+
+    certificate = evaluate_prefix_feasibility(
+        ["rates", "credit", "portfolio"],
+        [
+            {"source": "rates", "target": "credit", "weight": 0.7},
+            {"source": "credit", "target": "portfolio", "weight": 0.8},
+        ],
+        {"rates": 17.0},
+        {"rates": (-100.0, 100.0), "credit": (-20.0, 20.0), "portfolio": (-100.0, 100.0)},
+        target_node="portfolio",
+        target_interval=(7.0, 9.0),
+        intervened_nodes=("credit",),
+    )
+    assert certificate.hard_infeasible is False
+    assert certificate.intervened_nodes == ("credit",)
