@@ -235,9 +235,27 @@ class FinAIHybridEngine:
             catalog_result = build_catalog_answer(user_text)
             encyclopedia_result = build_encyclopedia_answer(user_text)
 
-            # Prefer the focused product catalog for product-specific questions;
-            # otherwise use the broader finance/crypto encyclopedia.
-            if catalog_result["found"]:
+            # Use the encyclopedia for mechanics/history/crypto protocol
+            # questions because it contains deeper "how it works" coverage.
+            # Keep the focused catalog for product-specific scheme concepts.
+            mechanics_hint = any(
+                term in user_text.lower()
+                for term in (
+                    "history", "how", "works", "mechanism", "why",
+                    "bitcoin", "blockchain", "proof of work", "proof of stake",
+                    "stablecoin", "defi", "order book", "repo",
+                    "futures", "options", "yield curve", "arbitrage",
+                )
+            )
+
+            if encyclopedia_result["found"] and mechanics_hint:
+                knowledge_result = {
+                    "answer": encyclopedia_result["answer"],
+                    "matches": encyclopedia_result["matches"],
+                    "source": "finance_encyclopedia",
+                    "requires_current_data": encyclopedia_result["requires_current_data"],
+                }
+            elif catalog_result["found"]:
                 knowledge_result = {
                     "answer": catalog_result["answer"],
                     "matches": catalog_result["matches"],
