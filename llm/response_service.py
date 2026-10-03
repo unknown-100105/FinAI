@@ -568,6 +568,7 @@ class ResponseService:
             response=response,
             intent=intent,
             verified_result=verified_result,
+            source=source,
         )
 
         claim_verification = self._verify_claims(
