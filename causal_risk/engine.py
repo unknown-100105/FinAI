@@ -191,7 +191,7 @@ def run_counterfactual(
     }
     if include_tail_scenarios:
         tail = generate_tail_scenarios(shock)
-        result["tail_scenarios"] = generate_tail_scenarios(shock)
+        result["tail_scenarios"] = tail
         result["tail_evaluation"] = _evaluate_tail_scenarios(tail, allocation)
     return result
 
