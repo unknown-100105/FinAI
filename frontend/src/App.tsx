@@ -151,7 +151,11 @@ function AssistantWorkspace() {
   const suggestions = [
     "Show today's NIFTY 50 movement",
     "Explain mutual funds and SIP",
+    "How does the stock market and order book work?",
+    "Explain the history of money and finance",
+    "How does Bitcoin and blockchain work?",
     "What documents are needed for KYC?",
+    "Show the current tax forms and filing workflow",
     "Calculate EMI for ₹10 lakh at 8.5% for 20 years",
   ];
 
