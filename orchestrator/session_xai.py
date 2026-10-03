@@ -294,6 +294,7 @@ class XAISessionOrchestrator:
             language=language,
             persona=persona,
             max_new_tokens=max_new_tokens,
+            model_id=model_id,
         )
 
         trace.record_router(result.get("router"))
