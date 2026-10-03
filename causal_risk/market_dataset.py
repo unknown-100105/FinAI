@@ -115,6 +115,9 @@ def build_market_return_dataset(
         raise ValueError(f"fewer than 20 aligned return observations: {len(matrix)}")
 
     values = np.asarray(matrix, dtype=float)
+    empirical_correlation = np.corrcoef(values, rowvar=False)
+    if np.ndim(empirical_correlation) == 0:
+        empirical_correlation = np.asarray([[1.0]])
     return {
         "status": "MARKET_DATASET_READY",
         "interval": interval,
@@ -128,6 +131,10 @@ def build_market_return_dataset(
         "series": metadata,
         "errors": errors,
         "returns": values.tolist(),
+        "empirical_correlation": [
+            [round(float(value), 6) for value in row]
+            for row in np.atleast_2d(empirical_correlation)
+        ],
         "data_quality": {
             "aligned_observations": int(len(matrix)),
             "complete_case_fraction": round(
