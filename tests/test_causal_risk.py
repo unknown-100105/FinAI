@@ -127,3 +127,26 @@ def test_market_graph_discovery_requires_multiple_proxies():
     )
     assert response.status_code == 422
     assert "at least two" in response.json()["detail"]
+
+
+def test_discovery_stability_uses_contiguous_windows():
+    from causal_risk.stability import assess_discovery_stability
+
+    rng = np.random.default_rng(321)
+    x1 = rng.normal(size=60)
+    x2 = 0.8 * x1 + rng.normal(scale=0.2, size=60)
+    samples = np.column_stack([x1, x2])
+    result = assess_discovery_stability(
+        samples,
+        ["rates", "credit"],
+        windows=3,
+        window_fraction=0.55,
+        threshold=0.05,
+        max_outer_iter=2,
+        max_inner_iter=30,
+    )
+    assert result["status"] == "research_stability_ready"
+    assert len(result["windows"]) == 3
+    assert all(item["start_row"] < item["end_row"] for item in result["windows"])
+    assert result["contemporaneous"]["windows"] == 3
+    assert result["temporal"]["windows"] == 3

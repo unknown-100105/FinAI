@@ -8,6 +8,7 @@ from causal_risk.dynamic_discovery import discover_lagged_graph
 from causal_risk.engine import graph_snapshot, run_counterfactual
 from causal_risk.tail_scenarios import generate_tail_scenarios
 from causal_risk.temporal_gnn import architecture_metadata
+from causal_risk.stability import assess_discovery_stability
 from causal_risk.market_dataset import DEFAULT_CAUSAL_PROXIES, build_market_return_dataset
 from app.market_api import _get_service
 from market_data.resolver import InstrumentResolver
@@ -263,3 +264,46 @@ def discover_market_graph(request: MarketDiscoveryRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Market causal discovery failed: {exc}") from exc
+
+
+class MarketStabilityRequest(BaseModel):
+    proxies: Dict[str, str] = Field(default_factory=lambda: dict(DEFAULT_CAUSAL_PROXIES))
+    days: int = Field(default=730, ge=90, le=3650)
+    windows: int = Field(default=4, ge=2, le=6)
+    window_fraction: float = Field(default=0.60, gt=0, le=0.90)
+    lags: int = Field(default=1, ge=1, le=8)
+    alpha: float = Field(default=1.0, gt=0, le=100)
+    threshold: float = Field(default=0.08, ge=0, le=2)
+    lambda1: float = Field(default=0.02, ge=0, le=2)
+    stable_frequency: float = Field(default=0.75, ge=0.5, le=1.0)
+
+
+@router.post("/discover/market-graph/stability")
+def market_graph_stability(request: MarketStabilityRequest):
+    try:
+        dataset = build_market_return_dataset(
+            _get_service(),
+            InstrumentResolver(),
+            request.proxies,
+            days=request.days,
+        )
+        x = np.asarray(dataset["returns"], dtype=float)
+        result = assess_discovery_stability(
+            x,
+            dataset["node_ids"],
+            windows=request.windows,
+            window_fraction=request.window_fraction,
+            lambda1=request.lambda1,
+            threshold=request.threshold,
+            lags=request.lags,
+            alpha=request.alpha,
+            stable_frequency=request.stable_frequency,
+        )
+        return {
+            **result,
+            "dataset": {key: value for key, value in dataset.items() if key != "returns"},
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Market causal stability failed: {exc}") from exc
