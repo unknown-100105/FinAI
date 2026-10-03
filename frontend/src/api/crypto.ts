@@ -129,3 +129,18 @@ export function getCryptoTickers(exchange: string, quote = "USDT", search = "", 
     return response.json();
   });
 }
+
+export function getBitcoinMiningSnapshot(request: {
+  hashrate_ths: number;
+  power_watts: number;
+  electricity_usd_kwh: number;
+}) {
+  return fetch(API_BASE_URL + "/api/v1/crypto/mining/btc", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  }).then(async (response) => {
+    if (!response.ok) throw new Error("Bitcoin mining API error " + response.status + ": " + await response.text());
+    return response.json();
+  });
+}
