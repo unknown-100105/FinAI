@@ -58,20 +58,20 @@ class CounterfactualRequest(BaseModel):
 
 
 class DiscoveryRequest(BaseModel):
-    samples: List[List[float]]
+    samples: List[List[float]] = Field(min_length=8, max_length=MAX_DISCOVERY_ROWS)
     lambda1: float = Field(default=0.02, ge=0, le=2)
     threshold: float = Field(default=0.10, ge=0, le=2)
 
 
 class DynamicDiscoveryRequest(BaseModel):
-    samples: List[List[float]]
+    samples: List[List[float]] = Field(min_length=8, max_length=MAX_DISCOVERY_ROWS)
     lags: int = Field(default=1, ge=1, le=8)
     alpha: float = Field(default=1.0, gt=0, le=100)
     threshold: float = Field(default=0.08, ge=0, le=2)
 
 
 class TailScenarioRequest(BaseModel):
-    shock: Dict[str,float]
+    shock: Dict[str,float] = Field(min_length=1, max_length=MAX_DISCOVERY_VARIABLES)
     draws: int = Field(default=256, ge=8, le=5000)
     seed: int = Field(default=42, ge=0, le=10_000_000)
     use_empirical_market_dependence: bool = False
@@ -170,8 +170,8 @@ def tail_scenarios(request: TailScenarioRequest):
 
 
 class DiscoveryGraphRequest(BaseModel):
-    samples: List[List[float]]
-    node_ids: List[str] | None = None
+    samples: List[List[float]] = Field(min_length=8, max_length=MAX_DISCOVERY_ROWS)
+    node_ids: List[str] | None = Field(default=None, max_length=MAX_DISCOVERY_VARIABLES)
     lambda1: float = Field(default=0.02, ge=0, le=2)
     threshold: float = Field(default=0.10, ge=0, le=2)
     lags: int = Field(default=1, ge=1, le=8)
