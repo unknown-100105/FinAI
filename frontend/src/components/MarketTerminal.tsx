@@ -4,13 +4,10 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BarChart3,
-  Clock3,
   ExternalLink,
   Newspaper,
   RefreshCw,
   ShieldCheck,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react";
 import {
   getMarketAnalytics,
