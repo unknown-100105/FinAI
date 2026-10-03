@@ -84,7 +84,12 @@ export function ResourcesHub({ defaultCategory = "All" }: { defaultCategory?: st
             {filtered.map((item) => (
               <button type="button" key={item.resource_id} className={selected?.resource_id === item.resource_id ? "resource-row active" : "resource-row"} onClick={() => setSelectedId(item.resource_id)}>
                 <div><strong>{item.name}</strong><span>{item.category} · {item.subcategory}</span></div>
-                <em>{item.current_status}</em>
+                <div className="resource-row-meta">
+                  <em>{item.current_status}</em>
+                  <a href={item.official_url} target="_blank" rel="noreferrer" aria-label={"Open official source for " + item.name} onClick={(event) => event.stopPropagation()}>
+                    <ExternalLink size={11} />
+                  </a>
+                </div>
               </button>
             ))}
           </div>
