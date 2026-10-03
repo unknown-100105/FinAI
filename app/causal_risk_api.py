@@ -74,8 +74,8 @@ class TailScenarioRequest(BaseModel):
     shock: Dict[str,float] = Field(min_length=1, max_length=MAX_DISCOVERY_VARIABLES)
     draws: int = Field(default=256, ge=8, le=5000)
     seed: int = Field(default=42, ge=0, le=10_000_000)
-    use_empirical_market_dependence: bool = False
-    distribution: str = Field(default="gaussian", pattern="^(gaussian|student_t_copula)$")
+    use_empirical_market_dependence: bool = True
+    distribution: str = Field(default="student_t_copula", pattern="^(gaussian|student_t_copula)$")
     degrees_of_freedom: float = Field(default=5.0, gt=2.0, le=30.0)
 
 
