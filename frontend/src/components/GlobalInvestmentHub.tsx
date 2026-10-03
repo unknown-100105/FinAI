@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, ChevronRight, Database, Globe2, Landmark, RefreshCw, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUpRight, Database, Globe2, Landmark, RefreshCw, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { getEligibility, getGlobalCatalog, getPrediction, type Eligibility, type GlobalCountry, type GlobalAssetClass, type Prediction } from "../api/intelligence";
 import { MarketSearchBox } from "./MarketSearchBox";
 import "./GlobalInvestmentHub.css";
@@ -27,3 +27,4 @@ export default function GlobalInvestmentHub(){
   <section className="global-research-deck"><div className="deck-head"><div><div className="module-kicker"><Sparkles size={13}/> Research cockpit</div><h2>Cross-market signal lab</h2></div><span>Historical benchmark · not a forecast</span></div><div className="research-toolbar"><MarketSearchBox value={instrument} onSelect={setInstrument}/><button onClick={()=>void run()} disabled={busy}>{busy?"Benchmarking…":"Run market benchmark"}</button></div>{prediction?<><div className="research-kpis"><div><span>Direction</span><strong>{prediction.ensemble.direction}</strong></div><div><span>Probability up</span><strong>{safe(prediction.ensemble.probability_up)}</strong></div><div><span>Agreement</span><strong>{safe(prediction.ensemble.confidence)}</strong></div><div><span>Validation</span><strong>{prediction.validation?.test_samples||0} samples</strong></div></div><div className="global-model-list">{prediction.models.map(m=><div key={m.model_id}><strong>{m.model_id.replaceAll("_"," ")}</strong><span>{m.family}</span><b>{safe(m.probability_up)}</b><em>{features(m.feature_importance).join(" · ")||"Attribution unavailable"}</em></div>)}</div></>:<div className="research-empty">Run the benchmark to populate chronological model evidence for the selected instrument.</div>}</section>
   <footer className="global-footer-note"><ShieldCheck size={13}/><span><b>Access is conditional.</b> Foreign investing may depend on FEMA/LRS, local law, broker eligibility, KYC, currency controls, tax and repatriation rules.</span></footer>
  </section>
+}
