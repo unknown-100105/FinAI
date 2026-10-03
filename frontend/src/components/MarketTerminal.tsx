@@ -128,14 +128,42 @@ export function MarketTerminal() {
     const window = datesFor(selectedRange.days);
 
     try {
-      const [q, h, a] = await Promise.all([
+      const [quoteResult, historyResult, analyticsResult] = await Promise.allSettled([
         getMarketQuote(instrument),
         getMarketHistory(instrument, window.start, window.end, interval),
         getMarketAnalytics(instrument, window.start, window.end, interval),
       ]);
-      setQuote(q.quote);
-      setBars(h.bars);
-      setAnalytics(a.analytics);
+
+      const failures: string[] = [];
+      if (quoteResult.status === "fulfilled") {
+        setQuote(quoteResult.value.quote);
+      } else {
+        setQuote(null);
+        failures.push("quote");
+      }
+
+      if (historyResult.status === "fulfilled") {
+        setBars(historyResult.value.bars);
+      } else {
+        setBars([]);
+        failures.push("history");
+      }
+
+      if (analyticsResult.status === "fulfilled") {
+        setAnalytics(analyticsResult.value.analytics);
+      } else {
+        setAnalytics({});
+        failures.push("analytics");
+      }
+
+      if (failures.length === 3) {
+        const firstError = quoteResult.status === "rejected" ? quoteResult.reason : "Market data unavailable.";
+        throw firstError instanceof Error ? firstError : new Error("Market data unavailable.");
+      }
+
+      if (failures.length > 0) {
+        setError(`Partial market feed: ${failures.join(", ")} unavailable; available charts/data remain visible.`);
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Market data unavailable.");
     } finally {
