@@ -256,6 +256,31 @@ class FinAIHybridEngine:
 
             if knowledge_result:
                 final_response = knowledge_result["answer"]
+                response_generation = None
+
+                if generate_response:
+                    try:
+                        from llm.response_service import ResponseService
+
+                        response_generation = (self.response_service or ResponseService()).generate(
+                            user_text=user_text,
+                            intent=intent,
+                            verified_result={
+                                "knowledge_answer": knowledge_result["answer"],
+                                "topics": knowledge_result["matches"],
+                            },
+                            source=knowledge_result["source"],
+                            language=language,
+                            persona=persona,
+                            max_new_tokens=max_new_tokens,
+                        )
+                        generated = str(response_generation.get("response", "")).strip()
+                        if generated:
+                            final_response = generated
+                    except Exception:
+                        # The verified deterministic knowledge answer remains the
+                        # safe fallback when no generation provider is available.
+                        response_generation = None
 
                 return {
                     "stage": "financial_knowledge",
@@ -279,7 +304,7 @@ class FinAIHybridEngine:
                     "tool": None,
                     "message": final_response,
                     "response": final_response,
-                    "response_generation": None,
+                    "response_generation": response_generation,
                     "timestamp": datetime.now().isoformat(),
                 }
 
