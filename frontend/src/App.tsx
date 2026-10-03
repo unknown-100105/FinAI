@@ -24,6 +24,7 @@ import {
   BookMarked,
   Sparkles,
   WalletCards,
+  Globe2,
 } from "lucide-react";
 import {
   authenticateSession,
@@ -43,8 +44,7 @@ import { TokenGeneratorHub } from "./components/TokenGeneratorHub";
 import { StudyHub } from "./components/StudyHub";
 import { ResourcesHub } from "./components/ResourcesHub";
 import { MarketAnalystHub } from "./components/MarketAnalystHub";
-import { XAIExplorerHub } from "./components/XAIExplorerHub";
-import { PlatformGuide } from "./components/PlatformGuide";
+import { GlobalInvestmentHub } from "./components/GlobalInvestmentHub";
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
@@ -66,11 +66,11 @@ const navigation = [
   { id: "arbitrage", label: "Crypto Arbitrage", icon: ArrowRightLeft },
   { id: "knowledge", label: "Knowledge", icon: BookOpen },
   { id: "analyst", label: "Market Analyst", icon: Activity },
+  { id: "global", label: "Global Markets", icon: Globe2 },
   { id: "resources", label: "Schemes & Resources", icon: Landmark },
   { id: "study", label: "Study Centre", icon: GraduationCap },
   { id: "token", label: "Token Lab", icon: Code2 },
   { id: "diary", label: "Investment Diary", icon: BookMarked },
-  { id: "xai", label: "Explainability", icon: ShieldCheck },
 ] as const;
 
 type Section = (typeof navigation)[number]["id"];
@@ -158,7 +158,7 @@ function traceValue(value: string) {
   return value.replaceAll("_", " ");
 }
 
-function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => void }) {
+function AssistantWorkspace() {
   const [language, setLanguage] = useState("English");
   const [persona, setPersona] = useState("neutral");
   const [models, setModels] = useState<FinAIModel[]>([]);
@@ -508,8 +508,6 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
           </div>
         </section>
 
-        <PlatformGuide onNavigate={(section) => onNavigate(section as Section)} />
-
         <section className="glass-panel side-card">
           <div className="side-title"><Languages size={15} /> Preferences</div>
           <label>Language<select value={language} onChange={(event) => setLanguage(event.target.value)} disabled={loading}>{languages.map((item) => <option key={item}>{item}</option>)}</select></label>
@@ -552,7 +550,7 @@ function App() {
 
   const content = {
     overview: <PlatformHome onNavigate={(value) => setSection(value as Section)} />,
-    assistant: <AssistantWorkspace onNavigate={setSection} />,
+    assistant: <AssistantWorkspace />,
     markets: <MarketTerminal />,
     investments: <InvestmentHub />,
     portfolio: <WealthWorkspace />,
@@ -561,11 +559,11 @@ function App() {
     arbitrage: <CryptoArbitrageHub />,
     knowledge: <KnowledgeHub />,
     analyst: <MarketAnalystHub />,
+    global: <GlobalInvestmentHub />,
     resources: <ResourcesHub />,
     study: <StudyHub />,
     token: <TokenGeneratorHub />,
     diary: <InvestmentDiaryHub />,
-    xai: <XAIExplorerHub />,
   }[section];
 
   return (
