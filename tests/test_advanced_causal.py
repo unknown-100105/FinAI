@@ -170,3 +170,108 @@ def test_research_status_endpoint_is_exposed():
     payload = response.json()
     assert payload["status"] == "FINAI_RESEARCH_STACK"
     assert payload["components"]["gflownet"] == "trajectory_balance_research_prototype"
+
+
+
+def test_research_counterfactual_requires_explicit_approval():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    nodes = ["rates", "credit", "portfolio"]
+    edges = [{
+        "source": "rates",
+        "target": "credit",
+        "weight": -0.2,
+        "lag": 0,
+        "selection_frequency": 1.0,
+        "sign_consistency": 1.0,
+    }, {
+        "source": "credit",
+        "target": "portfolio",
+        "weight": -0.4,
+        "lag": 0,
+        "selection_frequency": 1.0,
+        "sign_consistency": 1.0,
+    }]
+    body = {
+        "shock": {"rates": 50},
+        "allocation": {"equity": 60, "debt": 30, "gold": 10},
+        "nodes": nodes,
+        "edges": edges,
+        "approved": False,
+    }
+    response = TestClient(app).post(
+        "/api/v1/causal-risk/research-counterfactual",
+        json=body,
+    )
+    assert response.status_code == 422
+    assert "explicitly approved" in response.json()["detail"]
+
+
+def test_research_counterfactual_runs_only_after_gate_approval():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    nodes = ["rates", "credit", "portfolio"]
+    edges = [{
+        "source": "rates",
+        "target": "credit",
+        "weight": -0.2,
+        "lag": 0,
+        "selection_frequency": 1.0,
+        "sign_consistency": 1.0,
+    }, {
+        "source": "credit",
+        "target": "portfolio",
+        "weight": -0.4,
+        "lag": 0,
+        "selection_frequency": 1.0,
+        "sign_consistency": 1.0,
+    }]
+    body = {
+        "shock": {"rates": 50},
+        "allocation": {"equity": 60, "debt": 30, "gold": 10},
+        "nodes": nodes,
+        "edges": edges,
+        "approved": True,
+    }
+    response = TestClient(app).post(
+        "/api/v1/causal-risk/research-counterfactual",
+        json=body,
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "RESEARCH_COUNTERFACTUAL_EXECUTED"
+    assert payload["gate"]["counterfactual_ready"] is True
+    assert payload["production_boundary"]
+
+
+def test_tail_scenario_endpoint_accepts_empirical_dependence_and_t_copula():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    response = TestClient(app).post(
+        "/api/v1/causal-risk/tail-scenarios",
+        json={
+            "shock": {"rates": 75, "oil": 50},
+            "draws": 32,
+            "seed": 4,
+            "use_empirical_market_dependence": False,
+            "distribution": "student_t_copula",
+            "degrees_of_freedom": 5,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["dependence_model"] == "student_t_copula"
+
+
+def test_research_status_reports_advanced_components():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    payload = TestClient(app).get(
+        "/api/v1/causal-risk/research-status"
+    ).json()
+    assert payload["components"]["temporal_gnn"] == "trainable_research_implementation"
+    assert payload["components"]["student_t_copula"] == "research_implemented"
