@@ -197,7 +197,7 @@ def research_status():
     return {
         "status": "FINAI_RESEARCH_STACK",
         "components": {
-            "noteears": "implemented_research_baseline",
+            "notears": "implemented_research_baseline",
             "temporal_discovery": "implemented_research_baseline",
             "stability_consensus": "implemented_and_gated",
             "empirical_calibration": "implemented",
