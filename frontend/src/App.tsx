@@ -17,6 +17,11 @@ import {
   ShieldCheck,
   ArrowRightLeft,
   BookOpen,
+  Activity,
+  Landmark,
+  GraduationCap,
+  Code2,
+  BookMarked,
   Sparkles,
   WalletCards,
 } from "lucide-react";
@@ -33,6 +38,11 @@ import { NewsHub } from "./components/NewsHub";
 import { TaxFormsHub } from "./components/TaxFormsHub";
 import { CryptoArbitrageHub } from "./components/CryptoArbitrageHub";
 import { KnowledgeHub } from "./components/KnowledgeHub";
+import { InvestmentDiaryHub } from "./components/InvestmentDiaryHub";
+import { TokenGeneratorHub } from "./components/TokenGeneratorHub";
+import { StudyHub } from "./components/StudyHub";
+import { ResourcesHub } from "./components/ResourcesHub";
+import { MarketAnalystHub } from "./components/MarketAnalystHub";
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
@@ -53,6 +63,11 @@ const navigation = [
   { id: "forms", label: "Tax & Forms", icon: FileText },
   { id: "arbitrage", label: "Crypto Arbitrage", icon: ArrowRightLeft },
   { id: "knowledge", label: "Knowledge", icon: BookOpen },
+  { id: "analyst", label: "Market Analyst", icon: Activity },
+  { id: "resources", label: "Schemes & Resources", icon: Landmark },
+  { id: "study", label: "Study Centre", icon: GraduationCap },
+  { id: "token", label: "Token Lab", icon: Code2 },
+  { id: "diary", label: "Investment Diary", icon: BookMarked },
 ] as const;
 
 type Section = (typeof navigation)[number]["id"];
@@ -510,6 +525,11 @@ function App() {
     forms: <TaxFormsHub />,
     arbitrage: <CryptoArbitrageHub />,
     knowledge: <KnowledgeHub />,
+    analyst: <MarketAnalystHub />,
+    resources: <ResourcesHub />,
+    study: <StudyHub />,
+    token: <TokenGeneratorHub />,
+    diary: <InvestmentDiaryHub />,
   }[section];
 
   return (
