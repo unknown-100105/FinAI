@@ -4,7 +4,7 @@ from app.main import app
 
 
 def test_route_registry_has_new_modules():
-    paths = {route.path for route in app.routes if hasattr(route, "path")}
+    paths = set(app.openapi()["paths"])
     expected = {
         "/api/v1/compliance/catalog",
         "/api/v1/resources",
