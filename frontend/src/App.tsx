@@ -35,7 +35,6 @@ import { WealthWorkspace } from "./components/WealthWorkspace";
 import { PlatformHome } from "./components/PlatformHome";
 import { InvestmentHub } from "./components/InvestmentHub";
 import { NewsHub } from "./components/NewsHub";
-import { TaxFormsHub } from "./components/TaxFormsHub";
 import { CryptoArbitrageHub } from "./components/CryptoArbitrageHub";
 import { KnowledgeHub } from "./components/KnowledgeHub";
 import { InvestmentDiaryHub } from "./components/InvestmentDiaryHub";
@@ -131,6 +130,24 @@ function extractTrace(data: any): TraceState {
         ? "Verified"
         : "Completed",
   };
+}
+
+function RichMessage({ textValue }: { textValue: string }) {
+  const urlPattern = /(https?:\/\/[^\s)]+)/g;
+  const parts = textValue.split(urlPattern);
+  return (
+    <>
+      {parts.map((part, index) =>
+        /^https?:\/\//.test(part) ? (
+          <a key={index} href={part.replace(/[.,;]+$/, "")} target="_blank" rel="noreferrer" className="chat-link">
+            {part}
+          </a>
+        ) : (
+          <span key={index}>{part}</span>
+        ),
+      )}
+    </>
+  );
 }
 
 function traceValue(value: string) {
@@ -395,7 +412,7 @@ function AssistantWorkspace() {
               </div>
               <div className="chat-content">
                 <span>{item.role === "assistant" ? "FINAI" : "YOU"}</span>
-                <div className="chat-bubble">{item.content}</div>
+                <div className="chat-bubble"><RichMessage textValue={item.content} /></div>
               </div>
             </div>
           ))}
