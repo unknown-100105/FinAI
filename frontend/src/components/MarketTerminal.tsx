@@ -8,7 +8,6 @@ import {
   ExternalLink,
   Newspaper,
   RefreshCw,
-  Search,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -22,6 +21,7 @@ import {
   type MarketOverviewItem,
   type MarketQuote,
 } from "../api/market";
+import { MarketSearchBox } from "./MarketSearchBox";
 import "./MarketTerminal.css";
 
 const instruments = [
@@ -240,18 +240,10 @@ export function MarketTerminal() {
       <div className="market-layout">
         <div className="market-main">
           <div className="instrument-toolbar">
-            <div className="instrument-search">
-              <Search size={15} />
-              <select
-                value={instrument}
-                onChange={(event) => setInstrument(event.target.value)}
-                disabled={loading}
-              >
-                {instruments.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </div>
+            <MarketSearchBox
+              value={instrument}
+              onSelect={(symbol) => setInstrument(symbol)}
+            />
 
             <div className="range-tabs">
               {ranges.map((item) => (
