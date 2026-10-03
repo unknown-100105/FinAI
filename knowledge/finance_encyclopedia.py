@@ -46,6 +46,11 @@ TOPICS = (
                  "Fiat money is currency that is not redeemable for a fixed amount of a commodity and is supported by legal, monetary and economic institutions.",
                  ("Its value is linked to confidence, monetary policy, economic conditions and acceptance for transactions.", "Supply and demand for money interact with interest rates and economic activity.", "Inflation changes purchasing power over time."),
                  "Fiat systems underpin most modern national currencies."),
+    FinanceTopic("tax_year", "Tax Year in India", "taxation", ("tax year", "tax year 2026-27", "income tax act 2025"),
+                 "From 1 April 2026, the Income Tax Act, 2025 uses the term Tax Year for the twelve-month financial-year period, replacing the old previous-year terminology for income under the new Act.",
+                 ("Tax Year 2026-27 corresponds to the financial year beginning 1 April 2026.", "Returns for FY 2025-26 are still filed as AY 2026-27 under the Income Tax Act, 1961 because that income period began before 1 April 2026.", "The e-filing portal supports the transition between the old and new frameworks.", "The applicable law and form depend on the tax period and transaction date."),
+                 "The transition matters when selecting forms, sections and TDS references."),
+                 true, "Income Tax Department FAQs on the Income Tax Act, 2025.");
     FinanceTopic("history_finance", "History of Finance", "history", ("history of finance", "financial history", "history finance"),
                  "The history of finance traces how societies moved from direct exchange and commodity money toward banking, debt markets, joint-stock companies, modern exchanges, central banking and digital financial networks.",
                  ("Ancient credit and lending practices developed alongside trade.", "Commercial banking and public debt markets expanded as states and merchants needed larger pools of capital.", "Joint-stock companies and organized exchanges widened access to investable securities.", "Central banks and modern payment systems emerged as financial systems became more interconnected.", "Electronic markets and fintech transformed trading and payments, while crypto introduced programmable decentralized networks."),
