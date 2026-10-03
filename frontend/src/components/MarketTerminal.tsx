@@ -109,7 +109,11 @@ export function MarketTerminal() {
   const [error, setError] = useState("");
 
   const selectedRange = ranges.find((item) => item.id === range) ?? ranges[2];
-  const intradayAllowed = selectedRange.days <= 30;
+  const intervalAllowed = (value: string) => {
+    if (value === "1m" || value === "2m" || value === "5m") return selectedRange.days <= 7;
+    if (value === "15m" || value === "30m" || value === "1h") return selectedRange.days <= 60;
+    return true;
+  };
 
   useEffect(() => {
     setInterval(selectedRange.interval);
@@ -204,7 +208,7 @@ export function MarketTerminal() {
               <div className="control-group">
                 <span>Interval</span>
                 <div className="range-tabs interval-tabs">{intervals.map((value) => (
-                  <button key={value} type="button" className={interval === value ? "active" : ""} disabled={!intradayAllowed && !["1d","1wk"].includes(value)} onClick={() => setInterval(value)}>{value}</button>
+                  <button key={value} type="button" className={interval === value ? "active" : ""} disabled={!intervalAllowed(value)} onClick={() => setInterval(value)}>{value}</button>
                 ))}</div>
               </div>
             </div>
