@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Query
 from market_data.analyst import analyze_candles
+from market_data.predictor import analyze_market_movement
 from app.market_api import _get_service, _resolve_instrument_or_search
 from market_data.news import fetch_news
 
@@ -87,3 +88,28 @@ def explain_candle(request: CandleExplainRequest) -> dict[str, Any]:
         }
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Candle explanation unavailable: {exc}") from exc
+
+
+@router.get("/analyst/models")
+def analyst_models(
+    instrument: str = Query(..., min_length=1),
+    start: datetime = Query(...),
+    end: datetime = Query(...),
+    interval: str = Query(default="15m", pattern="^(1m|2m|5m|15m|30m|60m|90m|1h|1d|5d|1wk|1mo|3mo)$"),
+) -> dict[str, Any]:
+    if start > end:
+        raise HTTPException(status_code=422, detail="start must not be after end.")
+    item = _resolve_instrument_or_search(instrument)
+    try:
+        bars = _get_service().history(
+            symbol=item.display_name, asset_type=item.asset_type, exchange=item.exchange,
+            start=start, end=end, provider_id="yfinance", interval=interval,
+        )
+        return {
+            "instrument": item.display_name,
+            "interval": interval,
+            "analysis": analyze_market_movement(bars),
+            "source": "yfinance OHLCV + walk-forward model ensemble",
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Market model analysis failed: {exc}") from exc
