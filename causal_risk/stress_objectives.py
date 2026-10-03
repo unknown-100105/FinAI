@@ -74,11 +74,9 @@ class CausalStressReward:
             edges = torch.tensor(self.edge_matrix, dtype=z.dtype, device=z.device)
             nz = edges != 0
             if torch.any(nz):
-                src = z.unsqueeze(2)
-                dst = z.unsqueeze(1)
-                relation = edges.unsqueeze(0) * src * dst
+                relation = edges.unsqueeze(0) * z.unsqueeze(2) * z.unsqueeze(1)
                 causal_alignment = torch.sigmoid(
-                    3.0 * relation[nz.unsqueeze(0).expand_as(relation)].reshape(z.shape[0], -1)
+                    3.0 * relation[:, nz]
                 ).mean(dim=1)
             else:
                 causal_alignment = torch.ones_like(tail_severity)
