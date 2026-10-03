@@ -220,3 +220,22 @@ def news(
         "source": "yfinance",
         "articles": articles,
     }
+
+
+@router.get("/overview")
+def overview():
+    from market_data.overview import build_market_overview
+
+    try:
+        result = build_market_overview(
+            market_data_service=_get_service(),
+            resolver=_resolver,
+            provider_id="yfinance",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Market overview retrieval failed: {exc}",
+        ) from exc
+
+    return result
