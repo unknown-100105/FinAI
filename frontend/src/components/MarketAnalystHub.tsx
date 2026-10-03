@@ -32,7 +32,8 @@ export function MarketAnalystHub(){
   const [selected,setSelected]=useState<number>(0);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
-  const [playing,setPlaying]=useState(false);\n  const [aiExplanation,setAiExplanation]=useState("");\n  const [aiBusy,setAiBusy]=useState(false);
+  const [playing,setPlaying]=useState(false);
+  const [scenario,setScenario]=useState<{scenarios:Array<{name:string;conditions_to_watch:string[];not_a_prediction:boolean}>;forecast_note:string}>({scenarios:[],forecast_note:""});\n  const [aiExplanation,setAiExplanation]=useState("");\n  const [aiBusy,setAiBusy]=useState(false);
 
   const rangeConfig=useMemo(()=>ranges.find(r=>r.id===range)??ranges[0],[range]);
 
@@ -42,6 +43,7 @@ export function MarketAnalystHub(){
       const d=datesFor(rangeConfig.days);
       const result=await getMarketAnalyst(instrument,d.start,d.end,interval);
       setCandles(result.analysis.candles);
+      setScenario(result.analysis.scenario ?? {scenarios:[],forecast_note:""});
       setNews(result.news||[]);
       setSelected(Math.max(0,result.analysis.candles.length-1));
     }catch(e){setCandles([]);setError(e instanceof Error?e.message:"Market analysis unavailable.");}
@@ -82,6 +84,12 @@ export function MarketAnalystHub(){
       <div className="module-panel-head"><div><div className="module-kicker">OHLCV</div><h2>{instrument} · {interval} · {candles.length} candles</h2></div><span className="source-chip">yfinance snapshot</span></div>
       <CandleChart bars={bars} height={390} selectedIndex={candle?.index} onSelect={setSelected} showVolume />
       <div className="analyst-slider"><input type="range" min="0" max={Math.max(0,candles.length-1)} value={selected} onChange={e=>setSelected(Number(e.target.value))}/><span>{candle?new Date(candle.timestamp).toLocaleString():"—"}</span></div>
+    </section>
+
+    <section className="workspace-panel scenario-panel">
+      <div className="module-panel-head"><div><div className="module-kicker">Forward scenarios</div><h2>What to monitor next</h2></div><span className="source-chip">Not a price forecast</span></div>
+      <div className="scenario-grid">{scenario.scenarios.map(item => <article className="scenario-card" key={item.name}><strong>{item.name}</strong><div>{item.conditions_to_watch.map(condition => <span key={condition}>• {condition}</span>)}</div></article>)}</div>
+      <div className="data-note">{scenario.forecast_note}</div>
     </section>
 
     <div className="analyst-grid">
