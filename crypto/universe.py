@@ -236,6 +236,46 @@ def market_universe(
     }
 
 
+
+def exchange_ohlcv(
+    exchange_id: str,
+    symbol: str,
+    timeframe: str = "15m",
+    limit: int = 200,
+) -> List[Dict[str, Any]]:
+    """Return live public OHLCV candles from a specific exchange connector."""
+    if not symbol or not symbol.strip():
+        raise ValueError("symbol is required.")
+    limit_value = max(10, min(int(limit), 1000))
+    key = f"ohlcv:{exchange_id}:{symbol}:{timeframe}:{limit_value}"
+    cached = _cache_get(key, 10)
+    if cached is not None:
+        return cached
+
+    exchange = _exchange(exchange_id)
+    if not exchange.has.get("fetchOHLCV"):
+        raise RuntimeError(f"{exchange_id} does not expose public OHLCV data.")
+
+    rows = exchange.fetch_ohlcv(
+        symbol.strip(),
+        timeframe=timeframe,
+        limit=limit_value,
+    )
+    result = [
+        {
+            "timestamp": int(row[0]),
+            "open": float(row[1]),
+            "high": float(row[2]),
+            "low": float(row[3]),
+            "close": float(row[4]),
+            "volume": float(row[5]) if len(row) > 5 and row[5] is not None else None,
+        }
+        for row in rows
+        if len(row) >= 5
+    ]
+    _cache_set(key, result)
+    return result
+
 def all_exchange_tickers(
     exchange_id: str,
     *,
