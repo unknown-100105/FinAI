@@ -224,12 +224,33 @@ export function MarketTerminal() {
                 ))}
               </div>
             </div>
-            <div className="range-tabs">
-              {ranges.map((item) => (
-                <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => setRange(item.id)}>
-                  {item.id}
-                </button>
-              ))}
+            <div className="market-control-groups">
+              <div className="control-group">
+                <span>Range</span>
+                <div className="range-tabs">
+                  {ranges.map((item) => (
+                    <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => setRange(item.id)}>
+                      {item.id}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="control-group">
+                <span>Interval</span>
+                <div className="range-tabs interval-tabs">
+                  {["1m", "5m", "15m", "30m", "1h", "1d", "1wk"].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={interval === value ? "active" : ""}
+                      disabled={!intradayAllowed && !["1d", "1wk"].includes(value)}
+                      onClick={() => setInterval(value)}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -254,7 +275,7 @@ export function MarketTerminal() {
 
           <div className="chart-card">
             <div className="chart-head">
-              <div><span>{instrument}</span><small>{lastUpdated ? `Updated ${lastUpdated} · ${selectedRange.interval}` : "Loading market feed"}</small></div>
+              <div><span>{instrument}</span><small>{lastUpdated ? `Updated ${lastUpdated} · ${interval}` : "Loading market feed"}</small></div>
               <div className="chart-badge"><Activity size={13} /> {quote?.source ?? "market feed"}</div>
             </div>
             <div className="chart-wrap">
