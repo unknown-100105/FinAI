@@ -16,8 +16,11 @@ def test_scan_all_pairs_ranks_by_net_return(monkeypatch):
              "last": 100, "bid_volume": 10, "ask_volume": 10, "base_volume": 0, "quote_volume": 0, "timestamp": None}
         ],
     )
-    monkeypatch.setitem(universe.PUBLIC_CONNECTOR_MAP, "buy", "Test Buy")
-    monkeypatch.setitem(universe.PUBLIC_CONNECTOR_MAP, "sell", "Test Sell")
+    monkeypatch.setattr(
+        universe,
+        "public_connector_map",
+        lambda: {"buy": "Test Buy", "sell": "Test Sell"},
+    )
 
     result = universe.scan_all_pairs(
         exchanges=("buy", "sell"),
