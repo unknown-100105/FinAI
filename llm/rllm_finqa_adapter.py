@@ -147,10 +147,35 @@ class RLLMFinQAModelAdapter:
             outputs.shape[-1] - input_tokens
         )
 
+        generated_ids = outputs[0][input_tokens:]
         response = self.tokenizer.decode(
-            outputs[0][input_tokens:],
+            generated_ids,
             skip_special_tokens=True,
         ).strip()
+
+        eos_ids = self.tokenizer.eos_token_id
+        if eos_ids is None:
+            eos_ids = set()
+        elif isinstance(eos_ids, int):
+            eos_ids = {eos_ids}
+        else:
+            eos_ids = set(eos_ids)
+
+        hit_eos = bool(eos_ids) and any(
+            int(token_id) in eos_ids
+            for token_id in generated_ids.tolist()
+        )
+
+        generation_complete = (
+            generated_tokens < max_new_tokens
+            or hit_eos
+        )
+        truncated = not generation_complete
+        finish_reason = (
+            "stop"
+            if generation_complete
+            else "length"
+        )
 
         tokens_per_second = (
             generated_tokens / generation_seconds
@@ -165,6 +190,9 @@ class RLLMFinQAModelAdapter:
             "language": language,
             "persona": persona,
             "response": response,
+            "generation_complete": generation_complete,
+            "truncated": truncated,
+            "finish_reason": finish_reason,
             "metrics": {
                 "load_seconds": self.load_seconds,
                 "generation_seconds": generation_seconds,
