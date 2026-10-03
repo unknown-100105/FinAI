@@ -209,6 +209,9 @@ def research_status():
             "multimodal_graph": "typed_fusion_research_implementation",
             "neuro_symbolic_rules": "deterministic_constraint_engine",
             "regime_benchmark": "implemented",
+            "microstructure_features": "implemented",
+            "text_graph_alignment": "implemented",
+            "research_counterfactual": "explicit-approval-only",
         },
         "production_boundary": (
             "Research components remain isolated from production investment "
