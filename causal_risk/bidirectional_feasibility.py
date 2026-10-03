@@ -59,6 +59,7 @@ def backward_target_cone(
     *,
     target_node: str,
     target_interval: Sequence[float],
+    intervened_nodes: Sequence[str] = (),
 ) -> dict[str, Any]:
     """Compute a conservative necessary interval for ancestors of a target."""
     labels = tuple(str(node) for node in nodes)
@@ -66,6 +67,10 @@ def backward_target_cone(
         raise ValueError("nodes must be non-empty and unique")
     if str(target_node) not in labels:
         raise ValueError("target_node must exist in nodes")
+    intervened = {str(node) for node in intervened_nodes}
+    unknown_intervened = sorted(intervened - set(labels))
+    if unknown_intervened:
+        raise ValueError(f"intervened_nodes references unknown nodes: {unknown_intervened}")
 
     bounds = {node: _interval(node_bounds[node], f"node_bounds[{node}]") for node in labels}
     parents: dict[str, list[tuple[str, float]]] = defaultdict(list)
@@ -92,6 +97,12 @@ def backward_target_cone(
             reverse[child].append(parent)
     while queue:
         current = queue.pop()
+        # A future intervention severs incoming structural edges for the
+        # purposes of this necessary-condition calculation. Its value can be
+        # chosen by the generator, so upstream ancestors cannot be required
+        # from the target interval through this node.
+        if current != str(target_node) and current in intervened:
+            continue
         for parent in reverse[current]:
             if parent not in ancestor_set:
                 ancestor_set.add(parent)
@@ -110,6 +121,8 @@ def backward_target_cone(
             continue
         visited.add(child)
         child_required = required[child]
+        if child != str(target_node) and child in intervened:
+            continue
         plist = parents[child]
         for parent, weight in plist:
             others = [
@@ -138,6 +151,7 @@ def backward_target_cone(
         "target_node": str(target_node),
         "target_interval": list(required[str(target_node)]),
         "required_intervals": {node: list(interval) for node, interval in required.items()},
+        "intervened_nodes": sorted(intervened),
         "ancestor_nodes": sorted(ancestor_set),
         "semantics": (
             "Intervals are necessary conditions for reaching the target under "
