@@ -221,6 +221,95 @@ class FinAIHybridEngine:
         if (
             plan.decision == "EXECUTE"
             and plan.capability == "rag"
+            and intent == "FINANCIAL_PRODUCT_KNOWLEDGE"
+        ):
+            # Product questions first use a small deterministic catalog so
+            # common financial concepts do not depend on a thin historical
+            # RAG corpus or a generative model being available.
+            from knowledge.financial_catalog import build_answer
+
+            knowledge_result = build_answer(user_text)
+
+            if knowledge_result["found"]:
+                response_result = None
+
+                if generate_response:
+                    from llm.response_service import ResponseService
+
+                    service = self.response_service or ResponseService()
+
+                    try:
+                        response_result = service.generate(
+                            user_text=user_text,
+                            intent=intent,
+                            verified_result={
+                                "knowledge_answer": knowledge_result["answer"],
+                                "matches": knowledge_result["matches"],
+                            },
+                            source="structured_financial_knowledge",
+                            language=language,
+                            persona=persona,
+                            max_new_tokens=max_new_tokens,
+                        )
+                    except Exception as exc:
+                        response_result = {
+                            "status": "KNOWLEDGE_FALLBACK",
+                            "model_id": None,
+                            "response": knowledge_result["answer"],
+                            "verification": {
+                                "applicable": True,
+                                "passed": True,
+                                "mode": "STRUCTURED_KNOWLEDGE",
+                                "missing_values": [],
+                                "semantic_errors": [],
+                            },
+                            "claim_verification": {
+                                "applicable": False,
+                                "passed": True,
+                                "report": None,
+                                "claims": [],
+                            },
+                            "generation_error": str(exc),
+                        }
+
+                final_response = (
+                    response_result["response"]
+                    if response_result
+                    else knowledge_result["answer"]
+                )
+
+                return {
+                    "stage": "financial_knowledge",
+                    "status": (
+                        response_result.get("status")
+                        if response_result
+                        else "KNOWLEDGE_RETRIEVED"
+                    ),
+                    "user_text": user_text,
+                    "router": router,
+                    "execution_plan": execution_plan,
+                    "policy": {
+                        "status": "ALLOWED",
+                        "risk_level": plan.risk_level,
+                        "authentication_required": plan.authentication_required,
+                        "confirmation_required": plan.confirmation_required,
+                        "tool": plan.tool,
+                    },
+                    "knowledge": {
+                        "source": "structured_financial_catalog",
+                        "matches": knowledge_result["matches"],
+                        "answer": knowledge_result["answer"],
+                    },
+                    "tool": None,
+                    "message": final_response,
+                    "response": final_response,
+                    "response_generation": response_result,
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+        if (
+            plan.decision == "EXECUTE"
+            and plan.capability == "rag"
         ):
             try:
                 retriever = self._get_rag_retriever()
