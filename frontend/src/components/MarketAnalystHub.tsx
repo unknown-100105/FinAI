@@ -11,10 +11,10 @@ import {
 import {
   explainCandle,
   getMarketAnalyst,
-  getMarketModelAnalysis,
   type CandleAnalysis,
 } from "../api/marketAnalyst";
 import { MarketSearchBox } from "./MarketSearchBox";
+import { getPrediction, type Prediction } from "../api/intelligence";
 import { CandleChart } from "./CandleChart";
 import type { MarketBar } from "../api/market";
 import "./PlatformModules.css";
@@ -69,8 +69,7 @@ export function MarketAnalystHub() {
   });
   const [aiExplanation, setAiExplanation] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
-  const [modelAnalysis, setModelAnalysis] = useState<any>(null);
-  const [modelBusy, setModelBusy] = useState(false);
+  const [prediction, setPrediction] = useState<Prediction | null>(null);
 
   const rangeConfig =
     useMemo(() => ranges.find((item) => item.id === range) ?? ranges[0], [range]);
@@ -86,7 +85,6 @@ export function MarketAnalystHub() {
     setLoading(true);
     setError("");
     setAiExplanation("");
-    setModelBusy(true);
 
     try {
       const window = datesFor(rangeConfig.days);
@@ -105,14 +103,12 @@ export function MarketAnalystHub() {
       );
       setNews(result.news || []);
       setSelected(Math.max(0, result.analysis.candles.length - 1));
-
-      const modelResult = await getMarketModelAnalysis(
-        instrument,
-        window.start,
-        window.end,
-        interval,
-      );
-      setModelAnalysis(modelResult.analysis);
+      try {
+        const modelResult = await getPrediction(instrument, range === "1D" ? 1 : range === "5D" ? 5 : range === "1M" ? 20 : 5);
+        setPrediction(modelResult);
+      } catch {
+        setPrediction(null);
+      }
     } catch (requestError) {
       setCandles([]);
       setScenario({ scenarios: [], forecast_note: "" });
@@ -123,7 +119,6 @@ export function MarketAnalystHub() {
       );
     } finally {
       setLoading(false);
-      setModelBusy(false);
     }
   };
 
@@ -150,6 +145,20 @@ export function MarketAnalystHub() {
 
   const candle = candles[selected];
   const bars = useMemo(() => toMarketBars(candles), [candles]);
+  const xaiFactors = useMemo(() => {
+    const factors: Record<string, number> = {};
+    for (const model of prediction?.models ?? []) {
+      for (const [name, value] of Object.entries(model.feature_importance)) {
+        factors[name] = (factors[name] ?? 0) + Number(value);
+      }
+    }
+    const max = Math.max(...Object.values(factors), 0);
+    return Object.entries(factors).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({
+      name,
+      value,
+      width: max > 0 ? Math.min(100, (value / max) * 100) : 0,
+    }));
+  }, [prediction]);
 
   return (
     <section className="module-page">
@@ -253,40 +262,53 @@ export function MarketAnalystHub() {
         </div>
       </section>
 
-      <section className="workspace-panel model-ensemble-panel">
+      <section className="workspace-panel model-arena-panel">
         <div className="module-panel-head">
           <div>
-            <div className="module-kicker">Quant research ensemble</div>
-            <h2>Walk-forward model comparison</h2>
+            <div className="module-kicker">Multi-model intelligence</div>
+            <h2>Model Arena · historical benchmark</h2>
           </div>
-          <span className="source-chip">Research scenarios · not guarantees</span>
+          <span className="source-chip">{prediction?.validation?.method || "Not run"}</span>
         </div>
-        <p className="data-note">FinAI does not assume one model is universally best. It evaluates multiple model families on the selected historical window and combines them using inverse backtest error. The result is a research scenario, not a guaranteed forecast.</p>
-        {modelBusy ? <div className="module-empty">Running walk-forward model evaluation…</div> : modelAnalysis?.ensemble ? (
+        {prediction ? (
           <>
-            <div className="forecast-summary-grid">
-              <div><span>Ensemble next-return scenario</span><strong>{Number(modelAnalysis.ensemble.next_return_scenario_percent).toFixed(3)}%</strong></div>
-              <div><span>Scenario direction</span><strong>{modelAnalysis.ensemble.direction}</strong></div>
-              <div><span>Model agreement</span><strong>{Number(modelAnalysis.ensemble.model_agreement_percent).toFixed(1)}%</strong></div>
-              <div><span>Reference close</span><strong>{Number(modelAnalysis.ensemble.reference_last_close).toFixed(2)}</strong></div>
+            <div className="analyst-model-summary">
+              <div><span>Ensemble</span><strong>{prediction.ensemble.direction}</strong></div>
+              <div><span>Probability up</span><strong>{prediction.ensemble.probability_up == null ? "—" : Math.round(prediction.ensemble.probability_up * 100) + "%"}</strong></div>
+              <div><span>Agreement</span><strong>{prediction.ensemble.confidence == null ? "—" : Math.round(prediction.ensemble.confidence * 100) + "%"}</strong></div>
+              <div><span>Holdout</span><strong>{prediction.validation?.test_samples || 0}</strong></div>
             </div>
-            <div className="model-table-wrap">
-              <table className="model-table">
-                <thead><tr><th>Model</th><th>Backtest MAE</th><th>Direction accuracy</th><th>Next scenario</th><th>Weight</th></tr></thead>
-                <tbody>{(modelAnalysis.models || []).map((model:any) => (
-                  <tr key={model.name}>
-                    <td><strong>{model.name}</strong></td>
-                    <td>{model.mae_percent == null ? "—" : Number(model.mae_percent).toFixed(3) + "%"}</td>
-                    <td>{model.directional_accuracy_percent == null ? "—" : Number(model.directional_accuracy_percent).toFixed(1) + "%"}</td>
-                    <td>{model.next_return_percent == null ? "—" : Number(model.next_return_percent).toFixed(3) + "%"}</td>
-                    <td>{(Number(model.weight) * 100).toFixed(1)}%</td>
-                  </tr>
-                ))}</tbody>
-              </table>
+            <div className="model-arena-grid">
+              {prediction.models.map((model) => (
+                <article key={model.model_id} className="model-arena-card">
+                  <div><strong>{model.model_id.replaceAll("_", " ")}</strong><span>{model.family}</span></div>
+                  <b className={model.direction === "bullish" ? "signal-positive" : model.direction === "bearish" ? "signal-negative" : "source-chip"}>{model.direction}</b>
+                  <div className="model-metric-row"><span>Probability</span><strong>{model.probability_up == null ? "—" : Math.round(model.probability_up * 100) + "%"}</strong></div>
+                  <div className="model-metric-row"><span>Holdout accuracy</span><strong>{model.validation_accuracy == null ? "—" : Math.round(model.validation_accuracy * 100) + "%"}</strong></div>
+                  <div className="model-feature-list">{Object.entries(model.feature_importance).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([name,value])=><span key={name}>{name} {Math.round(value*100)}%</span>)}</div>
+                </article>
+              ))}
             </div>
+            <div className="data-note">The ensemble is a benchmark over chronological historical data, not a claim that any model can reliably predict future prices. Model agreement and validation metrics are shown so the user can inspect uncertainty.</div>
           </>
-        ) : <div className="module-empty">{modelAnalysis?.message || "No model comparison available for this history window."}</div>}
-        <div className="data-note">{modelAnalysis?.warning || "Use the model panel as research evidence, not as a promise about the next market move."}</div>
+        ) : <div className="module-empty">Model arena unavailable or insufficient historical data.</div>}
+      </section>
+
+      <section className="workspace-panel xai-panel">
+        <div className="module-panel-head">
+          <div><div className="module-kicker">Explainable AI</div><h2>Why the ensemble produced this view</h2></div>
+          <span className="source-chip">Feature attribution</span>
+        </div>
+        {xaiFactors.length ? <div className="xai-factor-grid">
+          {xaiFactors.map((factor) => (
+            <div key={factor.name}>
+              <span>{factor.name.replaceAll("_", " ")}</span>
+              <div className="xai-bar"><i style={{ width: factor.width + "%" }} /></div>
+              <strong>{Math.round(factor.value * 100)}%</strong>
+            </div>
+          ))}
+        </div> : <div className="module-empty">Run the model arena to populate explainability.</div>}
+        <div className="data-note">Attribution is descriptive of the trained model features; it is not proof that a feature caused the future market move.</div>
       </section>
 
       <section className="workspace-panel">
