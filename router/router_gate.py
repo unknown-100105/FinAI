@@ -106,6 +106,15 @@ FINANCIAL_GUIDANCE_ACTION_TERMS = (
     "card",
     "account balance",
     "complaint",
+    "price",
+    "latest",
+    "current",
+    "live",
+    "quote",
+    "chart",
+    "market",
+    "today",
+    "historical",
 )
 
 
