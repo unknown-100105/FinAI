@@ -9,6 +9,7 @@ import {
   type MarketOverviewItem, type MarketQuote,
 } from "../api/market";
 import { MarketSearchBox } from "./MarketSearchBox";
+import { CandleChart } from "./CandleChart";
 import "./MarketTerminal.css";
 
 const ranges = [
@@ -270,14 +271,7 @@ export function MarketTerminal() {
               <div className="chart-badge"><Activity size={13} /> {quote?.source ?? "market feed"}</div>
             </div>
             <div className="chart-wrap chart-grid">
-              {bars.length > 1 ? (
-                <>
-                  <div className="chart-axis-labels"><span>High</span><span>Low</span></div>
-                  <svg viewBox="0 0 720 220" preserveAspectRatio="none" role="img" aria-label={`${instrument} ${interval} price chart`}>
-                    <polyline points={points} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke" className={positive ? "chart-line-positive" : "chart-line-negative"} />
-                  </svg>
-                </>
-              ) : <div className="chart-empty">{loading ? "Loading price history…" : "No bars returned for this range/interval."}</div>}
+              {loading ? <div className="chart-empty">Loading OHLC candles…</div> : <CandleChart bars={bars} height={310} showVolume={true} />}
             </div>
             <div className="chart-footer">
               <span>{bars[0]?.timestamp ? new Date(bars[0].timestamp).toLocaleString() : "—"}</span>
