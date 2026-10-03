@@ -30,6 +30,9 @@ def notears_linear(
     max_inner_iter: int = 120,
     threshold: float = 0.10,
     max_abs_weight: float = 2.0,
+    rho_growth: float = 2.0,
+    rho_max: float = 1e6,
+    h_tolerance: float = 1e-8,
 ) -> Dict[str, Any]:
     """Learn a bounded linear DAG with the NOTEARS augmented-Lagrangian objective.
 
@@ -56,6 +59,12 @@ def notears_linear(
         raise ValueError("optimization iteration limits must be positive")
     if max_abs_weight <= 0 or max_abs_weight > 5:
         raise ValueError("max_abs_weight must be between 0 and 5")
+    if rho_growth <= 1.0 or rho_growth > 10.0:
+        raise ValueError("rho_growth must be between 1 and 10")
+    if rho_max <= 1.0:
+        raise ValueError("rho_max must be greater than 1")
+    if h_tolerance <= 0:
+        raise ValueError("h_tolerance must be positive")
 
     X = _standardize(X)
     n, d = X.shape
@@ -79,6 +88,9 @@ def notears_linear(
     bounds = [(-float(max_abs_weight), float(max_abs_weight))] * (d * d)
     outer_iterations = 0
     final_result = None
+    h_history: list[float] = []
+    rho_history: list[float] = []
+    previous_h = float("inf")
     for outer in range(max_outer_iter):
         outer_iterations = outer + 1
         final_result = minimize(
@@ -93,11 +105,25 @@ def notears_linear(
             raise ValueError("NOTEARS optimizer produced non-finite weights")
         W = final_result.x.reshape(d, d)
         np.fill_diagonal(W, 0.0)
-        h_val = _h(W)
+        h_val = max(0.0, _h(W))
+        h_history.append(float(h_val))
+        rho_history.append(float(rho))
         alpha += rho * h_val
-        if h_val <= 1e-8:
+        if h_val <= h_tolerance:
             break
-        rho *= 10.0
+        # Gradually increase the augmented-Lagrangian penalty rather than
+        # multiplying it by 10 every iteration. This reduces overshooting in
+        # wide/poorly-scaled problems while retaining pressure toward a DAG.
+        improved = previous_h == float("inf") or h_val < previous_h * 0.95
+        if not improved:
+            rho = min(rho * rho_growth, rho_max)
+        else:
+            rho = min(rho * max(1.25, rho_growth ** 0.5), rho_max)
+        previous_h = h_val
+        if rho >= rho_max and len(h_history) >= 3:
+            recent = h_history[-3:]
+            if max(recent) - min(recent) < max(h_tolerance * 10, 1e-7):
+                break
 
     W[np.abs(W) < threshold] = 0.0
     acyclicity = _h(W)
@@ -128,11 +154,17 @@ def notears_linear(
             "status": optimizer_status,
             "message": optimizer_message,
             "outer_iterations": outer_iterations,
+            "rho_growth": rho_growth,
+            "rho_max": rho_max,
+            "rho_history": rho_history,
+            "acyclicity_history": h_history,
+            "acyclicity_converged": bool(acyclicity <= h_tolerance),
         },
         "method": "NOTEARS-linear",
         "status": "research_implemented",
         "research_boundary": (
-            "A bounded optimizer improves numerical robustness but does not "
-            "solve confounding, temporal feedback, or causal identification."
+            "Adaptive augmented-Lagrangian penalty growth improves numerical "
+            "robustness but does not solve confounding, temporal feedback, or "
+            "causal identification."
         ),
     }
