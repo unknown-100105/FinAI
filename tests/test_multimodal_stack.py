@@ -58,3 +58,16 @@ def test_text_graph_alignment_does_not_claim_causality():
 
     result = align_text_to_graph([1.0, 0.0], {"rates": [1.0, 0.0]})
     assert "causality" in result["semantics"].lower()
+
+
+
+def test_order_book_microstructure_adapter():
+    from causal_risk.microstructure import summarize_order_book
+
+    result = summarize_order_book({
+        "bids": [[100.0, 5.0], [99.5, 2.0]],
+        "asks": [[100.5, 4.0], [101.0, 1.0]],
+    })
+    assert result["status"] == "MICROSTRUCTURE_FEATURES_READY"
+    assert result["mid_price"] == 100.25
+    assert -1.0 <= result["order_book_imbalance"] <= 1.0
