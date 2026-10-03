@@ -429,6 +429,7 @@ function App() {
             </div>
           </section>
         </aside>
+      <MarketTerminal />
       </main>
     </div>
   );
