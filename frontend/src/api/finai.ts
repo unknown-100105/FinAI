@@ -8,6 +8,7 @@ export type ChatRequest = {
   persona?: string;
   generate_response?: boolean;
   max_new_tokens?: number;
+  model_id?: string;
 };
 
 export async function sendChat(
