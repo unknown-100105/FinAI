@@ -304,6 +304,21 @@ class XAITrace:
             "metrics": self._clean_value(
                 model_result.get("metrics", {})
             ),
+            "generation_complete": model_result.get(
+                "generation_complete"
+            ),
+            "truncated": bool(
+                model_result.get("truncated", False)
+            ),
+            "finish_reason": self._safe_value(
+                model_result.get("finish_reason")
+            ),
+            "retry_after_truncation": bool(
+                model_result.get(
+                    "retry_after_truncation",
+                    False,
+                )
+            ),
         }
 
     def record_response_generation(
@@ -387,6 +402,9 @@ class XAITrace:
             "passed": (
                 response_passed
                 and claims_passed
+            ),
+            "mode": self._safe_value(
+                response_verification.get("mode")
             ),
             "response": self._clean_value(
                 response_verification
