@@ -8,7 +8,6 @@ import numpy as np
 
 from causal_risk.discovery import notears_linear
 from causal_risk.patent_benchmark import benchmark_patent_mechanism_variants
-from causal_risk.pruning_benchmark import benchmark_prefix_certificate
 from causal_risk.research_evaluation import perturb_features
 
 
@@ -156,23 +155,21 @@ def run_discovery_holdout_experiment(
 
 
 def run_patent_mechanism_benchmark() -> dict[str, Any]:
-    nodes = ["rates", "credit", "liquidity", "equity", "portfolio"]
+    nodes = ["rates", "credit", "portfolio"]
     edges = [
-        {"source": "rates", "target": "credit", "weight": 0.7},
-        {"source": "credit", "target": "liquidity", "weight": 0.8},
-        {"source": "liquidity", "target": "equity", "weight": 0.9},
-        {"source": "equity", "target": "portfolio", "weight": 0.8},
+        {"source": "rates", "target": "portfolio", "weight": 0.8},
+        {"source": "credit", "target": "portfolio", "weight": 0.5},
     ]
-    bounds = {node: (-100.0, 100.0) for node in nodes}
+    bounds = {"rates": (-100.0, 100.0), "credit": (0.0, 1.0), "portfolio": (-100.0, 100.0)}
     benchmark = benchmark_patent_mechanism_variants(
         nodes,
         edges,
-        ["credit", "rates"],
-        {"credit": 10.0, "rates": 10.0},
-        [-2.0, -1.0, 1.0, 2.0],
+        ["rates", "credit"],
+        {"rates": 10.0, "credit": 0.5},
+        [-1.0, -0.5, 0.5, 1.0],
         bounds,
         target_node="portfolio",
-        target_interval=(5.0, 9.0),
+        target_interval=(8.0, 10.0),
         prefix_depth=1,
     )
     forward = benchmark["forward_certificate"]
