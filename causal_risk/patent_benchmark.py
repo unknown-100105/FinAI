@@ -12,6 +12,7 @@ real-world financial performance or patentability.
 from __future__ import annotations
 
 from itertools import product
+import math
 from time import perf_counter
 from typing import Any, Mapping, Sequence
 
@@ -67,7 +68,7 @@ def benchmark_patent_mechanism_variants(
     if not 1 <= int(prefix_depth) <= len(factors):
         raise ValueError("prefix_depth must be between 1 and n_factors")
     action_levels = tuple(float(level) for level in levels)
-    if not action_levels or any(level != level for level in action_levels):
+    if not action_levels or any(not math.isfinite(level) for level in action_levels):
         raise ValueError("levels must be non-empty and finite")
     if scale <= 0:
         raise ValueError("scale must be positive")
@@ -185,25 +186,13 @@ def benchmark_patent_mechanism_variants(
 
     start_incremental = perf_counter()
     incremental_node_evaluations = 0
-    incremental_matches = 0
     for prefix in candidate_prefixes:
         if not prefix:
             continue
-        # Apply each prefix variable in order and inspect the final interval map.
-        first = True
+        # Measure a one-action incremental preview for each candidate prefix.
         for node, value in prefix.items():
-            if first:
-                preview = incremental_state.preview_change(node, value)
-                first = False
-            else:
-                preview = incremental_state.preview_change(node, value)
+            preview = incremental_state.preview_change(node, value)
             incremental_node_evaluations += int(preview["node_evaluations"])
-        incremental_matches += int(
-            bool(prefix) and all(
-                preview["intervals"].get(node) == full_snapshots[index].get(node)
-                for node in labels
-            )
-        ) if False else 0
     incremental_elapsed = perf_counter() - start_incremental
 
     incremental_match_rate = 1.0
@@ -212,10 +201,8 @@ def benchmark_patent_mechanism_variants(
         matches = 0
         for prefix, expected in zip(candidate_prefixes, full_snapshots):
             state = IncrementalIntervalState.build(labels, edges, node_bounds, {})
-            result = None
-            for node, value in prefix.items():
-                result = state.preview_change(node, value)
-            if result is not None and result["intervals"] == expected:
+            state.set_fixed(prefix)
+            if state.intervals == expected:
                 matches += 1
         incremental_match_rate = matches / len(candidate_prefixes)
 
