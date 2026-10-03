@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 from llm.model_gateway import ModelGateway
 from llm.model_registry import enabled_models
 from llm.response_verifier import FinancialResponseVerifier
+from rag.evidence_verifier import RAGEvidenceVerifier
 from response_engine.financial import FinancialResponseEngine
 from xai.claim_extractor import FinancialClaimExtractor
 from xai.claim_verifier import ClaimVerifier
@@ -65,6 +66,8 @@ class ResponseService:
         self.response_verifier = (
             FinancialResponseVerifier()
         )
+
+        self.rag_evidence_verifier = RAGEvidenceVerifier()
 
         self.claim_verifier = ClaimVerifier()
 
@@ -271,7 +274,16 @@ class ResponseService:
         response: str,
         intent: str,
         verified_result: Dict[str, Any],
+        source: str = "",
     ) -> Dict[str, Any]:
+
+        if source == "retrieval_evidence":
+            documents = verified_result.get("documents") or []
+
+            return self.rag_evidence_verifier.verify(
+                response=response,
+                documents=documents,
+            )
 
         if intent == "EMI_QUERY":
 
@@ -337,6 +349,91 @@ class ResponseService:
             "claims": proposed.to_dict(),
         }
 
+    def _retry_truncated_generation(
+        self,
+        result: Dict[str, Any],
+        selected_model: str,
+        user_text: str,
+        intent: str,
+        verified_result: Dict[str, Any],
+        source: str,
+        language: str,
+        persona: str,
+        max_new_tokens: int,
+    ) -> Dict[str, Any]:
+        """Perform one bounded retry when generation hits the token limit."""
+
+        if not bool(result.get("truncated", False)):
+            return result
+
+        retry_tokens = min(
+            max(max_new_tokens * 2, max_new_tokens + 64),
+            512,
+        )
+
+        if retry_tokens <= max_new_tokens:
+            return {
+                **result,
+                "status": "INCOMPLETE_GENERATION",
+                "generation_complete": False,
+                "truncated": True,
+                "finish_reason": "length",
+                "retry_after_truncation": False,
+            }
+
+        try:
+            if selected_model in self.gateway.available_models():
+                adapter = self.gateway.get_adapter(selected_model)
+            else:
+                adapter = self._get_fallback_adapter(selected_model)
+
+            if adapter is None:
+                raise RuntimeError(
+                    f"No adapter available for '{selected_model}'."
+                )
+
+            retried = adapter.generate(
+                user_text=user_text,
+                intent=intent,
+                verified_result=verified_result,
+                source=source,
+                language=language,
+                persona=persona,
+                max_new_tokens=retry_tokens,
+            )
+
+            if not isinstance(retried, dict):
+                raise TypeError(
+                    f"Retry adapter '{selected_model}' returned "
+                    f"{type(retried).__name__}; expected dict."
+                )
+
+            retried["model_id"] = selected_model
+            retried["retry_after_truncation"] = True
+            retried["retry_max_new_tokens"] = retry_tokens
+
+            if bool(retried.get("truncated", False)):
+                retried["status"] = "INCOMPLETE_GENERATION"
+                retried["generation_complete"] = False
+                retried["finish_reason"] = retried.get(
+                    "finish_reason",
+                    "length",
+                )
+
+            return retried
+
+        except Exception as exc:
+            return {
+                **result,
+                "status": "INCOMPLETE_GENERATION",
+                "generation_complete": False,
+                "truncated": True,
+                "finish_reason": "length",
+                "retry_after_truncation": True,
+                "retry_error": str(exc),
+                "retry_max_new_tokens": retry_tokens,
+            }
+
     def _build_verified_fallback(
         self,
         user_text: str,
@@ -359,6 +456,7 @@ class ResponseService:
             response=fallback,
             intent=intent,
             verified_result=verified_result,
+            source=source,
         )
 
         claim_verification = self._verify_claims(
@@ -409,6 +507,58 @@ class ResponseService:
             persona=persona,
             max_new_tokens=max_new_tokens,
         )
+
+        actual_selected_model = str(
+            result.get("model_id", selected_model)
+        )
+
+        result = self._retry_truncated_generation(
+            result=result,
+            selected_model=actual_selected_model,
+            user_text=user_text,
+            intent=intent,
+            verified_result=verified_result,
+            source=source,
+            language=language,
+            persona=persona,
+            max_new_tokens=max_new_tokens,
+        )
+
+        if result.get("status") == "INCOMPLETE_GENERATION":
+            incomplete_message = (
+                "I couldn't complete the generated response. "
+                "Please retry the request."
+            )
+
+            return {
+                **result,
+                "status": "INCOMPLETE_GENERATION",
+                "response": incomplete_message,
+                "original_response": str(
+                    result.get("response", "")
+                ).strip(),
+                "verification": {
+                    "applicable": False,
+                    "passed": False,
+                    "mode": "GENERATION_COMPLETENESS",
+                    "missing_values": [],
+                    "semantic_errors": [],
+                },
+                "claim_verification": {
+                    "applicable": False,
+                    "passed": False,
+                    "report": None,
+                    "claims": [],
+                },
+                "selection": {
+                    "capability": capability,
+                    "model_id": selected_model,
+                    "actual_model_id": actual_selected_model,
+                    "fallback_used": bool(
+                        result.get("fallback_used", False)
+                    ),
+                },
+            }
 
         response = str(
             result.get("response", "")
