@@ -1,32 +1,124 @@
+"""Integrated causal-risk engine for FinAI research workflows."""
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Dict, List
 
-@dataclass(frozen=True)
-class CausalNode:
-    node_id: str
-    label: str
-    kind: str
+from typing import Any, Dict
 
-NODES=[
- CausalNode("rates","Central-bank rates","macro"),CausalNode("usd","USD / INR","macro"),
- CausalNode("oil","Energy prices","commodity"),CausalNode("supply","East Asia supply","supply"),
- CausalNode("credit","Credit spreads","funding"),CausalNode("liquidity","Market liquidity","market"),
- CausalNode("equity","Equity risk","market"),CausalNode("portfolio","Portfolio drawdown","outcome"),
-]
-EDGES=[("rates","credit",.72),("rates","equity",.64),("usd","oil",.35),("usd","equity",.41),("oil","credit",.28),("oil","equity",.52),("supply","oil",.23),("supply","liquidity",.61),("credit","liquidity",.68),("credit","equity",.57),("liquidity","equity",.74),("equity","portfolio",.83)]
+from causal_risk.causal_xai import explain_paths
+from causal_risk.constraints import validate_allocation, validate_shocks
+from causal_risk.schema import DEFAULT_EDGES, DEFAULT_NODES, graph_payload, validate_graph
+from causal_risk.scm import simulate_scm
+from causal_risk.tail_scenarios import generate_tail_scenarios
 
-def _clamp(x:float,lo=-100.0,hi=100.0)->float:
- return max(lo,min(hi,x))
 
-def run_counterfactual(shock:Dict[str,float], allocation:Dict[str,float])->Dict:
- rates=shock.get("rates",0)/100; supply=shock.get("supply",0)/100; oil=shock.get("oil",0)/100; credit=shock.get("credit",0)/100; usd=shock.get("usd",0)/100
- liquidity=_clamp(-(rates*18+supply*22+credit*24+oil*8+usd*7))
- equity=_clamp(-(rates*13+supply*17+oil*11+credit*21+usd*8)+liquidity*.24)
- debt=_clamp(-(rates*5+credit*16)+oil*2-liquidity*.08)
- drawdown=(allocation.get("equity",0)*equity+allocation.get("debt",0)*debt+allocation.get("gold",0)*(-usd*3-rates*2+oil*2))/100
- systemic=_clamp(abs(liquidity)*.34+abs(equity)*.32+abs(debt)*.18+abs(drawdown)*.16,0,100)
- return {"systemic_stress":round(systemic,3),"channels":{"liquidity":round(liquidity,3),"equity":round(equity,3),"debt":round(debt,3),"portfolio":round(drawdown,3)},"assumptions":"Transparent structural coefficients; research scenario, not a forecast."}
+EDGE_TUPLES = tuple((edge.source, edge.target, edge.weight) for edge in DEFAULT_EDGES)
+NODE_IDS = tuple(node.node_id for node in DEFAULT_NODES)
+ALLOWED_SHOCKS = ("rates", "supply", "oil", "credit", "usd")
 
-def graph_snapshot()->Dict:
- return {"nodes":[n.__dict__ for n in NODES],"edges":[{"source":a,"target":b,"weight":w} for a,b,w in EDGES],"engine":"structural-causal-propagation-v0.1","learned_components_status":"not_production_validated"}
+
+def _clamp(x: float, lo: float = -100.0, hi: float = 100.0) -> float:
+    return max(lo, min(hi, x))
+
+
+def _channels_from_scm(values: Dict[str, float], allocation: Dict[str, float]) -> Dict[str, float]:
+    liquidity = _clamp(values.get("liquidity", 0.0))
+    equity = _clamp(values.get("equity", 0.0) + liquidity * 0.24)
+    debt = _clamp(-values.get("rates", 0.0) * 0.05 - values.get("credit", 0.0) * 0.16 + values.get("oil", 0.0) * 0.02 - liquidity * 0.08)
+    gold = allocation.get("gold", 0.0) * (-values.get("usd", 0.0) * 0.03 - values.get("rates", 0.0) * 0.02 + values.get("oil", 0.0) * 0.02)
+    drawdown = (
+        allocation.get("equity", 0.0) * equity
+        + allocation.get("debt", 0.0) * debt
+        + gold
+    ) / 100.0
+    systemic = _clamp(
+        abs(liquidity) * 0.34
+        + abs(equity) * 0.32
+        + abs(debt) * 0.18
+        + abs(drawdown) * 0.16,
+        0.0,
+        100.0,
+    )
+    return {
+        "liquidity": round(liquidity, 3),
+        "equity": round(equity, 3),
+        "debt": round(debt, 3),
+        "portfolio": round(drawdown, 3),
+        "systemic_stress": round(systemic, 3),
+    }
+
+
+def run_counterfactual(
+    shock: Dict[str, float],
+    allocation: Dict[str, float],
+    *,
+    include_tail_scenarios: bool = False,
+) -> Dict[str, Any]:
+    shock = {str(key): float(value) for key, value in shock.items()}
+    allocation = {str(key): float(value) for key, value in allocation.items()}
+
+    allocation_check = validate_allocation(allocation)
+    shock_check = validate_shocks(shock, ALLOWED_SHOCKS)
+    if not allocation_check["passed"]:
+        raise ValueError("; ".join(allocation_check["errors"]))
+    if not shock_check["passed"]:
+        raise ValueError("; ".join(shock_check["errors"]))
+
+    normalized = {key: value / 100.0 for key, value in shock.items()}
+    scm = simulate_scm(NODE_IDS, EDGE_TUPLES, normalized)
+    channels = _channels_from_scm(
+        {key: value * 100.0 for key, value in scm["node_values"].items()},
+        allocation,
+    )
+    interventions = tuple(key for key in shock if key in ALLOWED_SHOCKS)
+    paths = explain_paths(EDGE_TUPLES, interventions, target="portfolio")
+
+    result: Dict[str, Any] = {
+        "systemic_stress": channels["systemic_stress"],
+        "channels": {key: channels[key] for key in ("liquidity", "equity", "debt", "portfolio")},
+        "interventions": shock,
+        "allocation": allocation,
+        "structural_model": {
+            "method": "linear structural causal model",
+            "intervention_operator": "do(X=x)",
+            "node_values": scm["node_values"],
+            "edge_contributions": scm["edge_contributions"],
+        },
+        "explanation": {
+            "paths": paths,
+            "primary_path": paths[0]["path"] if paths else [],
+            "statement": "Effects are propagated through directed structural edges; this is an intrinsic causal-path explanation, not post-hoc feature attribution.",
+        },
+        "validation": {
+            "allocation": allocation_check,
+            "shocks": shock_check,
+            "graph_errors": validate_graph(DEFAULT_NODES, DEFAULT_EDGES),
+        },
+        "research_status": {
+            "notears": "module_available",
+            "dynamic_discovery": "lagged_research_baseline_available",
+            "temporal_gnn": "architecture_stage",
+            "gfnets": "interface_ready_not_trained",
+        },
+        "assumptions": "Structural coefficients are transparent research parameters. Outputs are scenario analytics, not forecasts.",
+    }
+    if include_tail_scenarios:
+        result["tail_scenarios"] = generate_tail_scenarios(shock)
+    return result
+
+
+def graph_snapshot() -> Dict[str, Any]:
+    graph = graph_payload()
+    graph.update(
+        {
+            "engine": "finai-causal-risk-v0.2",
+            "semantics": "directed structural graph for counterfactual propagation",
+            "learned_components_status": {
+                "notears_linear": "implemented",
+                "dynamic_lagged_discovery": "implemented_research_baseline",
+                "tgat": "architecture_stage",
+                "kg_embeddings": "planned",
+                "gfnets": "interface_ready_not_trained",
+            },
+            "graph_validation": validate_graph(DEFAULT_NODES, DEFAULT_EDGES),
+        }
+    )
+    return graph
