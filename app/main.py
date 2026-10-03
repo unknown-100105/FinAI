@@ -9,6 +9,7 @@ from orchestrator.session_xai import XAISessionOrchestrator
 
 from market_data.service import MarketDataService
 from app.market_api import router as market_router
+from app.crypto_api import router as crypto_router
 
 
 APP_VERSION = "0.1.0"
@@ -39,6 +40,7 @@ app.add_middleware(
 
 
 app.include_router(market_router)
+app.include_router(crypto_router)
 
 
 _orchestrator: Optional[XAISessionOrchestrator] = None
