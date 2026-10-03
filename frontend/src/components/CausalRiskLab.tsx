@@ -125,6 +125,8 @@ export default function CausalRiskLab() {
   const debt = result?.channels.debt ?? fallback.d;
   const draw = result?.channels.portfolio ?? fallback.draw;
   const primaryPath = result?.explanation.primary_path ?? ["rates", "credit", "liquidity", "equity", "portfolio"];
+  const tail = result?.tail_evaluation;
+  const topTailScenarios = [...(tail?.scenarios ?? [])].sort((a, b) => b.systemic_stress - a.systemic_stress).slice(0, 5);
 
   return <section className="causal-page">
     <header className="causal-hero">
@@ -206,7 +208,7 @@ export default function CausalRiskLab() {
           <li>Portfolio allocation converts channel stress into a scenario drawdown.</li>
         </ol>
         <div className="explain"><ShieldAlert size={13}/> Structural path, not post-hoc SHAP importance.</div>
-        <div className="causal-path">{primaryPath.map((node, index) => <span key={node}>{node}{index < primaryPath.length - 1 ? " → " : ""}</span>)}</div>
+        <div className="causal-path"><span>Primary:</span>{primaryPath.map((node, index) => <span key={node}>{node}{index < primaryPath.length - 1 ? " → " : ""}</span>)}</div>
       </section>
 
       <section className="causal-panel result-card">
@@ -221,6 +223,45 @@ export default function CausalRiskLab() {
         {result?.tail_scenarios && <div className="tail-mini"><span>Tail sampler</span><strong>{result.tail_scenarios.scenario_count} scenarios</strong><small>{result.tail_scenarios.gfnets_status}</small></div>}
       </section>
     </div>
+
+    {tail && <section className="causal-panel tail-panel">
+      <div className="tail-head">
+        <div>
+          <div className="causal-label">06 · Tail scenario evaluation</div>
+          <h2>Stress distribution after SCM propagation</h2>
+          <p>Each generated tail shock is evaluated through the same structural model used by the main counterfactual.</p>
+        </div>
+        <span className="tail-status">{tail.status}</span>
+      </div>
+      <div className="tail-summary">
+        <div><span>Mean stress</span><strong>{tail.summary.mean_systemic_stress.toFixed(1)}</strong></div>
+        <div><span>P90</span><strong>{tail.summary.systemic_stress_p90.toFixed(1)}</strong></div>
+        <div><span>P95</span><strong>{tail.summary.systemic_stress_p95.toFixed(1)}</strong></div>
+        <div><span>P99</span><strong>{tail.summary.systemic_stress_p99.toFixed(1)}</strong></div>
+        <div><span>Max</span><strong>{tail.summary.max_systemic_stress.toFixed(1)}</strong></div>
+      </div>
+      <div className="tail-grid">
+        <div className="tail-table">
+          <div className="tail-row tail-row-head"><span>Scenario</span><span>Stress</span><span>Portfolio</span><span>Primary path</span></div>
+          {topTailScenarios.map((scenario) => <div className="tail-row" key={scenario.scenario_id}>
+            <span><b>{scenario.scenario_id}</b><small>tail score {scenario.tail_score.toFixed(2)}</small></span>
+            <span><i className="tail-meter"><em style={{ width: `${Math.min(100, scenario.systemic_stress)}%` }}/></i><b>{scenario.systemic_stress.toFixed(1)}</b></span>
+            <span>{pct(scenario.portfolio_impact)}</span>
+            <span className="tail-path">{scenario.primary_path.join(" → ")}</span>
+          </div>)}
+        </div>
+        <div className="tail-boundary">
+          <div className="causal-label">Research status</div>
+          <strong>{result?.tail_scenarios?.gfnets_status ?? "not available"}</strong>
+          <p>The current tail generator is a reproducible Monte-Carlo baseline. GFlowNet is represented as an interface and has not been trained in this repository.</p>
+          <div className="tail-quantiles">
+            <span>Portfolio |P| P90 <b>{tail.summary.absolute_portfolio_impact_p90.toFixed(1)}%</b></span>
+            <span>Portfolio |P| P95 <b>{tail.summary.absolute_portfolio_impact_p95.toFixed(1)}%</b></span>
+            <span>Portfolio |P| P99 <b>{tail.summary.absolute_portfolio_impact_p99.toFixed(1)}%</b></span>
+          </div>
+        </div>
+      </div>
+    </section>}
 
     <footer className="causal-note">
       <AlertTriangle size={14}/>

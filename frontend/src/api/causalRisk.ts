@@ -43,10 +43,38 @@ export type CounterfactualResult = {
   research_status: Record<string, string>;
   assumptions: string;
   tail_scenarios?: {
+    status?: string;
     method: string;
     gfnets_status: string;
+    draws?: number;
+    tail_quantile?: number;
     scenario_count: number;
     scenarios: Array<{ scenario_id: string; shock: Record<string, number>; tail_score: number }>;
+  };
+  tail_evaluation?: {
+    status: string;
+    scenario_count: number;
+    summary: {
+      mean_systemic_stress: number;
+      max_systemic_stress: number;
+      systemic_stress_p90: number;
+      systemic_stress_p95: number;
+      systemic_stress_p99: number;
+      mean_portfolio_impact: number;
+      absolute_portfolio_impact_p90: number;
+      absolute_portfolio_impact_p95: number;
+      absolute_portfolio_impact_p99: number;
+      highest_stress_scenario_id: string | null;
+    };
+    scenarios: Array<{
+      scenario_id: string;
+      shock: Record<string, number>;
+      tail_score: number;
+      systemic_stress: number;
+      portfolio_impact: number;
+      channels: { liquidity: number; equity: number; debt: number };
+      primary_path: string[];
+    }>;
   };
 };
 
