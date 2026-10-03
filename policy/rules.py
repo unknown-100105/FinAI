@@ -315,6 +315,12 @@ POLICIES = {
         "low", False, False,
         None, "market_data"
     ),
+
+    "FINANCIAL_PRODUCT_KNOWLEDGE": IntentPolicy(
+        "low", False, False,
+        None, "financial_information"
+    ),
+
     "SUPPORT_REQUEST": IntentPolicy(
         "low", False, False,
         "create_support_ticket", "support"
