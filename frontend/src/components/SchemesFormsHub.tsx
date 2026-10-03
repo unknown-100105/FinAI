@@ -26,7 +26,7 @@ export function SchemesFormsHub() {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return resources;
     return resources.filter((item) =>
-      [item.name, item.category, item.subcategory, item.authority, item.summary].join(" ").toLowerCase().includes(normalized),
+      [item.name, item.category, item.authority, item.description].join(" ").toLowerCase().includes(normalized),
     );
   }, [resources, query]);
 
@@ -95,7 +95,7 @@ export function SchemesFormsHub() {
           {filtered.map((item) => (
             <button type="button" key={item.resource_id} className={selected?.resource_id === item.resource_id ? "compliance-row active" : "compliance-row"} onClick={() => setSelectedId(item.resource_id)}>
               <div><strong>{item.name}</strong><span>{item.category} · {item.authority}</span></div>
-              <small>{item.summary}</small>
+              <small>{item.description}</small>
             </button>
           ))}
         </section>
@@ -109,11 +109,11 @@ export function SchemesFormsHub() {
               </div>
               <div className="compliance-facts">
                 <div><span>Authority</span><strong>{selected.authority}</strong></div>
-                <div><span>Audience</span><strong>{selected.who}</strong></div>
+                <div><span>Audience</span><strong>{selected.audience.join(", ")}</strong></div>
               </div>
-              <p className="compliance-purpose">{selected.summary}</p>
-              <div className="data-note">{selected.notes}</div>
-              {selected.form_url && <a className="source-link" href={selected.form_url} target="_blank" rel="noreferrer">Official form / application link <ExternalLink size={12} /></a>}
+              <p className="compliance-purpose">{selected.description}</p>
+              <div className="data-note">{selected.current_source ? "Official source mapped. Verify current terms before a real transaction." : "Educational source. Verify current terms before a real transaction."}</div>
+              
 
               <div className="detail-section">
                 <div className="module-panel-head">
