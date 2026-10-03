@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { sendChat } from "./api/finai";
 import { MarketTerminal } from "./components/MarketTerminal";
+import { WealthWorkspace } from "./components/WealthWorkspace";
 
 import "./index.css";
 
@@ -430,6 +431,7 @@ function App() {
           </section>
         </aside>
       <MarketTerminal />
+      <WealthWorkspace />
       </main>
     </div>
   );
