@@ -1,4 +1,4 @@
-import type { MarketBar, MarketNewsItem } from "./market";
+import type { MarketNewsItem } from "./market";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export type CandleAnalysis = {
