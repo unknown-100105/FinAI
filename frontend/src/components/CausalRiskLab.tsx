@@ -261,6 +261,7 @@ export default function CausalRiskLab() {
             <span>Portfolio |P| P90 <b>{tail.summary.absolute_portfolio_impact_p90.toFixed(1)}%</b></span>
             <span>Portfolio |P| P95 <b>{tail.summary.absolute_portfolio_impact_p95.toFixed(1)}%</b></span>
             <span>Portfolio |P| P99 <b>{tail.summary.absolute_portfolio_impact_p99.toFixed(1)}%</b></span>
+            <span>Portfolio |P| CVaR95 <b>{tail.summary.absolute_portfolio_impact_cvar95.toFixed(1)}%</b></span>
           </div>
         </div>
       </div>
