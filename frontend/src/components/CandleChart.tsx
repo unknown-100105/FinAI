@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState, type WheelEvent } from "react";
+import { Minus, Plus, RotateCcw } from "lucide-react";
 import type { MarketBar } from "../api/market";
 import "./CandleChart.css";
 
@@ -30,7 +31,18 @@ export function CandleChart({
   onSelect,
   showVolume = true,
 }: CandleChartProps) {
-  const view = useMemo(() => normalize(bars, maxBars), [bars, maxBars]);
+  const [visibleCount, setVisibleCount] = useState(Math.min(maxBars, Math.max(30, Math.min(120, bars.length || 30))));
+  const [endIndex, setEndIndex] = useState(Math.max(0, bars.length - 1));
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [dragStart, setDragStart] = useState<number | null>(null);
+
+  const view = useMemo(() => {
+    if (!bars.length) return [];
+    const count = Math.min(visibleCount, bars.length);
+    const end = Math.min(Math.max(endIndex, count - 1), bars.length - 1);
+    const start = Math.max(0, end - count + 1);
+    return bars.slice(start, end + 1).map((bar, index) => ({ bar, originalIndex: start + index }));
+  }, [bars, visibleCount, endIndex]);
 
   const geometry = useMemo(() => {
     if (!view.length) {
@@ -73,13 +85,57 @@ export function CandleChart({
     };
   }, [view, showVolume]);
 
+  const zoom = (factor: number) => {
+    setVisibleCount((current) => {
+      const next = Math.round(current * factor);
+      return Math.min(Math.max(12, next), Math.max(12, Math.min(maxBars, bars.length)));
+    });
+  };
+
+  const reset = () => {
+    setVisibleCount(Math.min(maxBars, Math.max(30, Math.min(120, bars.length))));
+    setEndIndex(Math.max(0, bars.length - 1));
+  };
+
+  const onWheel = (event: WheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    zoom(event.deltaY < 0 ? 0.72 : 1.4);
+  };
+
+  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragStart(event.clientX);
+  };
+
+  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragStart === null || !view.length) return;
+    const pxPerBar = Math.max(3, event.currentTarget.clientWidth / view.length);
+    const deltaBars = Math.round((dragStart - event.clientX) / pxPerBar);
+    setEndIndex(Math.max(visibleCount - 1, Math.min(bars.length - 1, endIndex + deltaBars)));
+  };
+
+  const onPointerUp = () => setDragStart(null);
+
   if (!bars.length) {
     return <div className="candle-empty">No OHLC candles returned for this interval/range.</div>;
   }
 
   return (
-    <div className="candle-chart" style={{ height }}>
-      <div className="candle-scroll">
+    <div className="candle-chart" style={{ height }} onWheel={onWheel}>
+      <div className="candle-toolbar">
+        <div className="candle-toolbar-group">
+          <button type="button" onClick={() => zoom(1.4)} title="Zoom out"><Minus size={12}/></button>
+          <button type="button" onClick={() => zoom(0.72)} title="Zoom in"><Plus size={12}/></button>
+          <button type="button" onClick={reset} title="Reset view"><RotateCcw size={12}/></button>
+        </div>
+        <span>Wheel to zoom · drag to pan · click a candle</span>
+        <em>{view.length} / {bars.length} candles</em>
+      </div>
+      <div className={"candle-scroll " + (dragStart !== null ? "dragging" : "")}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}>
         <svg
           viewBox={"0 0 " + geometry.chartWidth + " 340"}
           width={geometry.chartWidth}
@@ -134,6 +190,14 @@ export function CandleChart({
               )}
             </g>
           ))}
+
+          {hoveredIndex !== null && bars[hoveredIndex] && (
+            <line
+              x1={geometry.items.find((item) => item.originalIndex === hoveredIndex)?.x ?? 0}
+              x2={geometry.items.find((item) => item.originalIndex === hoveredIndex)?.x ?? 0}
+              y1="0" y2="340" className="candle-hover-line" vectorEffect="non-scaling-stroke"
+            />
+          )}
 
           {showVolume &&
             view.map(({ bar }, index) => {
