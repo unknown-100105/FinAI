@@ -260,3 +260,36 @@ def test_channel_calibration_api_returns_empirical_bundle():
     )
     assert response.status_code == 200
     assert response.json()["status"] == "empirical_fit"
+
+
+def test_research_evaluation_metrics_are_available():
+    from causal_risk.research_evaluation import (
+        ablation_summary,
+        perturb_features,
+        scenario_quality_metrics,
+        tail_backtest_metrics,
+    )
+
+    tail = tail_backtest_metrics(
+        [1.0, 2.0, 0.5, 3.0],
+        [1.2, 1.8, 1.0, 2.5],
+        level=0.75,
+    )
+    assert tail["status"] == "TAIL_BACKTEST_READY"
+
+    scenarios = np.asarray([[1.0, 0.5], [1.2, 0.6], [0.8, 0.4]])
+    quality = scenario_quality_metrics(
+        scenarios,
+        [[0.9, 0.45], [1.1, 0.55]],
+        causal_edge_matrix=[[0.0, 0.5], [0.0, 0.0]],
+    )
+    assert quality["status"] == "SCENARIO_QUALITY_READY"
+    assert quality["causal_direction_alignment"] is not None
+
+    summary = ablation_summary(
+        {"baseline": {"mae": 1.0}, "finai": {"mae": 0.8}},
+        primary_metric="mae",
+    )
+    assert summary["status"] == "ABLATION_SUMMARY_READY"
+    perturbed = perturb_features([[1.0, 2.0], [3.0, 4.0]], scale=2.0, missing_columns=[1], seed=2)
+    assert np.allclose(perturbed[:, 1], 0.0)
