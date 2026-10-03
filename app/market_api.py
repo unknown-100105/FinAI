@@ -233,7 +233,7 @@ def analytics(
             detail=f"Market history retrieval failed: {exc}",
         ) from exc
 
-    calculated = calculate_market_analytics(bars)
+    calculated = calculate_market_analytics(bars, interval=interval)
 
     return {
         "instrument": {
