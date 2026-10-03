@@ -40,24 +40,21 @@ def _features(closes: np.ndarray, volumes: np.ndarray) -> tuple[np.ndarray, np.n
 
 
 def _dataset(closes: np.ndarray, volumes: np.ndarray):
+    returns = np.diff(np.log(closes))
     X, y = [], []
-    for i in range(10, len(closes) - 1):
-        returns = np.diff(np.log(closes[: i + 1]))
+    for i in range(10, len(returns)):
+        recent = returns[:i]
         row = [
-            returns[-k] for k in (1, 2, 3, 5, 8, 10)
+            recent[-k] for k in (1, 2, 3, 5, 8, 10)
         ] + [
-            float(np.mean(returns[-5:])),
-            float(np.mean(returns[-10:])),
-            float(np.std(returns[-10:])),
+            float(np.mean(recent[-5:])),
+            float(np.mean(recent[-10:])),
+            float(np.std(recent[-10:])),
             float(volumes[i] / max(np.mean(volumes[max(0, i - 10): i + 1]), 1e-9)),
         ]
         X.append(row)
-        y.append(float(returns[-1]))
-    # The target above is the latest return in the window. For a predictive
-    # training target use the next return relative to each feature row.
-    X = np.asarray(X[:-1], dtype=float)
-    y = np.asarray(np.diff(np.log(closes))[10:], dtype=float)
-    return X, y
+        y.append(float(returns[i]))
+    return np.asarray(X, dtype=float), np.asarray(y, dtype=float)
 
 
 def _latest_features(closes: np.ndarray, volumes: np.ndarray) -> np.ndarray:
@@ -122,7 +119,7 @@ def analyze_market_movement(bars: List[Any]) -> Dict[str, Any]:
 
     X, y = _dataset(closes, volumes)
     latest = _latest_features(closes, volumes)
-    test_start = max(0, len(X) - len(test_returns))
+    test_start = max(40, int(len(X) * 0.7))
     X_train, X_test = X[:test_start], X[test_start:]
     y_train, y_test = y[:test_start], y[test_start:]
 
