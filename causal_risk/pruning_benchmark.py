@@ -37,8 +37,8 @@ def benchmark_prefix_certificate(
         raise ValueError("factor_ids must be non-empty and unique")
     if tuple(sorted(center)) != tuple(sorted(factors)):
         raise ValueError("center keys must match factor_ids")
-    if not 1 <= int(prefix_depth) < len(factors):
-        raise ValueError("prefix_depth must be between 1 and n_factors-1")
+    if not 1 <= int(prefix_depth) <= len(factors):
+        raise ValueError("prefix_depth must be between 1 and n_factors")
     action_levels = tuple(float(level) for level in levels)
     if not action_levels:
         raise ValueError("levels must be non-empty")
@@ -74,10 +74,14 @@ def benchmark_prefix_certificate(
             hard_pruned += 1
 
         prefix_has_feasible_completion = False
+        # Enumerate every completion for the exact baseline so the benchmark
+        # measures the work that the certificate is intended to avoid.
         for completion_levels in product(action_levels, repeat=len(remaining)):
             full = dict(prefix)
             for factor, level in zip(remaining, completion_levels):
-                full[factor] = float(center[factor]) + level * max(abs(float(center[factor])) * scale, 5.0)
+                full[factor] = float(center[factor]) + level * max(
+                    abs(float(center[factor])) * scale, 5.0
+                )
             result = simulate_scm(
                 nodes,
                 tuple(
@@ -91,7 +95,6 @@ def benchmark_prefix_certificate(
             target_value = float(result["node_values"][target_node])
             if float(target_interval[0]) <= target_value <= float(target_interval[1]):
                 prefix_has_feasible_completion = True
-                break
 
         if prefix_has_feasible_completion:
             exact_feasible += 1
