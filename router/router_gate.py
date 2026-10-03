@@ -82,6 +82,14 @@ FINANCIAL_GUIDANCE_TERMS = (
     "post office",
     "nsc",
     "scss",
+    "money", "currency", "history of money", "history of finance", "finance history",
+    "bank", "banking", "central bank", "fiat", "monetary policy", "yield curve",
+    "repo", "treasury bill", "t-bill", "derivative", "derivatives", "futures",
+    "options", "order book", "price discovery", "proof of work", "pow",
+    "proof of stake", "pos", "stablecoin", "stablecoins", "blockchain",
+    "distributed ledger", "dlt", "defi", "decentralized finance", "wallet",
+    "self custody", "custody", "arbitrage", "rtgs", "neft", "upi", "payments",
+    "settlement", "capital gains", "capital gain", "tds", "tax deducted at source",
 )
 
 FINANCIAL_GUIDANCE_ACTION_TERMS = (
