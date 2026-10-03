@@ -29,6 +29,7 @@ class XAISessionOrchestrator:
         language: str = "English",
         persona: str = "neutral",
         max_new_tokens: int = 256,
+        model_id: str | None = None,
     ):
 
         session = self.sessions.get(session_id)
@@ -104,6 +105,7 @@ class XAISessionOrchestrator:
                 language=language,
                 persona=persona,
                 max_new_tokens=max_new_tokens,
+                model_id=model_id,
             )
 
             trace.record_router(result.get("router"))
@@ -366,6 +368,7 @@ class XAISessionOrchestrator:
         language="English",
         persona="neutral",
         max_new_tokens=256,
+        model_id=None,
     ):
         kwargs = {
             "user_text": user_text,
@@ -381,6 +384,7 @@ class XAISessionOrchestrator:
                 "language": language,
                 "persona": persona,
                 "max_new_tokens": max_new_tokens,
+                "model_id": model_id,
             })
 
         return self.engine.process(**kwargs)
