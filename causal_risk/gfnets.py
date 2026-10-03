@@ -18,6 +18,7 @@ class GFlowConfig:
     learning_rate: float = 1e-3
     epochs: int = 150
     seed: int = 42
+    device: str = "auto"
 
 
 class TailFlowPolicy(nn.Module):
@@ -58,6 +59,7 @@ class GFlowNetTailGenerator:
         self.policy = TailFlowPolicy(n_factors, self.config.hidden_dim, len(self.config.levels))
         self.log_z = nn.Parameter(torch.tensor(0.0))
         self.trained = False
+        self.device = "cpu"
 
     def _reward(self, trajectory: torch.Tensor) -> torch.Tensor:
         magnitude = torch.linalg.vector_norm(trajectory, dim=1)
@@ -73,20 +75,35 @@ class GFlowNetTailGenerator:
     ) -> dict[str, Any]:
         seed = self.config.seed if seed is None else int(seed)
         torch.manual_seed(seed)
+        requested_device = str(device or self.config.device).lower()
+        if requested_device == "auto":
+            resolved = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        elif requested_device in {"cpu", "cuda"}:
+            resolved = torch.device(requested_device)
+        else:
+            raise ValueError("device must be 'auto', 'cpu', or 'cuda'")
+        if resolved.type == "cuda" and not torch.cuda.is_available():
+            raise ValueError("cuda device requested but CUDA is unavailable")
+        self.device = str(resolved)
+        self.policy.to(resolved)
+        self.log_z.data = self.log_z.data.to(resolved)
+        levels = self.levels.to(resolved)
+        if resolved.type == "cuda":
+            torch.cuda.manual_seed_all(seed)
         optimizer = torch.optim.Adam(
             list(self.policy.parameters()) + [self.log_z],
             lr=self.config.learning_rate,
         )
         losses = []
         for epoch in range(self.config.epochs):
-            batch = torch.zeros((64, self.n_factors), dtype=torch.float32)
-            log_pf = torch.zeros(64)
+            batch = torch.zeros((64, self.n_factors), dtype=torch.float32, device=resolved)
+            log_pf = torch.zeros(64, device=resolved)
             for step in range(self.n_factors):
                 logits = self.policy(batch, step)
                 dist = torch.distributions.Categorical(logits=logits)
                 action = dist.sample()
                 log_pf += dist.log_prob(action)
-                batch[:, step] = self.levels[action]
+                batch[:, step] = levels[action]
             reward = (
                 self._reward(batch)
                 if reward_fn is None
@@ -117,6 +134,7 @@ class GFlowNetTailGenerator:
                 if hasattr(reward_fn, "metadata")
                 else {"objective": objective_name}
             ),
+            "device": self.device,
         }
 
     def sample(
@@ -134,17 +152,20 @@ class GFlowNetTailGenerator:
         keys = tuple(sorted(center))
         if len(keys) != self.n_factors:
             raise ValueError("center factor count does not match trained generator")
-        generator = torch.Generator().manual_seed(seed)
-        state = torch.zeros((draws, self.n_factors))
+        requested_device = str(self.device or "cpu")
+        device = torch.device(requested_device)
+        generator = torch.Generator(device=device).manual_seed(seed)
+        state = torch.zeros((draws, self.n_factors), device=device)
+        levels = self.levels.to(device)
         with torch.no_grad():
             for step in range(self.n_factors):
                 logits = self.policy(state, step)
                 # Deterministic sampling from an explicit seeded generator.
                 probs = torch.softmax(logits, dim=-1)
                 action = torch.multinomial(probs, 1, generator=generator).squeeze(1)
-                state[:, step] = self.levels[action]
+                state[:, step] = levels[action]
         result = []
-        for row in state.numpy():
+        for row in state.detach().cpu().numpy():
             result.append({
                 key: round(float(center[key]) + float(value) * max(abs(float(center[key])) * scale, 5.0), 3)
                 for key, value in zip(keys, row)
