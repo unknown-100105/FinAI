@@ -362,6 +362,19 @@ export function CryptoArbitrageHub() {
           <div><span>Net before pool/hardware/tax</span><strong className={Number(miningData.economics.net_before_pool_hardware_tax_usd_per_day) >= 0 ? "market-positive" : "market-negative"}>{usd(miningData.economics.net_before_pool_hardware_tax_usd_per_day)}</strong></div>
           <div><span>Break-even electricity</span><strong>{usd(miningData.economics.break_even_electricity_usd_kwh)}</strong></div>
         </div>}
+        {Array.isArray(miningData?.pool_snapshot) && miningData.pool_snapshot.length > 0 && (
+          <details className="pool-snapshot">
+            <summary>Live mining-pool network share snapshot</summary>
+            <div className="pool-list">
+              {miningData.pool_snapshot.slice(0, 10).map((pool: any, index: number) => (
+                <div className="pool-row" key={String(pool.poolName ?? pool.name ?? pool.pool ?? index)}>
+                  <span>{String(pool.poolName ?? pool.name ?? pool.pool ?? "Pool")}</span>
+                  <strong>{pool.share != null ? Number(pool.share).toFixed(2) + "%" : pool.hashrate != null ? Number(pool.hashrate).toLocaleString() : "—"}</strong>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
         <div className="data-note">Live network hashrate, difficulty, block-reward and pool statistics are sourced from Mempool. This calculation is probabilistic and excludes hardware depreciation, maintenance, pool fee and taxes from the displayed net unless you model them separately.</div>
       </section>
 
