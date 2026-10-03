@@ -1,0 +1,79 @@
+/* Shared styling for FinAI product modules. */
+.platform-page, .module-page { padding: 30px; }
+.platform-hero, .module-hero { display:flex; justify-content:space-between; align-items:center; gap:28px; padding:8px 2px 24px; }
+.module-hero h1, .platform-hero h1 { max-width:880px; margin:8px 0 10px; color:#eef4ff; font-size:clamp(31px,4vw,54px); line-height:1.03; letter-spacing:-.04em; }
+.module-hero p, .platform-hero p { max-width:760px; margin:0; color:#8190a7; font-size:13px; line-height:1.65; }
+.module-kicker { display:flex; align-items:center; gap:7px; color:#8ea7ff; font-size:9px; font-weight:900; letter-spacing:.13em; text-transform:uppercase; }
+.platform-badge, .source-chip, .form-good, .form-pending { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border:1px solid rgba(146,174,208,.13); border-radius:999px; color:#9aabc0; background:rgba(86,118,170,.06); font-size:9px; }
+.module-orb { width:82px; height:82px; flex:0 0 82px; display:grid; place-items:center; border-radius:25px; color:#8ea8ff; border:1px solid rgba(111,145,241,.22); background:radial-gradient(circle, rgba(57,91,186,.28), rgba(9,19,32,.72)); box-shadow:0 0 60px rgba(52,87,205,.17); }
+.module-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:11px; }
+.module-card { display:grid; grid-template-columns:38px 1fr auto; align-items:center; gap:11px; min-height:105px; padding:15px; text-align:left; border:1px solid rgba(146,174,208,.11); border-radius:18px; color:#c7d3e3; background:linear-gradient(145deg,rgba(15,27,43,.78),rgba(8,16,28,.76)); box-shadow:inset 0 1px 0 rgba(255,255,255,.025); transition:transform .18s ease,border-color .18s ease; }
+.module-card:hover { transform:translateY(-2px); border-color:rgba(108,143,241,.30); }
+.module-icon { width:38px; height:38px; display:grid; place-items:center; border-radius:12px; color:#8fa7ff; background:rgba(70,101,180,.11); }
+.module-copy strong { display:block; color:#e1e9f5; font-size:12px; }
+.module-copy span { display:block; margin-top:4px; color:#6e8098; font-size:9px; line-height:1.5; }
+.platform-banner { display:flex; gap:10px; align-items:center; margin-top:12px; padding:14px 16px; border:1px solid rgba(85,206,181,.12); border-radius:16px; color:#75ddc4; background:rgba(39,132,111,.055); }
+.platform-banner strong { display:block; color:#c6d5e6; font-size:11px; }
+.platform-banner span { display:block; margin-top:3px; color:#62758d; font-size:9px; }
+.product-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.product-card { min-height:116px; padding:13px; text-align:left; border:1px solid rgba(146,174,208,.09); border-radius:15px; color:#9aa9be; background:rgba(7,15,27,.58); }
+.product-card.active { border-color:rgba(89,128,238,.34); background:rgba(38,64,127,.16); }
+.product-icon { width:31px; height:31px; display:grid; place-items:center; margin-bottom:11px; border-radius:10px; color:#8da6ff; background:rgba(70,101,180,.11); }
+.product-card strong { display:block; color:#dbe4f1; font-size:11px; }
+.product-card span { display:block; margin-top:4px; color:#62758d; font-size:9px; line-height:1.45; }
+.calculator-panel { margin-top:12px; padding:17px; border:1px solid rgba(146,174,208,.10); border-radius:18px; background:rgba(7,14,25,.56); }
+.module-panel-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:14px; }
+.module-panel-head h2 { margin:4px 0 0; color:#dce6f3; font-size:16px; }
+.calc-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) 1.2fr; gap:9px; }
+.calc-grid label, .form-fields label, .form-select-label { display:block; color:#72839a; font-size:9px; text-transform:uppercase; letter-spacing:.07em; }
+.calc-grid input, .form-fields input, .form-select-label select { display:block; width:100%; margin-top:6px; min-height:38px; padding:0 10px; border:1px solid rgba(146,174,208,.11); border-radius:10px; outline:0; color:#d2dceb; background:rgba(9,18,31,.88); font-size:11px; }
+.calc-result { padding:11px; border:1px solid rgba(76,199,170,.12); border-radius:12px; background:rgba(35,126,105,.055); }
+.calc-result span, .calc-result small { display:block; color:#60748d; font-size:8px; }
+.calc-result strong { display:block; margin:5px 0 3px; color:#8ee0ca; font-size:18px; }
+.product-detail { display:flex; gap:10px; padding:14px; border-radius:13px; background:rgba(91,118,163,.045); }
+.detail-icon { width:34px; height:34px; display:grid; place-items:center; flex:0 0 34px; border-radius:11px; color:#8ee0ca; background:rgba(50,164,137,.09); }
+.product-detail strong { color:#dce6f2; font-size:12px; }
+.product-detail p { margin:5px 0 0; color:#71839b; font-size:10px; line-height:1.6; }
+.news-toolbar { display:flex; flex-direction:column; gap:9px; margin-bottom:12px; }
+.news-search { display:flex; align-items:center; gap:8px; padding:4px; border:1px solid rgba(146,174,208,.11); border-radius:12px; background:rgba(7,14,25,.68); }
+.news-search svg { margin-left:7px; color:#647892; }
+.news-search input { flex:1; min-width:0; border:0; outline:0; color:#d3ddec; background:transparent; padding:9px; font-size:11px; }
+.news-search button { border:0; border-radius:9px; padding:8px 12px; color:#fff; background:#2f59d6; font-size:9px; font-weight:800; }
+.news-presets { display:flex; gap:6px; flex-wrap:wrap; }
+.news-presets button { display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(146,174,208,.09); border-radius:999px; padding:7px 9px; color:#71839a; background:rgba(91,118,163,.045); font-size:9px; }
+.news-presets button.active { color:#dce7f6; border-color:rgba(90,132,241,.30); }
+.news-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+.news-card { display:block; min-height:148px; padding:13px; text-decoration:none; border:1px solid rgba(146,174,208,.09); border-radius:15px; color:inherit; background:rgba(7,14,25,.58); }
+.news-card-top { display:flex; justify-content:space-between; gap:8px; color:#6c8098; font-size:8px; text-transform:uppercase; }
+.news-card strong { display:block; margin:15px 0 10px; color:#d4deec; font-size:11px; line-height:1.5; }
+.news-card small { color:#53677f; font-size:8px; }
+.form-layout { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr); gap:12px; }
+.form-panel, .form-preview { padding:17px; border:1px solid rgba(146,174,208,.09); border-radius:18px; background:rgba(7,14,25,.56); }
+.form-select-label { margin-bottom:13px; }
+.form-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+.form-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:13px; }
+.form-actions button { display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(146,174,208,.10); border-radius:10px; padding:9px 11px; color:#b3c1d2; background:rgba(90,117,163,.05); font-size:9px; }
+.form-actions button:last-child { border-color:rgba(90,132,241,.27); background:#274cb8; color:#fff; }
+.form-actions button:disabled { opacity:.4; cursor:not-allowed; }
+.form-preview h2 { margin:5px 0 15px; color:#e1e9f5; font-size:16px; }
+.review-list div { padding:9px 0; border-bottom:1px solid rgba(146,174,208,.06); }
+.review-list span { display:block; color:#5b6e86; font-size:8px; text-transform:uppercase; }
+.review-list strong { display:block; margin-top:3px; color:#b9c7d9; font-size:10px; overflow-wrap:anywhere; }
+.form-good { color:#78d9c0; border-color:rgba(75,205,171,.18); background:rgba(42,146,120,.06); }
+.form-pending { color:#d3a873; }
+.module-error { margin:10px 0; padding:9px; border:1px solid rgba(226,122,134,.20); border-radius:10px; color:#e5a3ac; background:rgba(119,40,52,.10); font-size:9px; }
+.module-empty { display:grid; place-items:center; color:#66788e; min-height:100px; font-size:10px; }
+.module-empty.large { min-height:300px; grid-column:1/-1; border:1px dashed rgba(146,174,208,.08); border-radius:14px; }
+.compact-hero { min-height:180px; }
+@media (max-width:1050px) {
+  .module-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .product-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .news-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .calc-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:760px) {
+  .platform-page, .module-page { padding:16px; }
+  .platform-hero, .module-hero { flex-direction:column; align-items:flex-start; }
+  .module-grid, .product-grid, .news-grid, .form-layout, .calc-grid, .form-fields { grid-template-columns:1fr; }
+  .module-orb { display:none; }
+}
