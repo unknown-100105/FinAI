@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from causal_risk.gfnets import GFlowConfig, GFlowNetTailGenerator
 from causal_risk.constrained_gfnets import CausalConstrainedTailGenerator
-from causal_risk.feasibility_pruning import AdaptivePruningController, evaluate_prefix_feasibility
+from causal_risk.feasibility_pruning import AdaptivePruningController
 from causal_risk.stress_objectives import CausalStressReward
 from causal_risk.multimodal_graph import GraphEdge, GraphNode, MultimodalGraph
 from causal_risk.multimodal_encoder import MultimodalEncoderConfig, train_multimodal_encoder
@@ -636,6 +636,7 @@ class FeasibilityScreenRequest(BaseModel):
     empirical_scale: Dict[str, float] | None = Field(default=None, max_length=100)
     target_full_eval_fraction: float = Field(default=0.25, gt=0, le=1)
     adaptive_margin: float = Field(default=0.0, ge=-1, le=1)
+    minimum_high_risk_recall: float = Field(default=0.99, gt=0, le=1)
 
 
 @router.post("/research-pruning/screen")
@@ -651,6 +652,7 @@ def feasibility_screen(request: FeasibilityScreenRequest):
         controller = AdaptivePruningController(
             target_full_eval_fraction=request.target_full_eval_fraction,
             current_margin=request.adaptive_margin,
+            minimum_high_risk_recall=request.minimum_high_risk_recall,
         )
         from causal_risk.feasibility_pruning import screen_candidate_actions
         return screen_candidate_actions(
@@ -699,6 +701,7 @@ class ConstrainedGFlowNetGenerateRequest(BaseModel):
     device: str = Field(default="auto", pattern="^(auto|cpu|cuda)$")
     adaptive_margin: float = Field(default=0.0, ge=-1, le=1)
     target_full_eval_fraction: float = Field(default=0.25, gt=0, le=1)
+    minimum_high_risk_recall: float = Field(default=0.99, gt=0, le=1)
     empirical_center: Dict[str, float] | None = Field(default=None, max_length=100)
     empirical_scale: Dict[str, float] | None = Field(default=None, max_length=100)
 
@@ -749,6 +752,7 @@ def constrained_gfnets(request: ConstrainedGFlowNetGenerateRequest):
         controller = AdaptivePruningController(
             target_full_eval_fraction=request.target_full_eval_fraction,
             current_margin=request.adaptive_margin,
+            minimum_high_risk_recall=request.minimum_high_risk_recall,
         )
         sample_result = generator.sample(
             request.center,
@@ -765,7 +769,7 @@ def constrained_gfnets(request: ConstrainedGFlowNetGenerateRequest):
             empirical_scale=request.empirical_scale,
         )
         return {
-            "status": "CAUSAL_CONSTRAINED_GFNet_RESEARCH_READY",
+            "status": "CAUSAL_CONSTRAINED_GFLOWNET_RESEARCH_READY",
             "training": train_result,
             "generation": sample_result,
         }
