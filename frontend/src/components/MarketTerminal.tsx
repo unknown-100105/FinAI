@@ -24,28 +24,6 @@ import {
 import { MarketSearchBox } from "./MarketSearchBox";
 import "./MarketTerminal.css";
 
-const instruments = [
-  "NIFTY 50",
-  "SENSEX",
-  "TCS",
-  "INFY",
-  "RELIANCE",
-  "HDFCBANK",
-  "ICICIBANK",
-  "SBIN",
-  "ITC",
-  "LT",
-  "WIPRO",
-  "BHARTIARTL",
-  "MARUTI",
-  "AXISBANK",
-  "Bitcoin",
-  "Ethereum",
-  "Gold",
-  "Silver",
-  "USD/INR",
-  "EUR/INR",
-];
 
 const ranges = [
   { id: "1M", days: 30 },
