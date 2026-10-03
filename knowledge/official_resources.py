@@ -1,0 +1,466 @@
+"""Source-linked Indian investment, government-scheme, tax-form and study-resource catalogue."""
+
+from __future__ import annotations
+from dataclasses import asdict, dataclass
+from typing import List, Optional, Tuple
+
+
+@dataclass(frozen=True)
+class Resource:
+    resource_id: str
+    name: str
+    category: str
+    subcategory: str
+    summary: str
+    who: str
+    current_status: str
+    official_url: str
+    form_url: Optional[str]
+    authority: str
+    source_date: str
+    notes: str
+    form_fields: Tuple[str, ...]
+
+
+# These are official landing/document URLs verified against current public
+# government/regulator pages. A landing URL is used only when the authority
+# does not expose a stable scheme-specific page in the indexed public site.
+INDIAPOST = "https://www.indiapost.gov.in/Financial/Pages/Content/Post-Office-Saving-Schemes.aspx"
+DEA_SMALL = "https://dea.gov.in/budget-division/475"
+NSI_RATES = "https://www.nsiindia.gov.in/(S(uhy4jpn0iictoc55qznkw555))/InternalPage.aspx?Id_Pk=132"
+EPFO = "https://www.epfindia.gov.in/site_en/index.php"
+EPF_SCHEME = "https://www.epfindia.gov.in/site_docs/PDFs/Downloads_PDFs/EPFScheme.pdf"
+PFRDA_NPS = "https://pfrda.org.in/en/schemes/national-pension-system/nps-for-all-citizen-models"
+NPS_SEARCH = "https://www.pfrda.org.in/search"
+RBI_RETAIL_DIRECT = "https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=50706"
+RBI_GSEC = "https://www.rbi.org.in/"
+RBI_SGB = "https://sovereigngoldbonds.rbi.org.in/"
+RBI_LRS = "https://www.rbi.org.in/scripts/notificationuser.aspx?id=10192"
+RBI_FEMA = "https://www.rbi.org.in/Scripts/BS_FemaNotifications.aspx"
+SEBI_LEGAL = "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListingLegal=yes&sid=1&smid=0&ssid=3"
+SEBI_MASTER = "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&ssid=6"
+SEBI_INVESTOR = "https://investor.sebi.gov.in/"
+INCOME_TAX = "https://www.incometax.gov.in/iec/foportal/"
+INCOME_TAX_DOWNLOADS = "https://www.incometax.gov.in/iec/foportal/downloads/income-tax-returns"
+GST = "https://www.gst.gov.in/"
+GST_RETURNS = "https://tutorial.gst.gov.in/userguide/returns/"
+JAN_SURAKSHA = "https://jansuraksha.gov.in/"
+APY_FORMS = "https://jansuraksha.gov.in/Forms-APY.aspx"
+MYSCHEME = "https://www.myscheme.gov.in/"
+PMAY = "https://pmaymis.gov.in/"
+PMJDY = "https://www.pmjdy.gov.in/"
+PMJAY = "https://pmjay.gov.in/"
+MAANDHAN = "https://maandhan.in/"
+SKILL_INDIA = "https://www.skillindiadigital.gov.in/"
+RERA = "https://rera.gov.in/"
+
+
+def _r(
+    resource_id: str, name: str, category: str, subcategory: str,
+    summary: str, who: str, status: str, official_url: str, form_url: Optional[str],
+    authority: str, date: str, notes: str, fields: Tuple[str, ...]
+) -> Resource:
+    return Resource(resource_id, name, category, subcategory, summary, who, status,
+                    official_url, form_url, authority, date, notes, fields)
+
+
+RESOURCES = (
+    # Small savings
+    _r("posa","Post Office Savings Account","Government Schemes","Small Savings",
+       "Government-backed savings account operated through the Department of Posts.",
+       "Eligible customers under scheme rules.","Current",
+       INDIAPOST, INDIAPOST,"Department of Posts","2026",
+       "Use the official Department of Posts page for current account rules and forms.",
+       ("name","date_of_birth","address","pan","aadhaar_or_kyc","mobile","nominee")),
+    _r("rd","National Savings Recurring Deposit","Government Schemes","Small Savings",
+       "Recurring-deposit scheme with a notified interest framework.",
+       "Eligible customers under current scheme rules.","Current",
+       INDIAPOST, INDIAPOST,"Department of Posts / DEA","2026",
+       "Current rates are maintained by DEA/NSI and may change quarterly.",
+       ("name","date_of_birth","address","pan","aadhaar_or_kyc","monthly_deposit","nominee")),
+    _r("td1","National Savings Time Deposit — 1 Year","Government Schemes","Small Savings",
+       "One-year government small-savings time deposit.",
+       "Eligible customers.","Current",
+       INDIAPOST, INDIAPOST,"Department of Posts / DEA","2026",
+       "Rate and premature-withdrawal rules are time-sensitive.",
+       ("name","date_of_birth","address","pan","aadhaar_or_kyc","deposit_amount","nominee")),
+    _r("td2","National Savings Time Deposit — 2 Year","Government Schemes","Small Savings",
+       "Two-year government small-savings time deposit.","Eligible customers.","Current",
+       INDIAPOST, INDIAPOST,"Department of Posts / DEA","2026",
+       "Rate and premature-withdrawal rules are time-sensitive.",
+       ("name","date_of_birth","address","pan","aadhaar_or_kyc","deposit_amount","nominee")),
+    _r("td3","National Savings Time Deposit — 3 Year","Government Schemes","Small Savings",
+       "Three-year government small-savings time deposit.","Eligible customers.","Current",
+       INDIAPOST, INDIAPOST,"Department of Posts / DEA","2026",
+       "Rate and premature-withdrawal rules are time-sensitive.",
+       ("name","date_of_birth","address","pan","aadhaar_or_kyc","deposit_amount","nominee")),
+    _r("td5","National Savings Time Deposit — 5 Year","Government Schemes","Small Savings",
+       "Five-year government small-savings time deposit.","Eligible customers.","Current",
+       INDIAPOST, INDIAPOST,"Department of Posts / DEA","2026",
+       "Rate and premature-withdrawal rules are time-sensitive.",
+       ("name","date_of_birth","address","pan","aadhaar_or_kyc","deposit_amount","nominee")),
+    _r("mis","National Savings Monthly Income Account","Government Schemes","Small Savings",
+       "Small-savings product designed around periodic interest income.",
+       "Eligible customers under current rules.","Current",
+       INDIAPOST, INDIAPOST,"Department of Posts / DEA","2026",
+       "See current rules for limits and premature closure.",
+       ("name","date_of_birth","address","pan","aadhaar_or_kyc","deposit_amount","nominee","bank_account")),
+    _r("scss","Senior Citizens Savings Scheme (SCSS)","Government Schemes","Small Savings",
+       "Five-year small-savings scheme with scheduled interest payments for eligible senior citizens.",
+       "Eligible senior citizens under current rules.","Current",
+       "https://www.indiapost.gov.in/documents/offerings/schemesandservices/posb/SeniorCitizensSavingsScheme2019English.pdf",
+       "https://www.indiapost.gov.in/documents/offerings/schemesandservices/posb/SeniorCitizensSavingsScheme2019English.pdf",
+       "Department of Posts / DEA","2019 + amendments",
+       "The 2019 scheme has later amendments; read the latest amendments as well as the base scheme.",
+       ("name","date_of_birth","address","pan","aadhaar_or_kyc","deposit_amount","retirement_status","nominee")),
+    _r("ssa","Sukanya Samriddhi Account","Government Schemes","Small Savings",
+       "Long-term small-savings account for an eligible girl child.",
+       "Eligible account holder/guardian under current rules.","Current",
+       "https://www.indiapost.gov.in/api/documents/file/U2FScbGVkX19FwnD8NNYFNS-z3S9phS5dcNFWjQMf0V7u4rhQE59E7egWg8hZtOkOy2Odexzhh6fNVHwgE0avhA",
+       INDIAPOST,"Department of Posts / DEA","2016 + amendments",
+       "The indexed official rules identify the account as a girl-child savings scheme.",
+       ("girl_name","girl_date_of_birth","guardian_name","address","pan","aadhaar_or_kyc","deposit_amount","nominee")),
+    _r("nsc","National Savings Certificate (NSC)","Government Schemes","Small Savings",
+       "Five-year government savings certificate with notified interest.",
+       "Eligible customers under current rules.","Current",
+       INDIAPOST, INDIAPOST,"Department of Posts / DEA","2026",
+       "Use the current scheme rules and rate notification rather than historic rules alone.",
+       ("name","date_of_birth","address","pan","aadhaar_or_kyc","purchase_amount","nominee")),
+    _r("kvp","Kisan Vikas Patra (KVP)","Government Schemes","Small Savings",
+       "Government savings certificate with current maturity period notified by DEA.",
+       "Eligible customers under current rules.","Current",
+       INDIAPOST, INDIAPOST,"Department of Posts / DEA","2026",
+       "Maturity/rate changes are time-sensitive; verify the current notification.",
+       ("name","date_of_birth","address","pan","aadhaar_or_kyc","purchase_amount","nominee")),
+    _r("ppf","Public Provident Fund (PPF)","Government Schemes","Small Savings",
+       "Long-term government small-savings scheme with a 15-year base tenure and scheme-specific contribution/withdrawal rules.",
+       "Eligible residents under current rules; NRI cases require separate treatment.",
+       "Current",
+       INDIAPOST, INDIAPOST,"Department of Posts / DEA","2026",
+       "Use current PPF scheme rules and current rate notification.",
+       ("name","date_of_birth","address","pan","aadhaar_or_kyc","annual_deposit","nominee","existing_ppf_status")),
+    _r("mssc","Mahila Samman Savings Certificate","Government Schemes","Small Savings",
+       "Limited-duration savings scheme for women/girls; the statutory application window ended 31 March 2025.",
+       "Women/girls within the notified opening window.","Closed to new accounts",
+       "https://www.indiapost.gov.in/VAS/DOP_PDFFiles/SB_Orders_2023.pdf",
+       "https://www.indiapost.gov.in/VAS/DOP_PDFFiles/SB_Orders_2023.pdf",
+       "Department of Posts / DEA","2023-2025",
+       "Do not present MSSC as a currently open new-investment scheme unless a later notification reopens it.",
+       ("account_holder_name","date_of_birth","guardian_name","address","pan","amount")),
+    # Employment / retirement / pension
+    _r("epf","Employees' Provident Fund (EPF)","Government Schemes","Retirement / Social Security",
+       "Mandatory/voluntary provident-fund framework for covered establishments and eligible employees.",
+       "Employees/employers covered by EPF law.","Current",
+       EPF_SCHEME, EPFO,"EPFO / Ministry of Labour & Employment","1952 + amendments",
+       "EPFO administers EPF, EPS and EDLI under the Employees' Provident Funds framework.",
+       ("member_name","uan","employer","basic_wages","joining_date","nominee")),
+    _r("eps","Employees' Pension Scheme (EPS)","Government Schemes","Retirement / Social Security",
+       "Pension framework administered by EPFO for eligible members.",
+       "Eligible EPFO members.","Current",
+       EPFO, EPFO,"EPFO / Ministry of Labour & Employment","1995 + amendments",
+       "Use current EPFO eligibility and pension-service rules.",
+       ("member_name","uan","service_history","date_of_birth","nominee")),
+    _r("edli","Employees' Deposit Linked Insurance (EDLI)","Government Schemes","Insurance / Social Security",
+       "Insurance-linked benefit under the EPFO framework for eligible members.",
+       "Eligible EPFO members.","Current",
+       EPFO, EPFO,"EPFO / Ministry of Labour & Employment","1976 + amendments",
+       "Claim eligibility and benefit calculation depend on current EPFO rules.",
+       ("member_name","uan","employer","nominee","death_date")),
+    _r("nps","National Pension System (NPS)","Government Schemes","Retirement",
+       "Regulated retirement-oriented system with Tier I and Tier II account structures.",
+       "Indian citizen resident/non-resident and eligible OCI subscribers under PFRDA rules.",
+       "Current",
+       PFRDA_NPS, PFRDA_NPS,"PFRDA","2026",
+       "PFRDA's current All Citizen Model states eligibility for Indian citizens and OCIs aged 18-85 subject to KYC.",
+       ("name","date_of_birth","citizenship_status","pan","address","bank_account","nominee","pension_fund","asset_allocation")),
+    _r("apy","Atal Pension Yojana (APY)","Government Schemes","Pension / Social Security",
+       "Government pension scheme administered under the National Pension System framework.",
+       "Eligible subscribers under APY rules.","Current",
+       JAN_SURAKSHA, APY_FORMS,"Department of Financial Services / PFRDA","2026",
+       "The official Jan Suraksha portal provides APY application and claim forms.",
+       ("name","date_of_birth","aadhaar","bank_account","mobile","spouse_name","nominee")),
+    _r("pm_syam","Pradhan Mantri Shram Yogi Maandhan","Government Schemes","Pension / Social Security",
+       "Contributory pension scheme for eligible unorganised workers.",
+       "Eligible unorganised workers under current scheme conditions.","Current",
+       MAANDHAN, MAANDHAN,"Ministry of Labour & Employment","2026",
+       "Eligibility and contribution depend on the current scheme rules.",
+       ("name","date_of_birth","aadhaar","occupation","monthly_income","bank_account","nominee")),
+    _r("nps_vatsalya","NPS Vatsalya","Government Schemes","Child Retirement / Savings",
+       "NPS variant designed for minors under the applicable PFRDA framework.",
+       "Eligible minor subscribers through guardian.","Current",
+       PFRDA_NPS, NPS_SEARCH,"PFRDA","2026",
+       "Use the current PFRDA account-opening and withdrawal conditions.",
+       ("minor_name","minor_date_of_birth","guardian_name","pan","address","bank_account","nominee")),
+    # Government securities / gold
+    _r("gsecs","Government Securities / T-Bills","Investment Avenues","Government Securities",
+       "Sovereign debt instruments including dated G-Secs and Treasury Bills.",
+       "Eligible investors subject to the security and access route.","Current",
+       RBI_GSEC, RBI_RETAIL_DIRECT,"RBI / Government of India","2026",
+       "Terms, auctions, yields and secondary-market prices are dynamic.",
+       ("investor_name","pan","demat_or_retail_direct","security","quantity","bank_account")),
+    _r("sdl","State Development Loans (SDLs)","Investment Avenues","Government Securities",
+       "Marketable state-government securities issued through the government-securities market.",
+       "Eligible investors through permitted market channels.","Current",
+       RBI_GSEC, RBI_GSEC,"RBI / State Governments","2026",
+       "Auction yields and secondary prices are live market data, not static scheme rates.",
+       ("investor_name","pan","broker_or_rbi_route","state","security","quantity")),
+    _r("sgb","Sovereign Gold Bonds (SGB)","Investment Avenues","Gold / Government",
+       "Government securities linked to gold prices under the SGB scheme.",
+       "Fresh subscription only when a government-notified tranche is open and investor meets eligibility; existing holdings have separate rules.",
+       "Issuance-window dependent",
+       RBI_SGB, RBI_SGB,"RBI / Government of India","2026",
+       "FinAI must check the current issuance calendar instead of treating SGB as continuously open.",
+       ("investor_name","pan","address","bank_account","quantity","demat_option")),
+    _r("retail_direct","RBI Retail Direct","Investment Avenues","Government Securities",
+       "RBI route for eligible retail investors to participate in specified government securities.",
+       "Eligible retail investors.","Current",
+       RBI_RETAIL_DIRECT, RBI_RETAIL_DIRECT,"RBI","2026",
+       "Availability is platform/security-specific.",
+       ("name","pan","bank_account","address","mobile","email")),
+    # Market / investment products
+    _r("listed_equity","Listed Equity Shares","Investment Avenues","Capital Markets",
+       "Ownership interests traded on recognised stock exchanges.",
+       "Eligible investors under account, exchange and market rules.","Current",
+       SEBI_INVESTOR, None,"SEBI / Exchanges","2026",
+       "Specific investor restrictions vary by investor status and security.",
+       ("name","pan","demat","broker","bank_account","order_type","quantity","price")),
+    _r("ipo","IPO / Public Issue","Investment Avenues","Primary Market",
+       "Primary-market public offering of eligible securities subject to SEBI and exchange rules.",
+       "Eligible investors under the issue terms.","Current",
+       SEBI_LEGAL, None,"SEBI / Recognised Exchanges","2026",
+       "Read the current offer document and issue-specific eligibility.",
+       ("applicant_name","pan","demat","bank_account","bid_quantity","bid_price","category")),
+    _r("mf","Mutual Funds","Investment Avenues","Funds",
+       "Pooled investment schemes regulated under SEBI's mutual-fund framework.",
+       "Eligible investors subject to scheme/KYC rules.","Current",
+       SEBI_MASTER, None,"SEBI / AMCs","2026",
+       "Scheme-level facts such as NAV, expense ratio and portfolio must be fetched from current disclosures.",
+       ("investor_name","pan","kyc_status","scheme","amount","bank_account","nominee")),
+    _r("etf","Exchange-Traded Funds","Investment Avenues","Funds",
+       "Pooled funds whose units trade on a stock exchange.",
+       "Eligible investors subject to ETF scheme and market rules.","Current",
+       "https://investor.sebi.gov.in/exchange_traded_fund.html", None,"SEBI","2026",
+       "Specific ETF terms, liquidity and tracking difference vary by ETF.",
+       ("investor_name","pan","demat","broker","etf","quantity","price")),
+    _r("pms","Portfolio Management Services","Investment Avenues","Managed Investments",
+       "Discretionary/non-discretionary portfolio management under SEBI rules.",
+       "Eligible clients under current PMS rules.","Current",
+       SEBI_LEGAL,None,"SEBI / Registered Portfolio Managers","2026",
+       "General PMS minimum investment is ₹50 lakh, subject to stated exceptions.",
+       ("client_name","pan","kyc","risk_profile","mandate","amount","bank_account")),
+    _r("aif","Alternative Investment Funds","Investment Avenues","Alternative Investments",
+       "SEBI-regulated pooled investment vehicles across Category I, II and III.",
+       "Eligible investors under AIF rules and fund terms.","Current",
+       SEBI_LEGAL,None,"SEBI / AIF Manager","2026",
+       "General minimum investment is ₹1 crore subject to regulatory exceptions.",
+       ("investor_name","pan","category","commitment","kyc","bank_account")),
+    _r("reit","REITs","Investment Avenues","Real Assets",
+       "Listed/regulated real-estate investment trust units.",
+       "Eligible investors subject to market rules.","Current",
+       SEBI_LEGAL,None,"SEBI","2026",
+       "Review the current trust disclosures and market price.",
+       ("investor_name","pan","demat","reit","quantity","price")),
+    _r("invit","InvITs","Investment Avenues","Infrastructure",
+       "Infrastructure investment trust units under SEBI rules.",
+       "Eligible investors subject to instrument and market rules.","Current",
+       SEBI_LEGAL,None,"SEBI","2026",
+       "Review trust disclosures and distribution terms.",
+       ("investor_name","pan","demat","invit","quantity","price")),
+    _r("corporate_bonds","Corporate Bonds / NCDs","Investment Avenues","Fixed Income",
+       "Debt securities issued by companies under applicable securities rules.",
+       "Eligible investors subject to issue terms.","Current",
+       SEBI_LEGAL,None,"SEBI / Exchanges / Issuer","2026",
+       "Credit, duration and liquidity must be reviewed per security.",
+       ("investor_name","pan","demat","isin","quantity","price","coupon")),
+    # Taxes and forms
+    _r("itr1","ITR-1","Tax & Forms","Income Tax",
+       "Income-tax return for eligible resident individuals meeting the current ITR-1 conditions.",
+       "Eligible resident individuals.","AY 2026-27",
+       INCOME_TAX_DOWNLOADS, INCOME_TAX_DOWNLOADS,"Income Tax Department","2026",
+       "Use the latest ITR utility/schema from the official portal.",
+       ("name","pan","aadhaar","address","salary","house_property","interest_income","capital_gain_112a","tds","bank")),
+    _r("itr2","ITR-2","Tax & Forms","Income Tax",
+       "Income-tax return for individuals/HUFs without business/profession income, subject to eligibility.",
+       "Eligible individuals/HUFs, resident or non-resident as applicable.","AY 2026-27",
+       INCOME_TAX_DOWNLOADS, INCOME_TAX_DOWNLOADS,"Income Tax Department","2026",
+       "Official portal currently publishes ITR-2 guidance and utilities/schema.",
+       ("name","pan","residential_status","salary","house_property","capital_gains","foreign_assets","other_income","tds","bank")),
+    _r("itr3","ITR-3","Tax & Forms","Income Tax",
+       "Income-tax return for individuals/HUFs having business/professional income, subject to eligibility.",
+       "Eligible individuals/HUFs.","AY 2026-27",
+       INCOME_TAX_DOWNLOADS, INCOME_TAX_DOWNLOADS,"Income Tax Department","2026",
+       "Use current notified utility/schema.",
+       ("name","pan","business_income","business_expenses","capital_gains","other_income","tds","bank")),
+    _r("itr4","ITR-4","Tax & Forms","Income Tax",
+       "Simplified return for eligible resident individuals/HUFs/firms under specified presumptive conditions.",
+       "Eligible taxpayers under current conditions.","AY 2026-27",
+       INCOME_TAX_DOWNLOADS, INCOME_TAX_DOWNLOADS,"Income Tax Department","2026",
+       "Eligibility must be checked before selecting the form.",
+       ("name","pan","residential_status","presumptive_income","salary","other_income","tds","bank")),
+    _r("itr5","ITR-5","Tax & Forms","Income Tax",
+       "Return form for specified entities other than individuals/HUF/company/ITR-7 cases.",
+       "Eligible firms/LLPs/AOP/BOI and specified entities.","AY 2026-27",
+       INCOME_TAX_DOWNLOADS, INCOME_TAX_DOWNLOADS,"Income Tax Department","2026",
+       "Use entity-specific current schema.",
+       ("entity_name","pan","constitution","business_income","capital_gains","tax_payments","bank")),
+    _r("itr6","ITR-6","Tax & Forms","Income Tax",
+       "Return form for eligible companies other than specified exemption cases.",
+       "Eligible companies.","AY 2026-27",
+       INCOME_TAX_DOWNLOADS, INCOME_TAX_DOWNLOADS,"Income Tax Department","2026",
+       "Use current company ITR utility/schema.",
+       ("company_name","pan","financials","book_profit","tax_audit","tax_payments","bank")),
+    _r("itr7","ITR-7","Tax & Forms","Income Tax",
+       "Return form for persons/entities required to file under specified charitable/religious and related provisions.",
+       "Eligible persons/entities.","AY 2026-27",
+       INCOME_TAX_DOWNLOADS, INCOME_TAX_DOWNLOADS,"Income Tax Department","2026",
+       "Use current notified schema and eligibility.",
+       ("entity_name","pan","income","application_of_income","audit_details","tax_payments")),
+    _r("itr_u","ITR-U","Tax & Forms","Income Tax",
+       "Updated return mechanism subject to the statutory conditions and time limits.",
+       "Eligible taxpayers with an updateable return position.","AY-specific/current law",
+       INCOME_TAX, INCOME_TAX_DOWNLOADS,"Income Tax Department","2026",
+       "Time limits and additional-tax requirements are current-law questions.",
+       ("name","pan","original_return","additional_income","tax_paid","updated_computation")),
+    _r("itr_v","ITR-V","Tax & Forms","Income Tax",
+       "Verification document used in the applicable return-verification workflow.",
+       "Taxpayers using the applicable verification method.","AY 2026-27",
+       INCOME_TAX_DOWNLOADS, INCOME_TAX_DOWNLOADS,"Income Tax Department","2026",
+       "Use the current e-filing verification route.",
+       ("name","pan","acknowledgement_number","verification_date")),
+    _r("form16","Form 16","Tax & Forms","TDS",
+       "Salary TDS certificate issued by employer.",
+       "Salary recipients where applicable.","Current",
+       INCOME_TAX, INCOME_TAX,None,"Income Tax Department","Current",
+       "Certificate should be reconciled to AIS/26AS and salary records.",
+       ("employee_name","pan","employer_tan","salary","tds","assessment_year")),
+    _r("form16a","Form 16A","Tax & Forms","TDS",
+       "TDS certificate for specified non-salary payments.",
+       "Recipients of specified TDS payments.","Current",
+       INCOME_TAX, INCOME_TAX,"Income Tax Department","Current",
+       "Reconcile with reported TDS credit.",
+       ("recipient_name","pan","deductor_tan","payment_nature","gross_amount","tds")),
+    _r("ais","Annual Information Statement (AIS)","Tax & Forms","Tax Information",
+       "Tax-information statement used to reconcile reported financial/tax information.",
+       "Taxpayers.","Current",
+       INCOME_TAX, None,"Income Tax Department","Current",
+       "AIS data is reporting-based and should be reconciled with source records.",
+       ("pan","assessment_year","reported_income","tds","sft","tax_payments")),
+    _r("26as","Form 26AS","Tax & Forms","Tax Information",
+       "Tax credit statement used to reconcile TDS/TCS and related tax information.",
+       "Taxpayers.","Current",
+       INCOME_TAX, None,"Income Tax Department","Current",
+       "Use alongside AIS and certificates.",
+       ("pan","assessment_year","tds","tcs","advance_tax","self_assessment_tax")),
+    _r("10e","Form 10E","Tax & Forms","Relief",
+       "Statement used for eligible section 89 relief claims.",
+       "Eligible taxpayers with qualifying arrears/advance receipts.","Current",
+       INCOME_TAX, INCOME_TAX,"Income Tax Department","Current",
+       "Relief computation depends on the salary/income history.",
+       ("name","pan","arrears","salary_history","relief_computation")),
+    _r("10iea","Form 10-IEA","Tax & Forms","Tax Regime",
+       "Declaration for eligible business/profession taxpayers to opt out of or re-enter the default new tax regime.",
+       "Eligible taxpayers having business/professional income.","Current",
+       "https://www.incometax.gov.in/iec/foportal/newformpage/forms/form10-iea-UM",
+       "https://www.incometax.gov.in/iec/foportal/newformpage/forms/form10-iea-UM","Income Tax Department","2026",
+       "The current manual says the form is used for eligible business/profession cases.",
+       ("name","pan","assessment_year","status","business_income","tax_regime_option")),
+    _r("67","Form 67","Tax & Forms","Foreign Tax Credit",
+       "Statement used for eligible foreign tax credit claims.",
+       "Taxpayers claiming eligible foreign tax credit.","Current",
+       INCOME_TAX, INCOME_TAX,"Income Tax Department","Current",
+       "Foreign tax credit depends on domestic law and treaty conditions.",
+       ("name","pan","foreign_income","foreign_tax_paid","foreign_tax_certificate","dtAA_details")),
+    _r("15g","Form 15G","Tax & Forms","TDS Declaration",
+       "Declaration for eligible residents seeking non-deduction of TDS on specified income.",
+       "Eligible resident persons satisfying statutory conditions.","Current",
+       INCOME_TAX, INCOME_TAX,"Income Tax Department","Current",
+       "Eligibility is transaction/year-specific.",
+       ("name","pan","estimated_income","specified_income","declaration")),
+    _r("15h","Form 15H","Tax & Forms","TDS Declaration",
+       "Declaration for eligible senior-citizen residents seeking non-deduction of TDS on specified income.",
+       "Eligible senior-citizen residents.","Current",
+       INCOME_TAX, INCOME_TAX,"Income Tax Department","Current",
+       "Eligibility is transaction/year-specific.",
+       ("name","pan","date_of_birth","estimated_income","specified_income","declaration")),
+    _r("fatca_crs","FATCA / CRS Self-Certification","Tax & Forms","International KYC",
+       "Tax-residency self-certification used by reporting financial institutions.",
+       "Account holders/investors with reportable foreign tax-residency details.","Current",
+       INCOME_TAX, None,"Income Tax Department / Financial Institutions","Current",
+       "Institutional FATCA/CRS forms can add fields beyond this generic draft.",
+       ("name","pan","tax_residency","tin","citizenship","address")),
+    _r("gstr1","GSTR-1","Tax & Forms","GST",
+       "Return/statement for outward supplies for applicable GST registrants.",
+       "Applicable GST registered taxpayers.","Current",
+       GST_RETURNS, GST_RETURNS,"GST Portal / CBIC","Current",
+       "Frequency and applicability depend on registration and current GST rules.",
+       ("gstin","tax_period","invoices","credit_debit_notes","exports","hsn_summary")),
+    _r("gstr3b","GSTR-3B","Tax & Forms","GST",
+       "Summary GST return/statement for reporting tax liability and ITC.",
+       "Applicable GST registered taxpayers.","Current",
+       GST_RETURNS, GST_RETURNS,"GST Portal / CBIC","Current",
+       "Reconcile books/source data before filing.",
+       ("gstin","tax_period","outward_tax","itc","reverse_charge","tax_paid")),
+    # Study materials
+    _r("sebi_investor_basics","SEBI Investor Education","Study Material","Markets & Investing",
+       "Official investor education material covering securities-market concepts, risks and investor processes.",
+       "Students/investors.","Current",
+       SEBI_INVESTOR, None,"SEBI","Current",
+       "Use this as a primary Indian-market study source.",
+       ("topic","notes")),
+    _r("rbi_financial_education","RBI Financial Education","Study Material","Banking & Money",
+       "Official RBI education resources on money, banking, payments and financial awareness.",
+       "Students/general public.","Current",
+       "https://www.rbi.org.in/commonperson/English/Scripts/FinancialEducation.aspx", None,"RBI","Current",
+       "Use current RBI educational material and circulars for formal study.",
+       ("topic","notes")),
+    _r("nse_education","NSE Academy / Education","Study Material","Markets",
+       "Exchange-linked market education, courses and certification resources.",
+       "Students/professionals.","Current",
+       "https://www.nseindia.com/learn","https://www.nseindia.com/learn","NSE","Current",
+       "Course availability and pricing can change.",
+       ("student_name","course","email")),
+    _r("pfrda_education","PFRDA / NPS Education","Study Material","Retirement",
+       "Official NPS architecture, eligibility, investment choices and exit material.",
+       "Students/subscribers.","Current",
+       PFRDA_NPS, NPS_SEARCH,"PFRDA","Current",
+       "PFRDA provides detailed NPS model/FAQ documents.",
+       ("topic","notes")),
+    _r("income_tax_learning","Income Tax Department Help Center","Study Material","Tax",
+       "Official help articles, return guides, forms, utilities and filing workflows.",
+       "Students/taxpayers.","Current",
+       INCOME_TAX, INCOME_TAX_DOWNLOADS,"Income Tax Department","Current",
+       "Use current help pages and notified schemas.",
+       ("topic","notes")),
+    _r("gst_learning","GST Portal / Tutorials","Study Material","GST",
+       "Official GST tutorials and return guidance.",
+       "Students/GST taxpayers.","Current",
+       GST, GST_RETURNS,"GST Portal / CBIC","Current",
+       "Use current portal instructions.",
+       ("topic","notes")),
+)
+
+
+def list_resources(category: Optional[str] = None) -> List[dict]:
+    items = RESOURCES
+    if category:
+        value = category.strip().lower()
+        items = tuple(item for item in items if item.category.lower() == value)
+    return [asdict(item) for item in items]
+
+
+def search_resources(query: str) -> List[dict]:
+    q = " ".join(str(query).strip().lower().split())
+    if not q:
+        return []
+    tokens = [t for t in q.split() if len(t) >= 3]
+    scored = []
+    for item in RESOURCES:
+        haystack = " ".join([
+            item.resource_id, item.name, item.category, item.subcategory,
+            item.summary, item.who, item.current_status,
+        ]).lower()
+        score = (20 if q in haystack else 0) + sum(2 for token in tokens if token in haystack)
+        if score:
+            scored.append((score, item))
+    scored.sort(key=lambda pair: (-pair[0], pair[1].name))
+    return [asdict(item) for _, item in scored[:50]]
