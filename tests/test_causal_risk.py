@@ -114,3 +114,16 @@ def test_combined_graph_discovery_rejects_node_id_length_mismatch():
     )
     assert response.status_code == 422
     assert "node_ids length" in response.json()["detail"]
+
+
+def test_market_graph_discovery_requires_multiple_proxies():
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/causal-risk/discover/market-graph",
+        json={"proxies": {"rates": "^TNX"}},
+    )
+    assert response.status_code == 422
+    assert "at least two" in response.json()["detail"]

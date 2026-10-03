@@ -8,6 +8,9 @@ from causal_risk.dynamic_discovery import discover_lagged_graph
 from causal_risk.engine import graph_snapshot, run_counterfactual
 from causal_risk.tail_scenarios import generate_tail_scenarios
 from causal_risk.temporal_gnn import architecture_metadata
+from causal_risk.market_dataset import DEFAULT_CAUSAL_PROXIES, build_market_return_dataset
+from app.market_api import _get_service
+from market_data.resolver import InstrumentResolver
 
 router=APIRouter(prefix="/api/v1/causal-risk",tags=["causal-risk"])
 
@@ -175,3 +178,88 @@ def discover_graph(request: DiscoveryGraphRequest):
         }
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class MarketDiscoveryRequest(BaseModel):
+    proxies: Dict[str, str] = Field(default_factory=lambda: dict(DEFAULT_CAUSAL_PROXIES))
+    days: int = Field(default=730, ge=90, le=3650)
+    lags: int = Field(default=1, ge=1, le=8)
+    alpha: float = Field(default=1.0, gt=0, le=100)
+    threshold: float = Field(default=0.08, ge=0, le=2)
+    lambda1: float = Field(default=0.02, ge=0, le=2)
+
+
+@router.post("/discover/market-graph")
+def discover_market_graph(request: MarketDiscoveryRequest):
+    try:
+        dataset = build_market_return_dataset(
+            _get_service(),
+            InstrumentResolver(),
+            request.proxies,
+            days=request.days,
+        )
+        x = np.asarray(dataset["returns"], dtype=float)
+        if x.shape[1] < 2:
+            raise ValueError("market dataset must contain at least two usable variables")
+
+        note = notears_linear(
+            x,
+            lambda1=request.lambda1,
+            threshold=request.threshold,
+        )
+        dynamic = discover_lagged_graph(
+            x,
+            lags=request.lags,
+            alpha=request.alpha,
+            threshold=request.threshold,
+        )
+        node_ids = dataset["node_ids"]
+
+        contemporaneous_edges = []
+        for src, row in enumerate(note["adjacency"]):
+            for dst, weight in enumerate(row):
+                if float(weight):
+                    contemporaneous_edges.append({
+                        "source": node_ids[src],
+                        "target": node_ids[dst],
+                        "weight": round(float(weight), 6),
+                        "lag": 0,
+                        "modality": "NOTEARS-linear",
+                    })
+
+        temporal_edges = [
+            {
+                **edge,
+                "source": node_ids[edge["source"]],
+                "target": node_ids[edge["target"]],
+                "modality": "DYNOTEARS-style-temporal-ridge",
+            }
+            for edge in dynamic["edges"]
+        ]
+
+        return {
+            "status": "market_research_graph_ready",
+            "dataset": {
+                key: value for key, value in dataset.items()
+                if key != "returns"
+            },
+            "discovery": {
+                "contemporaneous": {
+                    "method": note["method"],
+                    "status": note["status"],
+                    "acyclicity": note["acyclicity"],
+                    "edges": contemporaneous_edges,
+                },
+                "temporal": {
+                    "method": dynamic["method"],
+                    "status": dynamic["status"],
+                    "lags": dynamic["lags"],
+                    "edges": temporal_edges,
+                },
+            },
+            "semantics": "Market-return proxy discovery for research. Proxy selection, stationarity, confounding, identification and structural interpretation require empirical validation.",
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Market causal discovery failed: {exc}") from exc
