@@ -44,6 +44,7 @@ import { StudyHub } from "./components/StudyHub";
 import { ResourcesHub } from "./components/ResourcesHub";
 import { MarketAnalystHub } from "./components/MarketAnalystHub";
 import { XAIExplorerHub } from "./components/XAIExplorerHub";
+import { PlatformGuide } from "./components/PlatformGuide";
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
@@ -157,7 +158,7 @@ function traceValue(value: string) {
   return value.replaceAll("_", " ");
 }
 
-function AssistantWorkspace() {
+function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => void }) {
   const [language, setLanguage] = useState("English");
   const [persona, setPersona] = useState("neutral");
   const [models, setModels] = useState<FinAIModel[]>([]);
@@ -507,6 +508,8 @@ function AssistantWorkspace() {
           </div>
         </section>
 
+        <PlatformGuide onNavigate={(section) => onNavigate(section as Section)} />
+
         <section className="glass-panel side-card">
           <div className="side-title"><Languages size={15} /> Preferences</div>
           <label>Language<select value={language} onChange={(event) => setLanguage(event.target.value)} disabled={loading}>{languages.map((item) => <option key={item}>{item}</option>)}</select></label>
@@ -549,7 +552,7 @@ function App() {
 
   const content = {
     overview: <PlatformHome onNavigate={(value) => setSection(value as Section)} />,
-    assistant: <AssistantWorkspace />,
+    assistant: <AssistantWorkspace onNavigate={setSection} />,
     markets: <MarketTerminal />,
     investments: <InvestmentHub />,
     portfolio: <WealthWorkspace />,
