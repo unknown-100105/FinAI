@@ -94,7 +94,12 @@ export default function CausalRiskLab() {
     try {
       const next = await runCounterfactual({
         shock: s,
-        allocation: portfolios[p],
+        allocation: {
+          equity: portfolios[p].equity,
+          debt: portfolios[p].debt,
+          gold: portfolios[p].gold,
+          cash: portfolios[p].cash,
+        },
         include_tail_scenarios: true,
       });
       setResult(next);
