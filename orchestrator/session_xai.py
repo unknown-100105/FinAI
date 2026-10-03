@@ -345,6 +345,18 @@ class XAISessionOrchestrator:
             "session": updated["session"],
         }
 
+    def authenticate_session(self, session_id: str):
+        """Authenticate a development/demo session explicitly."""
+        session = self.sessions.get(session_id)
+        session.authenticate()
+        return session.snapshot()
+
+    def logout_session(self, session_id: str):
+        """End the current session authentication state."""
+        session = self.sessions.get(session_id)
+        session.logout()
+        return session.snapshot()
+
     def _process_engine(
         self,
         user_text,
