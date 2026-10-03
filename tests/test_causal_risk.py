@@ -150,3 +150,22 @@ def test_discovery_stability_uses_contiguous_windows():
     assert all(item["start_row"] < item["end_row"] for item in result["windows"])
     assert result["contemporaneous"]["windows"] == 3
     assert result["temporal"]["windows"] == 3
+
+
+def test_stability_flags_reciprocal_direction_conflicts():
+    from causal_risk.stability import _edge_statistics
+
+    stats = _edge_statistics(
+        [
+            {"usd->oil": 0.12, "oil->usd": 0.10},
+            {"usd->oil": 0.11, "oil->usd": 0.09},
+            {"usd->oil": 0.13, "oil->usd": 0.08},
+            {"usd->oil": 0.10, "oil->usd": 0.07},
+        ],
+        4,
+        stable_frequency=0.75,
+    )
+    assert stats["stable_edges"] == 2
+    assert stats["consensus_eligible_edges"] == 0
+    assert len(stats["direction_conflicts"]) == 1
+    assert all(item["direction_conflict"] for item in stats["ranked_edges"])

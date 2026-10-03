@@ -27,6 +27,14 @@ def _window_slices(n_samples: int, windows: int, fraction: float) -> list[tuple[
     return slices
 
 
+def _parse_edge_key(key: str) -> tuple[str, str] | None:
+    raw = key.split("|lag=", 1)[0]
+    if "->" not in raw:
+        return None
+    source, target = raw.split("->", 1)
+    return source, target
+
+
 def _edge_statistics(
     observations: Sequence[dict[str, float]],
     windows: int,
@@ -39,10 +47,41 @@ def _edge_statistics(
         for key, weight in edge_map.items():
             counts[key] += 1
             weights[key].append(float(weight))
+
+    frequencies = {
+        key: count / max(windows, 1)
+        for key, count in counts.items()
+    }
+
+    reciprocal_pairs = set()
+    for key in counts:
+        parsed = _parse_edge_key(key)
+        if parsed is None:
+            continue
+        source, target = parsed
+        reverse = f"{target}->{source}"
+        reverse_suffix = key.split("|lag=", 1)[1] if "|lag=" in key else None
+        reverse_key = f"{reverse}|lag={reverse_suffix}" if reverse_suffix is not None else reverse
+        if reverse_key in counts:
+            pair = tuple(sorted((key, reverse_key)))
+            if frequencies[key] >= stable_frequency and frequencies[reverse_key] >= stable_frequency:
+                reciprocal_pairs.add(pair)
+
     ranked = []
     for key, count in counts.items():
         values = np.asarray(weights[key], dtype=float)
-        frequency = count / max(windows, 1)
+        frequency = frequencies[key]
+        parsed = _parse_edge_key(key)
+        direction_conflict = False
+        if parsed is not None:
+            source, target = parsed
+            reverse = f"{target}->{source}"
+            reverse_suffix = key.split("|lag=", 1)[1] if "|lag=" in key else None
+            reverse_key = f"{reverse}|lag={reverse_suffix}" if reverse_suffix is not None else reverse
+            direction_conflict = (
+                (key, reverse_key) if key < reverse_key else (reverse_key, key)
+            ) in reciprocal_pairs
+
         ranked.append({
             "edge": key,
             "selection_frequency": round(frequency, 3),
@@ -51,7 +90,12 @@ def _edge_statistics(
             "std_weight": round(float(np.std(values)), 6),
             "sign_consistency": round(abs(float(np.sum(np.sign(values)))) / len(values), 3),
             "stable": bool(frequency >= stable_frequency),
+            "direction_conflict": direction_conflict,
+            "consensus_eligible": bool(
+                frequency >= stable_frequency and not direction_conflict
+            ),
         })
+
     ranked.sort(
         key=lambda item: (
             -float(item["selection_frequency"]),
@@ -59,10 +103,24 @@ def _edge_statistics(
             item["edge"],
         )
     )
+
+    conflicts = []
+    for first, second in sorted(reciprocal_pairs):
+        conflicts.append({
+            "pair": [first, second],
+            "status": "reciprocal_direction_conflict",
+            "message": "Both directions meet the stability threshold; do not treat either direction as a consensus causal edge without additional identification evidence.",
+        })
+
+    stable_count = sum(1 for item in ranked if item["stable"])
+    consensus_count = sum(1 for item in ranked if item["consensus_eligible"])
+
     return {
         "windows": windows,
         "edges_observed": len(ranked),
-        "stable_edges": sum(1 for item in ranked if item["stable"]),
+        "stable_edges": stable_count,
+        "consensus_eligible_edges": consensus_count,
+        "direction_conflicts": conflicts,
         "ranked_edges": ranked,
     }
 
@@ -81,7 +139,7 @@ def assess_discovery_stability(
     max_outer_iter: int = 6,
     max_inner_iter: int = 80,
 ) -> dict[str, Any]:
-    """Measure edge-selection stability across contiguous time windows.
+    """Measure edge-selection stability across rolling, overlapping time windows.
 
     This is a robustness diagnostic, not a causal-confidence estimator.
     """
@@ -138,6 +196,14 @@ def assess_discovery_stability(
             "temporal_edges": len(dynamic_edges),
         })
 
+    contemporaneous = _edge_statistics(
+        contemporaneous_observations, len(specs), stable_frequency=stable_frequency
+    )
+    temporal = _edge_statistics(
+        temporal_observations, len(specs), stable_frequency=stable_frequency
+    )
+    total_conflicts = len(contemporaneous["direction_conflicts"]) + len(temporal["direction_conflicts"])
+
     return {
         "status": "research_stability_ready",
         "n_samples": int(X.shape[0]),
@@ -151,11 +217,15 @@ def assess_discovery_stability(
             "lags": lags,
         },
         "windows": window_metadata,
-        "contemporaneous": _edge_statistics(
-            contemporaneous_observations, len(specs), stable_frequency=stable_frequency
-        ),
-        "temporal": _edge_statistics(
-            temporal_observations, len(specs), stable_frequency=stable_frequency
-        ),
-        "semantics": "Selection frequency across contiguous time windows is a robustness diagnostic, not causal confidence or validated identification.",
+        "contemporaneous": contemporaneous,
+        "temporal": temporal,
+        "consensus": {
+            "status": "CONFLICTED" if total_conflicts else "NO_DIRECTIONAL_CONFLICTS_DETECTED",
+            "direction_conflicts": total_conflicts,
+            "eligible_edge_count": (
+                contemporaneous["consensus_eligible_edges"] +
+                temporal["consensus_eligible_edges"]
+            ),
+        },
+        "semantics": "Selection frequency across rolling overlapping windows is a robustness diagnostic. Reciprocal stable directions are flagged as conflicts and are not consensus causal edges.",
     }
