@@ -7,6 +7,7 @@ outcome-labelled datasets without silently treating associations as causal.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -14,14 +15,36 @@ import numpy as np
 from sklearn.linear_model import Ridge
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[1] / "configs" / "causal_risk_calibration.json"
+REQUIRED_COEFFICIENTS = {
+    "equity_from_liquidity", "debt_from_rates", "debt_from_credit",
+    "debt_from_oil", "debt_from_liquidity", "gold_from_usd",
+    "gold_from_rates", "gold_from_oil", "systemic_liquidity",
+    "systemic_equity", "systemic_debt", "systemic_drawdown",
+}
 
 
 def load_risk_calibration(path: str | Path | None = None) -> dict[str, Any]:
-    config_path = Path(path) if path is not None else DEFAULT_CONFIG_PATH
+    env_path = os.getenv("FINAI_RISK_CALIBRATION_PATH")
+    config_path = Path(path or env_path or DEFAULT_CONFIG_PATH)
     with config_path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
     if not isinstance(payload, dict) or "coefficients" not in payload:
         raise ValueError("risk calibration config must contain coefficients")
+    coefficients = payload.get("coefficients", {})
+    missing = sorted(REQUIRED_COEFFICIENTS - set(coefficients))
+    if missing:
+        raise ValueError(
+            "risk calibration config missing coefficients: " + ", ".join(missing)
+        )
+    if not all(np.isfinite(float(value)) for value in coefficients.values()):
+        raise ValueError("risk calibration coefficients must be finite")
+    payload.setdefault("validation", {})
+    payload["validation"].setdefault(
+        "empirical_fit_available",
+        payload.get("status") == "empirical_fit",
+    )
+    payload["validation"].setdefault("causal_identification", False)
+    payload["selected_from"] = str(config_path)
     return payload
 
 
