@@ -1,0 +1,285 @@
+.wealth-workspace {
+  margin-top: 16px;
+  padding: 22px;
+  border: 1px solid rgba(146,174,208,.14);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(15,27,43,.88), rgba(8,16,28,.84));
+  box-shadow: 0 24px 70px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.03);
+  backdrop-filter: blur(22px);
+}
+
+.wealth-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:18px;
+}
+
+.wealth-kicker {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:#91a9ff;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.wealth-header h2 {
+  margin:6px 0 5px;
+  font-size:20px;
+  letter-spacing:-.02em;
+}
+
+.wealth-header p {
+  max-width:760px;
+  margin:0;
+  color:#7889a0;
+  font-size:11px;
+}
+
+.wealth-refresh, .wealth-add-row button, .wealth-tabs button {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+}
+
+.wealth-refresh {
+  border:1px solid rgba(146,174,208,.12);
+  border-radius:11px;
+  padding:9px 11px;
+  color:#b6c2d3;
+  background:rgba(91,121,164,.06);
+  font-size:10px;
+}
+
+.wealth-tabs {
+  display:flex;
+  gap:6px;
+  margin:18px 0 12px;
+  padding:4px;
+  width:max-content;
+  border:1px solid rgba(146,174,208,.08);
+  border-radius:12px;
+  background:rgba(6,12,22,.48);
+}
+
+.wealth-tabs button {
+  border:0;
+  border-radius:8px;
+  padding:8px 11px;
+  color:#6f8098;
+  background:transparent;
+  font-size:10px;
+  font-weight:800;
+}
+
+.wealth-tabs button.active {
+  color:#e4ecfa;
+  background:rgba(74,105,197,.22);
+}
+
+.wealth-error {
+  margin-bottom:12px;
+  padding:10px;
+  border:1px solid rgba(226,122,134,.2);
+  border-radius:11px;
+  color:#e6a4ad;
+  background:rgba(119,40,52,.12);
+  font-size:10px;
+}
+
+.wealth-panel {
+  border:1px solid rgba(146,174,208,.07);
+  border-radius:16px;
+  padding:14px;
+  background:rgba(6,13,23,.43);
+}
+
+.wealth-add-row {
+  display:flex;
+  gap:8px;
+  margin-bottom:13px;
+}
+
+.wealth-add-row select, .wealth-add-row input {
+  min-height:38px;
+  border:1px solid rgba(146,174,208,.11);
+  border-radius:10px;
+  outline:0;
+  color:#d0dceb;
+  background:rgba(9,18,32,.82);
+  padding:0 10px;
+  font-size:10px;
+}
+
+.wealth-add-row select { min-width:150px; }
+.wealth-add-row input { width:125px; }
+
+.wealth-add-row button {
+  min-height:38px;
+  border:1px solid rgba(105,139,246,.23);
+  border-radius:10px;
+  padding:0 12px;
+  color:#eaf0ff;
+  background:linear-gradient(145deg,#325fff,#1d43aa);
+  font-size:10px;
+  font-weight:800;
+}
+
+.watch-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+
+.watch-card {
+  padding:13px;
+  min-height:132px;
+  border:1px solid rgba(146,174,208,.07);
+  border-radius:13px;
+  background:rgba(87,116,161,.045);
+}
+
+.watch-card-top {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.watch-symbol {
+  display:block;
+  color:#d7e2f1;
+  font-size:12px;
+  font-weight:900;
+}
+
+.watch-source {
+  display:block;
+  margin-top:3px;
+  color:#5b6f89;
+  font-size:8px;
+}
+
+.watch-card > strong {
+  display:block;
+  margin-top:17px;
+  color:#eef4fc;
+  font-size:15px;
+}
+
+.watch-change {
+  margin-top:3px;
+  font-size:10px;
+  font-weight:800;
+}
+
+.positive { color:#69d8c1 !important; }
+.negative { color:#e27a86 !important; }
+
+.icon-danger {
+  width:28px;
+  height:28px;
+  border:1px solid rgba(146,174,208,.08);
+  border-radius:8px;
+  display:grid;
+  place-items:center;
+  color:#6b7c94;
+  background:rgba(101,127,168,.05);
+}
+
+.portfolio-summary {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-bottom:12px;
+}
+
+.portfolio-summary > div {
+  padding:12px;
+  border:1px solid rgba(146,174,208,.07);
+  border-radius:12px;
+  background:rgba(87,116,161,.045);
+}
+
+.portfolio-summary span {
+  display:block;
+  color:#5d718a;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.portfolio-summary strong {
+  display:block;
+  margin-top:5px;
+  color:#e1e9f6;
+  font-size:13px;
+}
+
+.portfolio-form { align-items:center; }
+
+.portfolio-table-wrap { overflow:auto; }
+
+.portfolio-table {
+  width:100%;
+  border-collapse:collapse;
+  min-width:760px;
+}
+
+.portfolio-table th {
+  padding:9px;
+  text-align:left;
+  color:#5d718a;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  font-weight:900;
+}
+
+.portfolio-table td {
+  padding:11px 9px;
+  border-top:1px solid rgba(146,174,208,.06);
+  color:#acbacd;
+  font-size:10px;
+  white-space:nowrap;
+}
+
+.portfolio-table td strong {
+  display:block;
+  color:#d4dfee;
+  font-size:10px;
+}
+
+.portfolio-table td span {
+  display:block;
+  margin-top:3px;
+  color:#53667e;
+  font-size:8px;
+}
+
+.wealth-empty {
+  min-height:130px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  color:#65768c;
+  font-size:10px;
+  text-align:center;
+}
+
+@media (max-width:900px) {
+  .watch-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .portfolio-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width:560px) {
+  .wealth-workspace { padding:15px; }
+  .wealth-header { flex-direction:column; }
+  .wealth-add-row { flex-wrap:wrap; }
+  .wealth-add-row select, .wealth-add-row input { flex:1; min-width:110px; }
+  .watch-grid { grid-template-columns:1fr; }
+}
