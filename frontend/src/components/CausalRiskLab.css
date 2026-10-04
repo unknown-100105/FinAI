@@ -14,3 +14,27 @@
 .causal-fallback-note{display:flex;gap:8px;align-items:flex-start;margin:10px 0;padding:10px;border:1px solid rgba(181,144,77,.16);border-radius:10px;color:#cfb87d;background:rgba(157,119,56,.07);font-size:8px;line-height:1.55}
 .causal-fallback-note svg{flex:0 0 auto;margin-top:1px}
 @media(max-width:760px){.causal-custom-allocation{grid-template-columns:1fr}}
+
+/* Responsive scenario workstation: never require horizontal scrolling. */
+.causal-page { min-width: 0; overflow-x: hidden; }
+.causal-command { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; }
+.causal-portfolio-control { min-width: 0 !important; width: 100%; }
+.causal-custom-allocation {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+.causal-custom-allocation label { min-width: 0; }
+.causal-custom-allocation input { max-width: 100%; }
+.causal-selection-note { width: 100%; box-sizing: border-box; }
+.causal-command select { width: 100%; min-width: 0; box-sizing: border-box; }
+@media (max-width: 900px) {
+  .causal-command { grid-template-columns: 1fr 1fr; }
+  .causal-portfolio-control { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .causal-command { grid-template-columns: 1fr; }
+  .causal-portfolio-control { grid-column: auto; }
+  .causal-custom-allocation { grid-template-columns: 1fr !important; }
+}
