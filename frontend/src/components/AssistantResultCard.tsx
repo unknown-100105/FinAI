@@ -169,11 +169,11 @@ function EMIResultCard({ finance, traceId, onNavigate }: { finance: any; traceId
 
       <div className="chat-result-stats">
         <Stat label="Principal" value={money(principal)} />
-        <Stat label="Interest rate" value={\`\${annualRate}%\`} />
+        <Stat label="Interest rate" value={`${annualRate}%`} />
         <Stat label="Monthly EMI" value={money(baseEmi)} />
         <Stat label="Total interest" value={money(result.total_interest)} />
         <Stat label="Total payable" value={money(result.total_payment)} />
-        <Stat label="Tenure" value={\`\${months} months\`} sub={\`\${(months / 12).toFixed(1)} years\`} />
+        <Stat label="Tenure" value={`${months} months`} sub={`${(months / 12).toFixed(1)} years`} />
       </div>
 
       <div className="chat-result-section-title"><Table2 size={12} /> Month-by-month amortization</div>
@@ -195,7 +195,7 @@ function EMIResultCard({ finance, traceId, onNavigate }: { finance: any; traceId
       </div>
       {schedule.length > 12 && (
         <button type="button" className="chat-result-expand" onClick={() => setShowSchedule((value) => !value)}>
-          <Table2 size={11} /> {showSchedule ? "Show first 12 months" : \`Show all \${schedule.length} months\`}
+          <Table2 size={11} /> {showSchedule ? "Show first 12 months" : `Show all ${schedule.length} months`}
         </button>
       )}
 
@@ -268,9 +268,9 @@ function MarketResultCard({ market, traceId, onNavigate }: { market: any; traceI
 
       {analytics && (
         <div className="chat-result-stats market-analytics-stats">
-          <Stat label="Cumulative return" value={\`\${number(analytics.cumulative_return)}%\`} />
-          <Stat label="Annualized volatility" value={\`\${number(analytics.annualized_volatility)}%\`} />
-          <Stat label="Max drawdown" value={\`\${number(analytics.maximum_drawdown)}%\`} />
+          <Stat label="Cumulative return" value={`${number(analytics.cumulative_return)}%`} />
+          <Stat label="Annualized volatility" value={`${number(analytics.annualized_volatility)}%`} />
+          <Stat label="Max drawdown" value={`${number(analytics.maximum_drawdown)}%`} />
           <Stat label="SMA 20" value={number(analytics.sma_20)} />
           <Stat label="SMA 50" value={number(analytics.sma_50)} />
           <Stat label="RSI 14" value={number(analytics.rsi_14)} />
