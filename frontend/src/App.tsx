@@ -289,18 +289,35 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
 
       applyResult(result);
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Unable to contact the FinAI backend.",
-      );
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          content: "I couldn't reach the FinAI backend. Check that FastAPI is running on port 8000.",
-        },
-      ]);
+      // Preserve the system-owned result when the optional generation layer
+      // is unavailable. This keeps knowledge/calculation demos usable.
+      try {
+        const fallbackResult = await sendChat({
+          message: text,
+          session_id: sessionId,
+          language,
+          persona,
+          generate_response: false,
+          max_new_tokens: 256,
+        });
+        setError("Model generation was unavailable; showing the verified system result.");
+        applyResult(fallbackResult);
+      } catch (fallbackError) {
+        setError(
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : requestError instanceof Error
+              ? requestError.message
+              : "Unable to contact the FinAI backend.",
+        );
+        setMessages((current) => [
+          ...current,
+          {
+            role: "assistant",
+            content: "FinAI could not complete this request. Check that FastAPI is running on port 8000 and review the backend logs.",
+          },
+        ]);
+      }
     } finally {
       setLoading(false);
     }
