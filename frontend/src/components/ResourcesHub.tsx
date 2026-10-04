@@ -134,10 +134,18 @@ export function ResourcesHub({ defaultCategory = "All" }: { defaultCategory?: st
                 <div className="workflow-list">{resourceWorkflow(selected).map((step, index) => <div key={step}><b>{String(index + 1).padStart(2, "0")}</b><span>{step}</span></div>)}</div>
               </div>
               <div className="resource-actions">
-                {selected.form_url ? <a className="primary-module-button link-button" href={selected.form_url} target="_blank" rel="noreferrer"><FileText size={13} /> {selected.form_url === selected.official_url ? "Open official source" : "Open official form / document"}</a> : <a className="primary-module-button link-button" href={selected.official_url} target="_blank" rel="noreferrer"><ExternalLink size={13} /> Open official source</a>}
+                {selected.form_url ? <a className="primary-module-button link-button" href={selected.form_url} target="_blank" rel="noreferrer"><FileText size={13} /> {selected.form_url === selected.official_url ? "Open official resource" : "Open exact form / document"}</a> : <a className="primary-module-button link-button" href={selected.official_url} target="_blank" rel="noreferrer"><ExternalLink size={13} /> Open official resource</a>}
                 <button type="button" className="secondary-module-button" onClick={saveDraft}><Save size={13} /> {saved ? "Draft saved" : "Save draft"}</button>
                 <button type="button" className="secondary-module-button" onClick={exportDraft}>Export JSON</button>
                 <button type="button" className="secondary-module-button" onClick={() => window.print()}>Print / Save PDF</button>
+              </div>
+              <div className="resource-links-detail">
+                <div><span>Official resource URL</span><a href={selected.official_url} target="_blank" rel="noreferrer">{selected.official_url}</a></div>
+                <div><span>{selected.form_url && selected.form_url !== selected.official_url ? "Exact form / document URL" : "Form / document"}</span>
+                  {selected.form_url && selected.form_url !== selected.official_url
+                    ? <a href={selected.form_url} target="_blank" rel="noreferrer">{selected.form_url}</a>
+                    : <p>No separate form/document URL is catalogued for this resource; use the official resource page above.</p>}
+                </div>
               </div>
               <div className="detail-section">
                 <div className="detail-section-title">Draft workspace</div>
