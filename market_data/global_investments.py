@@ -65,7 +65,7 @@ ASSET_ACCESS_GUIDANCE = {
     "deposit": {
         "label": "Bank deposits / FD",
         "summary": "Foreign bank deposits or time deposits. Eligibility depends on the bank, residency rules, KYC, currency controls and repatriation conditions.",
-        "checks": ["Bank-specific non-resident eligibility", "KYC/account-opening requirements", "Currency and FX controls", "Repatriation rules", "Tax/reporting treatment"],
+        "checks": ["Bank-specific non-resident eligibility", "Indian FEMA / overseas-investment rules", "KYC/account-opening requirements", "Currency and FX controls", "Repatriation rules", "Tax/reporting treatment"],
     },
     "fund": {
         "label": "Funds",
