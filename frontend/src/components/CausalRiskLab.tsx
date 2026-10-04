@@ -101,7 +101,7 @@ function localCalc(s: S, p: PortfolioProfile) {
   return { l, e, d, draw, risk };
 }
 
-const pct = (x: number) => \`\${x > 0 ? "+" : ""}\${x.toFixed(1)}%\`;
+const pct = (x: number) => `${x > 0 ? "+" : ""}${x.toFixed(1)}%`;
 
 function rebalanceAllocation(current: PortfolioProfile, key: AllocationKey, requested: number): PortfolioProfile {
   const nextValue = Math.max(0, Math.min(100, Math.round(requested)));
