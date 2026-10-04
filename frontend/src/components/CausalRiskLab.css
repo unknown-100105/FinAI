@@ -38,3 +38,15 @@
   .causal-portfolio-control { grid-column: auto; }
   .causal-custom-allocation { grid-template-columns: 1fr !important; }
 }
+
+.causal-cockpit{display:grid;grid-template-columns:1.35fr repeat(3,1fr);gap:8px;margin:10px 0 12px}
+.causal-cockpit-card{min-width:0;padding:12px;border:1px solid rgba(126,157,220,.10);border-radius:12px;background:linear-gradient(145deg,rgba(12,27,45,.78),rgba(6,14,25,.72))}
+.causal-cockpit-card.primary{border-color:rgba(93,137,244,.22);background:linear-gradient(145deg,rgba(39,66,132,.17),rgba(7,15,27,.72))}
+.causal-cockpit-card>span{display:block;color:#5f748d;font-size:7px;text-transform:uppercase;letter-spacing:.08em}
+.causal-cockpit-card>strong{display:block;margin-top:5px;color:#dbe6f3;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.causal-cockpit-card>strong small{margin-left:2px;color:#627793;font-size:7px}
+.causal-cockpit-card>strong.positive{color:#79d8bf}
+.causal-cockpit-card>strong.negative{color:#e08b98}
+.causal-cockpit-card>small{display:block;margin-top:4px;color:#536981;font-size:7px;line-height:1.4}
+@media(max-width:1050px){.causal-cockpit{grid-template-columns:1fr 1fr}.causal-cockpit-card.primary{grid-column:1/-1}}
+@media(max-width:560px){.causal-cockpit{grid-template-columns:1fr}.causal-cockpit-card.primary{grid-column:auto}}
