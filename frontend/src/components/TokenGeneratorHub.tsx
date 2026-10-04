@@ -163,6 +163,7 @@ export function TokenGeneratorHub() {
   const [chain, setChain] = useState<(typeof chainMeta)[number]["id"]>("ethereum");
   const [activeTab, setActiveTab] = useState<"design" | "code" | "security">("design");
   const [copied, setCopied] = useState(false);
+  const [localToken, setLocalToken] = useState<{ name: string; symbol: string; supply: number; balance: number; chain: string; createdAt: string } | null>(null);
   const [features, setFeatures] = useState<Record<FeatureKey, boolean>>({
     burnable: true,
     pausable: false,
@@ -191,6 +192,26 @@ export function TokenGeneratorHub() {
   const toggleFeature = (id: FeatureKey) => {
     setFeatures((current) => ({ ...current, [id]: !current[id] }));
   };
+
+  const createLocalToken = () => {
+    if (!ready) return;
+    const supplyNumber = Number(safeSupply);
+    setLocalToken({
+      name: safeName,
+      symbol: safeSymbol,
+      supply: supplyNumber,
+      balance: supplyNumber,
+      chain: selectedChain.label,
+      createdAt: new Date().toLocaleString(),
+    });
+  };
+
+  const simulateMint = () => {
+    if (!localToken || !features.mintable) return;
+    setLocalToken((current) => current ? { ...current, balance: current.balance + 1000, supply: current.supply + 1000 } : current);
+  };
+
+  const resetLocalToken = () => setLocalToken(null);
 
   const copyCode = async () => {
     await navigator.clipboard.writeText(code);
@@ -230,8 +251,11 @@ export function TokenGeneratorHub() {
           <button className="secondary-module-button" type="button" onClick={() => setActiveTab("security")}>
             <ShieldCheck size={13} /> Security review
           </button>
-          <button className="primary-module-button" type="button" onClick={() => setActiveTab("code")}>
+          <button className="secondary-module-button" type="button" onClick={() => setActiveTab("code")}>
             <TerminalSquare size={13} /> Inspect contract
+          </button>
+          <button className="primary-module-button" type="button" onClick={createLocalToken} disabled={!ready}>
+            <Sparkles size={13} /> {localToken ? "Token created" : "Create local token"}
           </button>
         </div>
       </div>
@@ -300,6 +324,32 @@ export function TokenGeneratorHub() {
                 <div><span>Decimals</span><strong>{safeDecimals}</strong></div>
                 <div><span>Chain</span><strong>{selectedChain.label}</strong></div>
                 <div><span>Features</span><strong>{Object.values(features).filter(Boolean).length}</strong></div>
+              </div>
+            </section>
+
+            <section className="workspace-panel token-local-create">
+              <div className="module-panel-head">
+                <div><div className="module-kicker">Local token runtime</div><h2>{localToken ? localToken.symbol + " is ready" : "Create a demo token instance"}</h2></div>
+                <span className="source-chip">{localToken ? "Simulated" : "Ready"}</span>
+              </div>
+              <div className="token-local-status">
+                <span>{localToken ? "Created at " + localToken.createdAt : "Generate the contract and instantiate a local demo token ledger."}</span>
+                <strong>{localToken ? localToken.chain : "No wallet required"}</strong>
+              </div>
+              <p>{localToken ? "This creates a browser-local token instance for demonstration. It is not an on-chain deployment and does not create a real asset on a blockchain." : "Use this to demonstrate the token lifecycle in your viva without requesting a private key or signing a transaction."}</p>
+              {localToken && <div className="token-local-balance">
+                <div><span>Token supply</span><strong>{localToken.supply.toLocaleString()} {localToken.symbol}</strong></div>
+                <div><span>Demo wallet balance</span><strong>{localToken.balance.toLocaleString()} {localToken.symbol}</strong></div>
+              </div>}
+              <div className="token-local-actions">
+                {!localToken ? (
+                  <button type="button" className="primary-module-button" onClick={createLocalToken} disabled={!ready}><Sparkles size={12} /> Create local token</button>
+                ) : (
+                  <>
+                    {features.mintable && <button type="button" className="secondary-module-button" onClick={simulateMint}><Zap size={12} /> Simulate mint +1,000</button>}
+                    <button type="button" className="secondary-module-button" onClick={resetLocalToken}>Reset demo</button>
+                  </>
+                )}
               </div>
             </section>
 
