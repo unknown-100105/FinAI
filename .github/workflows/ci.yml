@@ -55,6 +55,8 @@ jobs:
             tests/test_incremental_feasibility.py \
             tests/test_pruning_benchmark.py \
             tests/test_research_experiments.py \
+            tests/test_global_investments.py \
+            tests/test_causal_risk_api_fallback.py \
             tests/test_authority_contract.py \
             tests/test_claim_contract.py \
             tests/test_claim_extractor.py \
