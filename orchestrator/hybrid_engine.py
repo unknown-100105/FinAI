@@ -236,11 +236,33 @@ class FinAIHybridEngine:
             from knowledge.india_finance_regulation import search_regulations
             from knowledge.investment_eligibility import search_investment_routes
 
-            catalog_result = build_catalog_answer(user_text)
-            encyclopedia_result = build_encyclopedia_answer(user_text)
-            compliance_results = find_items(user_text)
-            regulatory_results = search_regulations(user_text)
-            investment_route_results = search_investment_routes(user_text)
+            # Keep the structured knowledge path resilient: one optional
+            # catalogue must not take down a valid finance explanation.
+            try:
+                catalog_result = build_catalog_answer(user_text)
+            except Exception:
+                catalog_result = {"found": False, "matches": [], "answer": ""}
+            try:
+                encyclopedia_result = build_encyclopedia_answer(user_text)
+            except Exception:
+                encyclopedia_result = {
+                    "found": False,
+                    "matches": [],
+                    "answer": "",
+                    "requires_current_data": False,
+                }
+            try:
+                compliance_results = find_items(user_text)
+            except Exception:
+                compliance_results = []
+            try:
+                regulatory_results = search_regulations(user_text)
+            except Exception:
+                regulatory_results = []
+            try:
+                investment_route_results = search_investment_routes(user_text)
+            except Exception:
+                investment_route_results = []
 
             compliance_hint = any(
                 term in user_text.lower()
