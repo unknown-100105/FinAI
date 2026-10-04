@@ -247,7 +247,7 @@ export default function CausalRiskLab() {
               <option value="balanced">Balanced India</option>
               <option value="growth">Growth</option>
               <option value="defensive">Defensive</option>
-              <option value="saved">My saved portfolio {savedHoldingsCount ? \`(\${savedHoldingsCount} holdings)\` : "(empty)"}</option>
+              <option value="saved">My saved portfolio {savedHoldingsCount ? `(${savedHoldingsCount} holdings)` : "(empty)"}</option>
               <option value="custom">Custom allocation</option>
             </select>
           </label>
@@ -296,7 +296,7 @@ export default function CausalRiskLab() {
       {tailDependence?.status === "FALLBACK" && (
         <div className="causal-fallback-note">
           <ShieldAlert size={13}/>
-          <span><b>Empirical tail dependence unavailable for this run.</b> The counterfactual still executed; tail scenarios used the configured distribution without empirical market correlation. {tailDependence.reason ? \`Reason: \${tailDependence.reason}\` : ""}</span>
+          <span><b>Empirical tail dependence unavailable for this run.</b> The counterfactual still executed; tail scenarios used the configured distribution without empirical market correlation. {tailDependence.reason ? `Reason: ${tailDependence.reason}` : ""}</span>
         </div>
       )}
 
@@ -317,7 +317,7 @@ export default function CausalRiskLab() {
               const [x, y] = positions[node.node_id];
               const intervention = (Object.keys(s) as string[]).includes(node.node_id);
               return (
-                <div key={node.node_id} className={intervention ? "causal-node intervention" : "causal-node"} style={{ left: \`\${x}%\`, top: \`\${y}%\` }}>
+                <div key={node.node_id} className={intervention ? "causal-node intervention" : "causal-node"} style={{ left: `${x}%`, top: `${y}%` }}>
                   <span>{node.kind === "outcome" ? "Outcome" : "Variable"}</span>
                   <strong>{node.label.replace("Central-bank ", "")}</strong>
                 </div>
@@ -351,7 +351,7 @@ export default function CausalRiskLab() {
         <section className="causal-panel result-card">
           <div className="causal-label">03 · Systemic risk</div>
           <div className="risk-number"><Gauge size={17}/><strong>{risk.toFixed(0)}</strong><span>/100 stress</span></div>
-          <div className="risk-bar"><i style={{ width: \`\${risk}%\` }}/></div>
+          <div className="risk-bar"><i style={{ width: `${risk}%` }}/></div>
           <div className="metric-list">
             <div><span>Liquidity</span><b>{pct(liquidity)}</b></div>
             <div><span>Equity channel</span><b>{pct(equity)}</b></div>
@@ -376,9 +376,9 @@ export default function CausalRiskLab() {
           <div className="causal-label">05 · Counterfactual portfolio</div>
           <h2>{activePortfolio.name}</h2>
           <div className="allocation">
-            <div><span>Equity</span><i style={{ width: \`\${activePortfolio.equity}%\` }}/><b>{activePortfolio.equity}%</b></div>
-            <div><span>Debt</span><i style={{ width: \`\${activePortfolio.debt}%\` }}/><b>{activePortfolio.debt}%</b></div>
-            <div><span>Gold</span><i style={{ width: \`\${activePortfolio.gold}%\` }}/><b>{activePortfolio.gold}%</b></div>
+            <div><span>Equity</span><i style={{ width: `${activePortfolio.equity}%` }}/><b>{activePortfolio.equity}%</b></div>
+            <div><span>Debt</span><i style={{ width: `${activePortfolio.debt}%` }}/><b>{activePortfolio.debt}%</b></div>
+            <div><span>Gold</span><i style={{ width: `${activePortfolio.gold}%` }}/><b>{activePortfolio.gold}%</b></div>
           </div>
           <div className="counterfactual"><span>Scenario change</span><strong>{pct(draw)}</strong></div>
           {result?.tail_scenarios && <div className="tail-mini"><span>Tail sampler</span><strong>{result.tail_scenarios.scenario_count} scenarios</strong><small>{result.tail_scenarios.gfnets_status}</small></div>}
@@ -408,7 +408,7 @@ export default function CausalRiskLab() {
               {topTailScenarios.map((scenario) => (
                 <div className="tail-row" key={scenario.scenario_id}>
                   <span><b>{scenario.scenario_id}</b><small>tail score {scenario.tail_score.toFixed(2)}</small></span>
-                  <span><i className="tail-meter"><em style={{ width: \`\${Math.min(100, scenario.systemic_stress)}%\` }}/></i><b>{scenario.systemic_stress.toFixed(1)}</b></span>
+                  <span><i className="tail-meter"><em style={{ width: `${Math.min(100, scenario.systemic_stress)}%` }}/></i><b>{scenario.systemic_stress.toFixed(1)}</b></span>
                   <span>{pct(scenario.portfolio_impact)}</span>
                   <span className="tail-path">{scenario.primary_path.join(" → ")}</span>
                 </div>
