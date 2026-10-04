@@ -70,11 +70,6 @@ function toMarketBars(candles: CandleAnalysis[]): MarketBar[] {
   }));
 }
 
-const money = (value: unknown) =>
-  Number.isFinite(Number(value))
-    ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(value))
-    : "—";
-
 const num = (value: unknown, digits = 2) =>
   Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : "—";
 
