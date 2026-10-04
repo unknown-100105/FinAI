@@ -107,13 +107,25 @@ def architecture():
 
 @router.post("/counterfactual")
 def counterfactual(request:CounterfactualRequest):
+    tail_correlation = None
+    tail_dependence = {
+        "requested_empirical": bool(request.use_empirical_tail_dependence),
+        "used_empirical": False,
+        "status": "NOT_REQUESTED" if not request.use_empirical_tail_dependence else "FALLBACK",
+        "reason": None,
+    }
     try:
-        tail_correlation = (
-            _empirical_correlation_for_shock(request.shock)
-            if request.use_empirical_tail_dependence
-            else None
-        )
-        return run_counterfactual(
+        if request.use_empirical_tail_dependence:
+            try:
+                tail_correlation = _empirical_correlation_for_shock(request.shock)
+                tail_dependence["used_empirical"] = tail_correlation is not None
+                tail_dependence["status"] = "EMPIRICAL_READY" if tail_correlation is not None else "FALLBACK"
+            except (ValueError, KeyError, RuntimeError) as exc:
+                # Empirical dependence is an enhancement, not a prerequisite for
+                # the causal counterfactual. Preserve the scenario run and expose
+                # the fallback reason for auditability.
+                tail_dependence["reason"] = str(exc)
+        result = run_counterfactual(
             request.shock,
             request.allocation,
             include_tail_scenarios=request.include_tail_scenarios,
@@ -121,6 +133,8 @@ def counterfactual(request:CounterfactualRequest):
             tail_distribution=request.tail_distribution,
             tail_degrees_of_freedom=request.tail_degrees_of_freedom,
         )
+        result["tail_dependence"] = tail_dependence
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
