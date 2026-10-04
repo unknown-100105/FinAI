@@ -51,6 +51,7 @@ import GlobalInvestmentHub from "./components/GlobalInvestmentHub";
 import { XAIExplorerHub } from "./components/XAIExplorerHub";
 import CausalRiskLab from "./components/CausalRiskLab";
 import { PlatformGuide } from "./components/PlatformGuide";
+import { AssistantResultCard } from "./components/AssistantResultCard";
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
@@ -86,6 +87,8 @@ type Section = (typeof navigation)[number]["id"];
 type Message = {
   role: "user" | "assistant";
   content: string;
+  result?: any;
+  traceId?: string;
 };
 
 type TraceState = {
@@ -252,6 +255,9 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
 
     if (addAssistantMessage) {
       const rawResponse = extractResponse(result);
+      if (result?.trace_id) {
+        localStorage.setItem("finai.currentTraceId", result.trace_id);
+      }
       const userFacingResponse = requiresAuth
         ? "This operation needs account authentication before FinAI can continue. Use “Sign in (demo)” in the Account access panel. This development login does not verify a real identity."
         : requiresConfirmation
@@ -260,7 +266,12 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
 
       setMessages((current) => [
         ...current,
-        { role: "assistant", content: userFacingResponse },
+        {
+          role: "assistant",
+          content: userFacingResponse,
+          result: requiresAuth || requiresConfirmation ? undefined : result,
+          traceId: result?.trace_id,
+        },
       ]);
     }
 
@@ -442,6 +453,13 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
               <div className="chat-content">
                 <span>{item.role === "assistant" ? "FINAI" : "YOU"}</span>
                 <div className="chat-bubble"><RichMessage textValue={item.content} /></div>
+                {item.role === "assistant" && item.result && (
+                  <AssistantResultCard
+                    result={item.result}
+                    traceId={item.traceId}
+                    onNavigate={onNavigate}
+                  />
+                )}
               </div>
             </div>
           ))}
