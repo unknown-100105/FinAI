@@ -300,6 +300,29 @@ export default function CausalRiskLab() {
         </div>
       )}
 
+      <section className="causal-cockpit">
+        <div className="causal-cockpit-card primary">
+          <span>Active portfolio</span>
+          <strong>{activePortfolio.name}</strong>
+          <small>{activePortfolio.equity}% equity · {activePortfolio.debt}% debt · {activePortfolio.gold}% gold · {activePortfolio.cash}% cash</small>
+        </div>
+        <div className="causal-cockpit-card">
+          <span>Systemic stress</span>
+          <strong>{risk.toFixed(0)}<small>/100</small></strong>
+          <small>{risk >= 70 ? "High-stress scenario" : risk >= 45 ? "Moderate-stress scenario" : "Lower-stress scenario"}</small>
+        </div>
+        <div className="causal-cockpit-card">
+          <span>Portfolio scenario</span>
+          <strong className={draw > 0 ? "positive" : "negative"}>{pct(draw)}</strong>
+          <small>Allocation-weighted channel impact</small>
+        </div>
+        <div className="causal-cockpit-card">
+          <span>Primary propagation</span>
+          <strong>{primaryPath.slice(0, 3).join(" → ")}</strong>
+          <small>{primaryPath.length > 3 ? `→ ${primaryPath[3]} → ${primaryPath[4] ?? "portfolio"}` : "Structural path"}</small>
+        </div>
+      </section>
+
       <div className="causal-main">
         <section className="causal-panel causal-graph-panel">
           <div className="causal-panel-head">
