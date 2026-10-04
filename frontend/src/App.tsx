@@ -574,6 +574,19 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
               <strong>{traceValue(value)}</strong>
             </div>
           ))}
+          {sessionId && (
+            <button
+              type="button"
+              className="xai-open-button"
+              onClick={() => {
+                const currentTraceId = localStorage.getItem("finai.currentTraceId");
+                if (currentTraceId) localStorage.setItem("finai.currentTraceId", currentTraceId);
+                onNavigate("xai");
+              }}
+            >
+              <FileSearch size={12} /> Open this conversation's trace
+            </button>
+          )}
         </section>
 
         <section className="glass-panel side-card evidence-mini">
