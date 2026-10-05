@@ -23,8 +23,6 @@ const capabilities = [
   { id: "financial_reasoning", label: "Financial reasoning" },
 ];
 
-const tierLabel = (value: number) => ["", "Low", "Medium", "High"][value] || "Custom";
-
 function ProviderCard({ provider, models }: { provider: string; models: FinAIModel[] }) {
   const configured = models.some((model) => model.configured);
   return (
