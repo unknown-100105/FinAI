@@ -241,15 +241,11 @@ class ModelRouter:
         ranked = sorted(
             enumerate(candidates),
             key=lambda item: (
-                -(
-                    self._score(item[1], risk_level, item[0])
-                    + (
-                        100.0
-                        if network_mode == "degraded"
-                        and provider_for(item[1]) == "local"
-                        else 0.0
-                    )
-                ),
+                0 if (
+                    network_mode == "degraded"
+                    and provider_for(item[1]) == "local"
+                ) else 1 if network_mode == "degraded" else 0,
+                -self._score(item[1], risk_level, item[0]),
                 getattr(item[1], "routing_priority", 100),
                 item[1].model_id,
             ),
