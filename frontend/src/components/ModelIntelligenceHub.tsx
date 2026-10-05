@@ -129,6 +129,7 @@ export default function ModelIntelligenceHub() {
           </div>
           {route && (
             <div className="ai-route-result">
+              {routeLoading && <div className="ai-route-loading"><RefreshCw size={12} className="spin" /> Re-evaluating execution policy…</div>}
               <div className="ai-route-main"><div className="ai-route-icon"><Route size={16} /></div><div><span>Selected execution model</span><strong>{route.selected_model}</strong><small>{providerLabels[route.provider] || route.provider} · {route.reason.replaceAll("_", " ")}</small></div></div>
               <div className="ai-constraint-strip"><span>{route.network_mode}</span><span>{route.data_sensitivity}</span>{route.constraints_applied.map((item) => <span key={item}>{item.replaceAll("_", " ")}</span>)}</div><div className="ai-fallback-chain">{route.fallback_chain.map((item, index) => <span key={item}><i>{index + 1}</i>{item}</span>)}</div>
             </div>
