@@ -3,6 +3,7 @@ import os
 from typing import Optional
 
 from llm.model_registry import enabled_models, get_model_spec, ModelSpec
+from llm.resource_orchestrator import assess_local_model, detect_hardware, HardwareSnapshot
 
 
 @dataclass(frozen=True)
@@ -18,6 +19,10 @@ class ModelRoute:
     data_sensitivity: str
     allowed_providers: tuple[str, ...]
     constraints_applied: tuple[str, ...]
+    execution_mode: str
+    resource_fit: bool
+    resource_reason: str
+    hardware: dict
 
     def to_dict(self) -> dict:
         return {
@@ -32,6 +37,10 @@ class ModelRoute:
             "data_sensitivity": self.data_sensitivity,
             "allowed_providers": list(self.allowed_providers),
             "constraints_applied": list(self.constraints_applied),
+            "execution_mode": self.execution_mode,
+            "resource_fit": self.resource_fit,
+            "resource_reason": self.resource_reason,
+            "hardware": self.hardware,
         }
 
 
@@ -56,6 +65,17 @@ def _normalise_mode(value: str, allowed: set[str], default: str) -> str:
 
 def _provider_from_model_id(model_id: str) -> str:
     return provider_for(get_model_spec(model_id))
+
+
+def _resource_assessment(spec: ModelSpec, hardware: HardwareSnapshot):
+    if provider_for(spec) != "local":
+        return None
+    return assess_local_model(
+        required_ram_gb=getattr(spec, "min_ram_gb", 0.0),
+        required_vram_gb=getattr(spec, "preferred_vram_gb", 0.0),
+        gpu_required=getattr(spec, "gpu_required", False),
+        snapshot=hardware,
+    )
 
 
 class ModelRouter:
@@ -111,6 +131,7 @@ class ModelRouter:
         network_mode: str,
         data_sensitivity: str,
         allowed_providers: set[str],
+        hardware: HardwareSnapshot,
     ) -> tuple[list[ModelSpec], tuple[str, ...]]:
         candidates = [
             spec
@@ -118,6 +139,15 @@ class ModelRouter:
             if capability in spec.capabilities
         ]
         constraints: list[str] = []
+
+        resource_eligible: list[ModelSpec] = []
+        for spec in candidates:
+            assessment = _resource_assessment(spec, hardware)
+            if assessment is None or assessment.resource_fit:
+                resource_eligible.append(spec)
+            else:
+                constraints.append("local_resource_constraint")
+        candidates = resource_eligible
 
         if allowed_providers:
             candidates = [
@@ -150,11 +180,13 @@ class ModelRouter:
         data_sensitivity: str = "standard",
         allowed_providers: Optional[set[str]] = None,
     ) -> list[str]:
+        hardware = hardware or detect_hardware()
         candidates, _ = self._candidates(
             capability,
             network_mode=network_mode,
             data_sensitivity=data_sensitivity,
             allowed_providers=allowed_providers or set(),
+            hardware=hardware,
         )
         ordered = sorted(
             candidates,
@@ -200,6 +232,7 @@ class ModelRouter:
             {"public", "standard", "financial", "restricted"},
             "standard",
         )
+        hardware = hardware or detect_hardware()
         providers = {
             str(item).strip().lower()
             for item in (allowed_providers or [])
@@ -210,6 +243,7 @@ class ModelRouter:
             network_mode=network_mode,
             data_sensitivity=data_sensitivity,
             allowed_providers=providers,
+            hardware=hardware,
         )
         if explicit_model is not None:
             selected = explicit_model.strip().lower()
@@ -219,6 +253,7 @@ class ModelRouter:
                     f"Model '{selected}' is not eligible for capability "
                     f"'{capability}' under the current execution constraints."
                 )
+            resource = _resource_assessment(spec, hardware)
             return ModelRoute(
                 capability=capability,
                 selected_model=selected,
@@ -231,6 +266,14 @@ class ModelRouter:
                 data_sensitivity=data_sensitivity,
                 allowed_providers=tuple(sorted(providers)),
                 constraints_applied=constraints_applied,
+                execution_mode=resource.execution_mode if resource else "cloud",
+                resource_fit=resource.resource_fit if resource else True,
+                resource_reason=(
+                    resource.reason
+                    if resource
+                    else "cloud execution does not consume local model memory requirements"
+                ),
+                hardware=hardware.to_dict(),
             )
 
         if not candidates:
@@ -258,6 +301,7 @@ class ModelRouter:
             network_mode=network_mode,
             data_sensitivity=data_sensitivity,
             allowed_providers=providers,
+            hardware=hardware,
         )
         return ModelRoute(
             capability=capability,
@@ -281,4 +325,20 @@ class ModelRouter:
             data_sensitivity=data_sensitivity,
             allowed_providers=tuple(sorted(providers)),
             constraints_applied=constraints_applied,
+            execution_mode=(
+                _resource_assessment(selected, hardware).execution_mode
+                if _resource_assessment(selected, hardware)
+                else "cloud"
+            ),
+            resource_fit=(
+                _resource_assessment(selected, hardware).resource_fit
+                if _resource_assessment(selected, hardware)
+                else True
+            ),
+            resource_reason=(
+                _resource_assessment(selected, hardware).reason
+                if _resource_assessment(selected, hardware)
+                else "cloud execution does not consume local model memory requirements"
+            ),
+            hardware=hardware.to_dict(),
         )
