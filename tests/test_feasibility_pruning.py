@@ -1,0 +1,170 @@
+import numpy as np
+import pytest
+
+from causal_risk.feasibility_pruning import (
+    AdaptivePruningController,
+    evaluate_prefix_feasibility,
+    propagate_interval_bounds,
+    screen_candidate_actions,
+)
+
+
+NODES = ["rates", "credit", "liquidity", "equity", "portfolio"]
+EDGES = [
+    {"source": "rates", "target": "credit", "weight": 0.7, "lag": 0},
+    {"source": "credit", "target": "liquidity", "weight": 0.8, "lag": 0},
+    {"source": "liquidity", "target": "equity", "weight": 0.9, "lag": 0},
+    {"source": "equity", "target": "portfolio", "weight": 0.8, "lag": 0},
+]
+BOUNDS = {
+    "rates": (-100, 100),
+    "credit": (-100, 100),
+    "liquidity": (-100, 100),
+    "equity": (-100, 100),
+    "portfolio": (-100, 100),
+}
+
+
+def test_interval_propagation_is_deterministic():
+    result = propagate_interval_bounds(
+        NODES,
+        EDGES,
+        {"rates": 80},
+        BOUNDS,
+    )
+    assert result["rates"] == (80.0, 80.0)
+    assert result["credit"] == (56.0, 56.0)
+    assert result["liquidity"] == (44.800000000000004, 44.800000000000004)
+    assert result["equity"] == (40.320000000000004, 40.320000000000004)
+
+
+def test_infeasible_prefix_is_hard_pruned():
+    certificate = evaluate_prefix_feasibility(
+        NODES,
+        EDGES,
+        {"rates": -100},
+        BOUNDS,
+        target_node="portfolio",
+        target_interval=(70, 100),
+    )
+    assert certificate.hard_infeasible is True
+    assert certificate.reason.startswith("target interval")
+
+
+def test_feasible_prefix_is_not_hard_pruned():
+    certificate = evaluate_prefix_feasibility(
+        NODES,
+        EDGES,
+        {"rates": 100},
+        BOUNDS,
+        target_node="portfolio",
+        target_interval=(35, 70),
+    )
+    assert certificate.hard_infeasible is False
+    assert certificate.reachable_interval == pytest.approx((40.32, 40.32))
+
+
+def test_empirical_support_can_reject_extreme_action():
+    certificate = evaluate_prefix_feasibility(
+        NODES,
+        EDGES,
+        {"rates": 100},
+        BOUNDS,
+        target_node="portfolio",
+        target_interval=(0, 100),
+        empirical_center={"rates": 0},
+        empirical_scale={"rates": 10},
+        max_standardized_deviation=4.0,
+    )
+    assert certificate.hard_infeasible is False
+    assert certificate.support_infeasible is True
+    assert certificate.empirical_support_ok is False
+
+
+def test_screening_separates_hard_and_adaptive_pruning():
+    controller = AdaptivePruningController(
+        target_full_eval_fraction=0.5,
+        current_margin=10.0,
+    )
+    result = screen_candidate_actions(
+        NODES,
+        EDGES,
+        {},
+        {"rates": [-100, -50, 0, 50, 100]},
+        BOUNDS,
+        target_node="portfolio",
+        target_interval=(40, 70),
+        controller=controller,
+    )
+    assert result["total_candidates"] == 5
+    assert result["hard_pruned_candidates"] >= 1
+    assert result["hard_pruned_candidates"] + result["accepted_candidates"] + result["adaptive_pruned_candidates"] == 5
+
+
+def test_controller_moves_toward_compute_budget():
+    controller = AdaptivePruningController(
+        target_full_eval_fraction=0.25,
+        current_margin=0.0,
+        margin_step=0.1,
+    )
+    assert controller.update(0.8) == pytest.approx(0.1)
+    assert controller.update(0.1) == pytest.approx(0.0)
+
+
+def test_controller_recall_guard_overrides_compute_budget():
+    controller = AdaptivePruningController(
+        target_full_eval_fraction=0.25,
+        margin_step=0.1,
+        margin_floor=-0.5,
+        minimum_high_risk_recall=0.95,
+        current_margin=0.4,
+    )
+    assert controller.update(0.10, observed_high_risk_recall=0.80) == -0.5
+    assert controller.metadata()["minimum_high_risk_recall"] == 0.95
+
+
+def test_future_intervention_is_respected_by_feasibility_certificate():
+    from causal_risk.feasibility_pruning import evaluate_prefix_feasibility
+
+    certificate = evaluate_prefix_feasibility(
+        ["rates", "credit", "portfolio"],
+        [
+            {"source": "rates", "target": "credit", "weight": 0.7},
+            {"source": "credit", "target": "portfolio", "weight": 0.8},
+        ],
+        {"rates": 17.0},
+        {"rates": (-100.0, 100.0), "credit": (-20.0, 20.0), "portfolio": (-100.0, 100.0)},
+        target_node="portfolio",
+        target_interval=(7.0, 9.0),
+        intervened_nodes=("credit",),
+    )
+    assert certificate.hard_infeasible is False
+    assert certificate.intervened_nodes == ("credit",)
+
+
+def test_target_cannot_be_future_intervention():
+    with pytest.raises(ValueError, match="target_node cannot be a future intervention"):
+        evaluate_prefix_feasibility(
+            ["rates", "portfolio"],
+            [{"source": "rates", "target": "portfolio", "weight": 0.8}],
+            {},
+            {"rates": (-100.0, 100.0), "portfolio": (-100.0, 100.0)},
+            target_node="portfolio",
+            target_interval=(8.0, 10.0),
+            intervened_nodes=("portfolio",),
+        )
+
+
+def test_structural_bound_violation_remains_hard_infeasible():
+    certificate = evaluate_prefix_feasibility(
+        NODES,
+        EDGES,
+        {"rates": 101},
+        BOUNDS,
+        target_node="portfolio",
+        target_interval=(0, 100),
+        empirical_center={"rates": 0},
+        empirical_scale={"rates": 10},
+    )
+    assert certificate.hard_infeasible is True
+    assert certificate.support_infeasible is True

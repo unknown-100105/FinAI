@@ -96,9 +96,13 @@ The current builders expect the domain chunk files under `data/domain_chunks/`. 
 
 ## Cloud response providers
 
-Gemini is the primary configured cloud response provider. OpenRouter is implemented as an automatic provider fallback and defaults to `openrouter/auto` when its environment variables are configured.
+FinAI now exposes a provider-agnostic response layer with Google Gemini, OpenAI, OpenRouter, Anthropic and Mistral adapters, plus local/research models. Providers remain server-side behind the ModelGateway; credentials are never sent to the browser.
 
-The fallback path is used only for automatic model selection. Passing an explicit `model_id` remains deterministic.
+The ModelRouter performs deterministic capability/risk-aware policy selection and produces an auditable fallback chain. Provider quality, latency and cost tiers are configuration metadata, not proof of model superiority. Passing an explicit `model_id` remains deterministic and does not silently fail over.
+
+The frontend Model Intelligence workspace shows provider configuration state, model capabilities and route previews without making generation calls.
+
+See `docs/multi-cloud-model-routing.md` for the provider matrix and environment variables.
 
 ## Verification model
 
@@ -123,6 +127,31 @@ Prediction outputs are historical model benchmarks, not guaranteed forecasts or 
 - `GET /api/v1/intelligence/prediction`
 - `GET /api/v1/intelligence/global-assets`
 - `GET /api/v1/intelligence/eligibility`
+
+
+### Research-stage causal stress intelligence
+
+The Causal Risk Lab now includes a second-stage research path for empirical
+calibration, causal-empirical GFlowNet reward training, chronological temporal
+GNN holdout evaluation, and a trainable masked-modality financial encoder.
+
+Research endpoints include:
+
+- `POST /api/v1/causal-risk/risk-calibration/fit-channels`
+- `POST /api/v1/causal-risk/temporal-gnn/train`
+- `POST /api/v1/causal-risk/multimodal/train`
+- `POST /api/v1/causal-risk/gfnets/train` with
+  `reward_mode=causal_empirical`
+
+Research documentation:
+
+- `docs/research-gap-and-novelty.md`
+- `docs/research-training-runbook.md`
+- `docs/finai-final-architecture.md`
+
+The research stack distinguishes implementation, training, future-holdout
+evaluation, empirical validation and production eligibility. No prototype is
+automatically promoted to production status by virtue of passing software tests.
 
 
 ## Consolidated investment knowledge scope

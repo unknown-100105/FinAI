@@ -1,4 +1,5 @@
 ﻿from datetime import datetime, timedelta
+import inspect
 from pathlib import Path
 
 from orchestrator.engine import FinAIOrchestrator
@@ -105,6 +106,14 @@ class FinAIHybridEngine:
             "llm_role": plan.llm_role,
             "verification_mode": plan.verification_mode,
         }
+
+    @staticmethod
+    def _generate_response(service, risk_level, **kwargs):
+        """Call injected or production response services compatibly."""
+        parameters = inspect.signature(service.generate).parameters
+        if "risk_level" in parameters:
+            kwargs["risk_level"] = risk_level
+        return service.generate(**kwargs)
 
     def _get_market_data_dispatcher(self):
         if self.market_data is None:
@@ -236,11 +245,33 @@ class FinAIHybridEngine:
             from knowledge.india_finance_regulation import search_regulations
             from knowledge.investment_eligibility import search_investment_routes
 
-            catalog_result = build_catalog_answer(user_text)
-            encyclopedia_result = build_encyclopedia_answer(user_text)
-            compliance_results = find_items(user_text)
-            regulatory_results = search_regulations(user_text)
-            investment_route_results = search_investment_routes(user_text)
+            # Keep the structured knowledge path resilient: one optional
+            # catalogue must not take down a valid finance explanation.
+            try:
+                catalog_result = build_catalog_answer(user_text)
+            except Exception:
+                catalog_result = {"found": False, "matches": [], "answer": ""}
+            try:
+                encyclopedia_result = build_encyclopedia_answer(user_text)
+            except Exception:
+                encyclopedia_result = {
+                    "found": False,
+                    "matches": [],
+                    "answer": "",
+                    "requires_current_data": False,
+                }
+            try:
+                compliance_results = find_items(user_text)
+            except Exception:
+                compliance_results = []
+            try:
+                regulatory_results = search_regulations(user_text)
+            except Exception:
+                regulatory_results = []
+            try:
+                investment_route_results = search_investment_routes(user_text)
+            except Exception:
+                investment_route_results = []
 
             compliance_hint = any(
                 term in user_text.lower()
@@ -392,7 +423,9 @@ class FinAIHybridEngine:
                     try:
                         from llm.response_service import ResponseService
 
-                        response_generation = (self.response_service or ResponseService()).generate(
+                        response_generation = self._generate_response(
+                            (self.response_service or ResponseService()),
+                            risk_level=plan.risk_level,
                             user_text=user_text,
                             intent=intent,
                             verified_result={
@@ -404,7 +437,7 @@ class FinAIHybridEngine:
                             persona=persona,
                             max_new_tokens=max_new_tokens,
                             model_id=model_id,
-                        )
+                            )
                         generated = str(response_generation.get("response", "")).strip()
                         if generated:
                             final_response = generated
@@ -540,7 +573,9 @@ class FinAIHybridEngine:
                     "documents": formatted_documents,
                 }
 
-                response_result = service.generate(
+                response_result = self._generate_response(
+                    service,
+                    risk_level=plan.risk_level,
                     user_text=user_text,
                     intent=intent,
                     verified_result=verified_evidence,
@@ -840,7 +875,9 @@ class FinAIHybridEngine:
                         or ResponseService()
                     )
 
-                    response_result = service.generate(
+                    response_result = self._generate_response(
+                        service,
+                        risk_level=plan.risk_level,
                         user_text=user_text,
                         intent=intent,
                         verified_result=calculation["result"],

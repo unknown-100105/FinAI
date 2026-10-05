@@ -11,9 +11,6 @@ from market_data.models import MarketBar
 
 def build_scenario(candle: Dict[str, Any], previous: Dict[str, Any] | None, sma20: float | None = None, sma50: float | None = None) -> Dict[str, Any]:
     close = float(candle["close"])
-    rsi = None
-    if previous and previous.get("rsi_14") is not None:
-        rsi = float(previous["rsi_14"])
 
     bullish_conditions = [
         candle["direction"] == "bullish",
@@ -59,16 +56,20 @@ def build_scenario(candle: Dict[str, Any], previous: Dict[str, Any] | None, sma2
     return {
         "scenarios": scenarios,
         "selection_basis": "Observed candle direction, recent 5-candle trend and available trend references.",
+        "previous_candle_available": previous is not None,
         "forecast_note": "Scenarios describe conditions to monitor; they are not probability forecasts or guaranteed future outcomes.",
     }
 
+
 def analyze_candles(bars: List[MarketBar], news: List[Dict[str, Any]] | None = None) -> Dict[str, Any]:
     if not bars:
-        return {"count": 0, "candles": [], "summary": "No candles available."}
+        return {"count": 0, "candles": [], "summary": "No candles available.", "scenario": build_scenario({"close": 0, "direction": "doji", "trend_last_5": "flat"}, None)}
+
     volumes = [float(bar.volume or 0) for bar in bars]
     positive_volumes = [v for v in volumes if v > 0]
     typical_volume = median(positive_volumes) if positive_volumes else 0.0
     output = []
+
     for index, bar in enumerate(bars):
         o,h,l,c = map(float, (bar.open, bar.high, bar.low, bar.close))
         rng = max(h-l,0.0)
@@ -119,8 +120,13 @@ def analyze_candles(bars: List[MarketBar], news: List[Dict[str, Any]] | None = N
             "news_candidates": news[:5] if news else [],
             "causality_note": "Possible drivers are hypotheses to investigate; candle anatomy alone does not establish cause.",
         })
+
     latest = output[-1]
-    scenario = build_scenario(latest)
+    previous = output[-2] if len(output) > 1 else None
+    closes = [float(item["close"]) for item in output]
+    sma20 = sum(closes[-20:]) / 20 if len(closes) >= 20 else None
+    sma50 = sum(closes[-50:]) / 50 if len(closes) >= 50 else None
+    scenario = build_scenario(latest, previous, sma20=sma20, sma50=sma50)
 
     return {
         "count": len(output),

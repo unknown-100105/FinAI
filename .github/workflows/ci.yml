@@ -45,6 +45,18 @@ jobs:
         run: |
           python -m pytest -q \
             tests/test_api_main.py \
+            tests/test_advanced_causal.py \
+            tests/test_causal_risk.py \
+            tests/test_new_api_routes.py \
+            tests/test_research_upgrades.py \
+            tests/test_feasibility_pruning.py \
+            tests/test_constrained_gfnets.py \
+            tests/test_patent_research_loop.py \
+            tests/test_incremental_feasibility.py \
+            tests/test_pruning_benchmark.py \
+            tests/test_research_experiments.py \
+            tests/test_global_investments.py \
+            tests/test_causal_risk_api_fallback.py \
             tests/test_authority_contract.py \
             tests/test_claim_contract.py \
             tests/test_claim_extractor.py \
@@ -71,6 +83,9 @@ jobs:
             tests/test_market_overview.py \
             tests/test_market_search_api.py \
             tests/test_model_gateway.py \
+            tests/test_model_router.py \
+            tests/test_model_api.py \
+            tests/test_resource_orchestrator.py \
             tests/test_model_registry.py \
             tests/test_openai_provider.py \
             tests/test_openrouter_provider.py \
@@ -95,6 +110,26 @@ jobs:
             tests/test_xai_model.py \
             tests/test_xai_portfolio.py \
             tests/test_xai_rag_trace.py
+
+  research-benchmark:
+    name: Patent mechanism benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run deterministic research benchmark
+        run: python scripts/run_patent_mechanism_benchmark.py --output patent-benchmark.json
+      - name: Upload benchmark artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: patent-mechanism-benchmark
+          path: patent-benchmark.json
 
   frontend:
     name: Frontend build

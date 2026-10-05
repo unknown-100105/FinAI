@@ -15,8 +15,17 @@ export function XAIExplorerHub(){
     setBusy(true); setError("");
     try{
       const result=await listXAITraces();
-      setTraces(result.traces||[]);
-      if(result.traces?.[0]) setSelected(await getXAITrace(result.traces[0].trace_id));
+      const available = result.traces || [];
+      setTraces(available);
+      const currentTraceId = localStorage.getItem("finai.currentTraceId");
+      const preferred = currentTraceId
+        ? available.find((trace) => trace.trace_id === currentTraceId)
+        : undefined;
+      if (preferred) {
+        setSelected(await getXAITrace(preferred.trace_id));
+      } else if (available[0]) {
+        setSelected(await getXAITrace(available[0].trace_id));
+      }
     }catch(e){setError(e instanceof Error?e.message:"XAI trace feed unavailable.");}
     finally{setBusy(false);}
   };
@@ -46,7 +55,15 @@ export function XAIExplorerHub(){
           <>
             <div className="module-panel-head"><div><div className="module-kicker">Trace</div><h2>{selected.trace_id}</h2></div><span className="source-chip"><ShieldCheck size={13}/> Evidence trail</span></div>
             <div className="xai-stage-grid">
-              {["router","policy","execution_plan","rag","response_generation","session","final"].map((key)=><div className="xai-stage-card" key={key}><span>{pretty(key)}</span><strong>{selected[key]?"Captured":"Not recorded"}</strong></div>)}
+              {["router","policy","execution","authority","tool","rag","model","claims","verification","session","final"].map((key)=><div className="xai-stage-card" key={key}><span>{pretty(key)}</span><strong>{selected[key]?"Captured":"Not recorded"}</strong></div>)}
+            </div>
+            <div className="xai-explanation-grid">
+              <div><span>Intent</span><strong>{pretty(selected.router?.intent)}</strong><small>{pretty(selected.router?.reason)} · confidence {selected.router?.confidence ?? "—"}</small></div>
+              <div><span>Authority</span><strong>{pretty(selected.authority?.authority_class)}</strong><small>{selected.authority?.authority_source ?? "—"}</small></div>
+              <div><span>Execution</span><strong>{pretty(selected.execution?.execution_class)}</strong><small>{pretty(selected.execution?.capability)}</small></div>
+              <div><span>Model</span><strong>{pretty(selected.model?.model_id)}</strong><small>{pretty(selected.model?.source)}</small></div>
+              <div><span>Verification</span><strong>{selected.verification?.passed ? "Passed" : "Not passed"}</strong><small>{pretty(selected.verification?.mode)}</small></div>
+              <div><span>Claims</span><strong>{selected.claims?.total_count ?? 0}</strong><small>{selected.claims?.all_verified ? "All verified" : "Claim verification not applicable / incomplete"}</small></div>
             </div>
             <pre className="xai-json">{JSON.stringify(selected,null,2)}</pre>
             <div className="data-note"><CheckCircle2 size={12}/> This view exposes the stored trace; it does not alter the decision or underlying financial data.</div>

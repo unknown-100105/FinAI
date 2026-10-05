@@ -10,6 +10,7 @@ requests
 numpy
 pandas
 scikit-learn
+scipy
 joblib
 yfinance
 faiss-cpu

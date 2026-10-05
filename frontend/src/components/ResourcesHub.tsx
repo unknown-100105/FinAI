@@ -9,6 +9,22 @@ function titleForField(field: string) {
   return field.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function resourceWhy(item: OfficialResource) {
+  if (item.category === "Tax & Forms") return "Use this when the selected tax, TDS, GST or reporting workflow applies to your situation. FinAI provides a draft/checklist; filing must still follow the current official portal process.";
+  if (item.category === "Government Schemes") return "Use this workspace to understand the scheme, check the current status and prepare a non-submitting draft before visiting the official channel.";
+  if (item.category === "Study Material") return "Use the record as a guided starting point, then open the primary authority source for the current rule or learning material.";
+  return "Use this record to understand the product/resource, its authority and the verification path before taking any real-world action.";
+}
+
+function resourceWorkflow(item: OfficialResource) {
+  return [
+    "Read the purpose and eligibility notes",
+    "Check the current official source and source date",
+    item.form_url ? "Open the official form/document and compare the required fields" : "Review the official source for the applicable process",
+    "Prepare or export a draft only; submit through the official channel",
+  ];
+}
+
 export function ResourcesHub({ defaultCategory = "All" }: { defaultCategory?: string }) {
   const [category, setCategory] = useState(defaultCategory);
   const [query, setQuery] = useState("");
@@ -103,19 +119,36 @@ export function ResourcesHub({ defaultCategory = "All" }: { defaultCategory?: st
                 <a className="source-link" title="Current official link" href={selected.official_url} target="_blank" rel="noreferrer">Official source <ExternalLink size={12} /></a>
               </div>
               <p className="resource-summary">{selected.summary}</p>
+              <div className="resource-explainer-grid">
+                <div><span>What is this?</span><p>{selected.summary}</p></div>
+                <div><span>Who is it for?</span><p>{selected.who}</p></div>
+                <div><span>Why use it?</span><p>{resourceWhy(selected)}</p></div>
+              </div>
               <div className="resource-facts">
                 <div><span>Authority</span><strong>{selected.authority}</strong></div>
                 <div><span>Status / period</span><strong>{selected.current_status}</strong></div>
                 <div><span>Source date</span><strong>{selected.source_date}</strong></div>
               </div>
+              <div className="detail-section">
+                <div className="detail-section-title">Recommended workflow</div>
+                <div className="workflow-list">{resourceWorkflow(selected).map((step, index) => <div key={step}><b>{String(index + 1).padStart(2, "0")}</b><span>{step}</span></div>)}</div>
+              </div>
               <div className="resource-actions">
-                {selected.form_url && <a className="primary-module-button link-button" href={selected.form_url} target="_blank" rel="noreferrer"><FileText size={13} /> Open official form/source</a>}
+                {selected.form_url ? <a className="primary-module-button link-button" href={selected.form_url} target="_blank" rel="noreferrer"><FileText size={13} /> {selected.form_url === selected.official_url ? "Open official resource" : "Open exact form / document"}</a> : <a className="primary-module-button link-button" href={selected.official_url} target="_blank" rel="noreferrer"><ExternalLink size={13} /> Open official resource</a>}
                 <button type="button" className="secondary-module-button" onClick={saveDraft}><Save size={13} /> {saved ? "Draft saved" : "Save draft"}</button>
                 <button type="button" className="secondary-module-button" onClick={exportDraft}>Export JSON</button>
                 <button type="button" className="secondary-module-button" onClick={() => window.print()}>Print / Save PDF</button>
               </div>
+              <div className="resource-links-detail">
+                <div><span>Official resource URL</span><a href={selected.official_url} target="_blank" rel="noreferrer">{selected.official_url}</a></div>
+                <div><span>{selected.form_url && selected.form_url !== selected.official_url ? "Exact form / document URL" : "Form / document"}</span>
+                  {selected.form_url && selected.form_url !== selected.official_url
+                    ? <a href={selected.form_url} target="_blank" rel="noreferrer">{selected.form_url}</a>
+                    : <p>No separate form/document URL is catalogued for this resource; use the official resource page above.</p>}
+                </div>
+              </div>
               <div className="detail-section">
-                <div className="detail-section-title">Form filler</div>
+                <div className="detail-section-title">Draft workspace</div>
                 <div className="advanced-calc-grid two">
                   {selected.form_fields.map((field) => (
                     <label key={field}>{titleForField(field)}

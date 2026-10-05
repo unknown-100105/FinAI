@@ -1,0 +1,20 @@
+{
+  "scm_samples": [
+    {
+      "rates": 0.0,
+      "credit": 0.0,
+      "oil": 0.0,
+      "usd": 0.0,
+      "liquidity": 0.0,
+      "equity": 0.0
+    }
+  ],
+  "observed_channels": {
+    "equity": [0.0],
+    "debt": [0.0],
+    "gold": [0.0],
+    "portfolio": [0.0],
+    "systemic_stress": [0.0]
+  },
+  "alpha": 1.0
+}

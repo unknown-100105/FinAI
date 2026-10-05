@@ -1,0 +1,23 @@
+{
+  "version": "research-defaults-v1",
+  "status": "research_defaults",
+  "provenance": "Explicitly named research parameters retained for backward-compatible scenario analytics; not empirically learned coefficients.",
+  "coefficients": {
+    "equity_from_liquidity": 0.24,
+    "debt_from_rates": -0.05,
+    "debt_from_credit": -0.16,
+    "debt_from_oil": 0.02,
+    "debt_from_liquidity": -0.08,
+    "gold_from_usd": -0.03,
+    "gold_from_rates": -0.02,
+    "gold_from_oil": 0.02,
+    "systemic_liquidity": 0.34,
+    "systemic_equity": 0.32,
+    "systemic_debt": 0.18,
+    "systemic_drawdown": 0.16
+  },
+  "validation": {
+    "empirical_fit_available": false,
+    "causal_identification": false
+  }
+}

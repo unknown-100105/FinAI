@@ -1,4 +1,5 @@
 ﻿from dataclasses import dataclass
+import os
 from typing import Tuple
 
 
@@ -9,6 +10,14 @@ class ModelSpec:
     role: str
     capabilities: Tuple[str, ...]
     enabled: bool = False
+    provider: str = "local"
+    quality_tier: int = 2
+    latency_tier: int = 2
+    cost_tier: int = 2
+    routing_priority: int = 100
+    min_ram_gb: float = 0.0
+    preferred_vram_gb: float = 0.0
+    gpu_required: bool = False
 
 
 MODEL_REGISTRY = {
@@ -18,6 +27,11 @@ MODEL_REGISTRY = {
         role="openai_deep_reasoning",
         capabilities=("response_generation","financial_qa","financial_reasoning","financial_explanation","tool_assisted_qa"),
         enabled=False,
+        provider="openai",
+        quality_tier=3,
+        latency_tier=2,
+        cost_tier=3,
+        routing_priority=85,
     ),
 
     "openai-sol": ModelSpec(
@@ -26,6 +40,11 @@ MODEL_REGISTRY = {
         role="openai_balanced_reasoning",
         capabilities=("response_generation","financial_qa","financial_reasoning","financial_explanation","tool_assisted_qa"),
         enabled=False,
+        provider="openai",
+        quality_tier=3,
+        latency_tier=2,
+        cost_tier=2,
+        routing_priority=80,
     ),
 
     "openai-luna": ModelSpec(
@@ -42,6 +61,11 @@ MODEL_REGISTRY = {
             "tool_assisted_qa",
         ),
         enabled=False,
+        provider="openai",
+        quality_tier=4,
+        latency_tier=3,
+        cost_tier=3,
+        routing_priority=92,
     ),
 
     "gemini-pro-cloud": ModelSpec(
@@ -50,6 +74,11 @@ MODEL_REGISTRY = {
         role="gemini_deep_reasoning",
         capabilities=("response_generation","financial_qa","financial_reasoning","financial_explanation","tool_assisted_qa"),
         enabled=False,
+        provider="gemini",
+        quality_tier=3,
+        latency_tier=1,
+        cost_tier=2,
+        routing_priority=100,
     ),
 
     "gemini-cloud": ModelSpec(
@@ -65,6 +94,11 @@ MODEL_REGISTRY = {
             "tool_assisted_qa",
         ),
         enabled=True,
+        provider="gemini",
+        quality_tier=3,
+        latency_tier=1,
+        cost_tier=2,
+        routing_priority=100,
     ),
 
     "openrouter-cloud": ModelSpec(
@@ -80,6 +114,11 @@ MODEL_REGISTRY = {
             "tool_assisted_qa",
         ),
         enabled=False,
+        provider="openrouter",
+        quality_tier=2,
+        latency_tier=2,
+        cost_tier=2,
+        routing_priority=75,
     ),
 
     "rllm-finqa-4b": ModelSpec(
@@ -95,6 +134,52 @@ MODEL_REGISTRY = {
             "tool_assisted_qa",
         ),
         enabled=True,
+        provider="local",
+        quality_tier=2,
+        latency_tier=3,
+        cost_tier=1,
+        routing_priority=40,
+        min_ram_gb=4.0,
+        preferred_vram_gb=4.0,
+        gpu_required=False,
+    ),
+
+    "anthropic-claude": ModelSpec(
+        model_id="anthropic-claude",
+        model_name="claude-sonnet-5-5",
+        role="anthropic_deep_reasoning",
+        capabilities=(
+            "response_generation",
+            "financial_qa",
+            "financial_reasoning",
+            "financial_explanation",
+            "tool_assisted_qa",
+        ),
+        enabled=False,
+        provider="anthropic",
+        quality_tier=4,
+        latency_tier=2,
+        cost_tier=3,
+        routing_priority=95,
+    ),
+
+    "mistral-large": ModelSpec(
+        model_id="mistral-large",
+        model_name="mistral-large-latest",
+        role="mistral_balanced_reasoning",
+        capabilities=(
+            "response_generation",
+            "financial_qa",
+            "financial_reasoning",
+            "financial_explanation",
+            "tool_assisted_qa",
+        ),
+        enabled=False,
+        provider="mistral",
+        quality_tier=2,
+        latency_tier=2,
+        cost_tier=2,
+        routing_priority=70,
     ),
 
     # Retained for migration/reproducibility, but no longer active.
@@ -180,22 +265,42 @@ def get_model_spec(model_id: str) -> ModelSpec:
     return MODEL_REGISTRY[model_id]
 
 
+def provider_configured(provider: str) -> bool:
+    env_by_provider = {
+        "openai": "OPENAI_API_KEY",
+        "gemini": "GEMINI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "mistral": "MISTRAL_API_KEY",
+        "openrouter": "OPENROUTER_API_KEY",
+    }
+    key = env_by_provider.get(provider)
+    return bool(os.getenv(key, "").strip()) if key else False
+
+
 def enabled_models():
     import os
 
-    return [
-        spec
-        for spec in MODEL_REGISTRY.values()
-        if spec.enabled
-        or (
-            spec.model_id.startswith("openai-")
-            and bool(os.getenv("OPENAI_API_KEY"))
-        )
-        or (
-            spec.model_id == "openrouter-cloud"
-            and bool(os.getenv("OPENROUTER_API_KEY"))
-        )
-    ]
+    result = []
+    for spec in MODEL_REGISTRY.values():
+        if spec.enabled or provider_configured(spec.provider):
+            result.append(spec)
+    return result
+
+
+def model_configured(spec: ModelSpec) -> bool:
+    import os
+
+    if spec.provider == "local":
+        return True
+    env_by_provider = {
+        "openai": "OPENAI_API_KEY",
+        "gemini": "GEMINI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "mistral": "MISTRAL_API_KEY",
+        "openrouter": "OPENROUTER_API_KEY",
+    }
+    key = env_by_provider.get(spec.provider)
+    return bool(os.getenv(key, "").strip()) if key else False
 
 
 def models_for_capability(capability: str):

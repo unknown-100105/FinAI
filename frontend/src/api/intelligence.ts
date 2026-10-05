@@ -1,5 +1,5 @@
 const API_BASE_URL=import.meta.env.VITE_API_BASE_URL||"http://localhost:8000";
-export type GlobalCountry={country:string;country_code:string;currency:string;primary_market:string;region:string;asset_classes:string[]};
+export type GlobalCountry={country:string;country_code:string;currency:string;primary_market:string;region:string;asset_classes:string[];official_source_url?:string|null};
 export type GlobalAssetClass={id:string;label:string;description:string};
 export type Eligibility={country:string;country_code:string;asset_class:string;investor:string;status:string;summary:string;checks:string[];verification_sources:string[]};
 async function getJson<T>(path:string):Promise<T>{const r=await fetch(API_BASE_URL+path);if(!r.ok)throw new Error("FinAI intelligence API error "+r.status+": "+await r.text());return r.json() as Promise<T>}

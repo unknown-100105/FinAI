@@ -78,3 +78,7 @@ xai/traces/
 
 # Local migration backups
 backups/
+
+
+# Generated patent/research benchmark output
+patent-benchmark.json

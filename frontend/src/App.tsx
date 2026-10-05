@@ -10,6 +10,8 @@ import {
   FileSearch,
   FileText,
   Languages,
+  Menu,
+  X,
   MessageSquare,
   Newspaper,
   PiggyBank,
@@ -20,11 +22,11 @@ import {
   Activity,
   Landmark,
   GraduationCap,
-  Code2,
   BookMarked,
   Sparkles,
   WalletCards,
   Globe2,
+  BrainCircuit,
 } from "lucide-react";
 import {
   authenticateSession,
@@ -35,18 +37,20 @@ import { getFinAIModels, type FinAIModel } from "./api/models";
 import { MarketTerminal } from "./components/MarketTerminal";
 import { WealthWorkspace } from "./components/WealthWorkspace";
 import { PlatformHome } from "./components/PlatformHome";
-import { InvestmentHub } from "./components/InvestmentHub";
+import InvestmentHub from "./components/InvestmentHub";
 import { NewsHub } from "./components/NewsHub";
 import { CryptoArbitrageHub } from "./components/CryptoArbitrageHub";
 import { KnowledgeHub } from "./components/KnowledgeHub";
 import { InvestmentDiaryHub } from "./components/InvestmentDiaryHub";
-import { TokenGeneratorHub } from "./components/TokenGeneratorHub";
 import { StudyHub } from "./components/StudyHub";
 import { ResourcesHub } from "./components/ResourcesHub";
 import { MarketAnalystHub } from "./components/MarketAnalystHub";
-import { GlobalInvestmentHub } from "./components/GlobalInvestmentHub";
+import GlobalInvestmentHub from "./components/GlobalInvestmentHub";
 import { XAIExplorerHub } from "./components/XAIExplorerHub";
+import CausalRiskLab from "./components/CausalRiskLab";
 import { PlatformGuide } from "./components/PlatformGuide";
+import { AssistantResultCard } from "./components/AssistantResultCard";
+import ModelIntelligenceHub from "./components/ModelIntelligenceHub";
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
@@ -69,9 +73,10 @@ const navigation = [
   { id: "knowledge", label: "Knowledge", icon: BookOpen },
   { id: "analyst", label: "Market Analyst", icon: Activity },
   { id: "global", label: "Global Markets", icon: Globe2 },
+  { id: "causal", label: "Causal Risk Lab", icon: BrainCircuit },
   { id: "resources", label: "Schemes & Resources", icon: Landmark },
   { id: "study", label: "Study Centre", icon: GraduationCap },
-  { id: "token", label: "Token Lab", icon: Code2 },
+  { id: "models", label: "Model Intelligence", icon: Cpu },
   { id: "diary", label: "Investment Diary", icon: BookMarked },
   { id: "xai", label: "Explainability", icon: ShieldCheck },
 ] as const;
@@ -81,6 +86,8 @@ type Section = (typeof navigation)[number]["id"];
 type Message = {
   role: "user" | "assistant";
   content: string;
+  result?: any;
+  traceId?: string;
 };
 
 type TraceState = {
@@ -247,6 +254,9 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
 
     if (addAssistantMessage) {
       const rawResponse = extractResponse(result);
+      if (result?.trace_id) {
+        localStorage.setItem("finai.currentTraceId", result.trace_id);
+      }
       const userFacingResponse = requiresAuth
         ? "This operation needs account authentication before FinAI can continue. Use “Sign in (demo)” in the Account access panel. This development login does not verify a real identity."
         : requiresConfirmation
@@ -255,7 +265,12 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
 
       setMessages((current) => [
         ...current,
-        { role: "assistant", content: userFacingResponse },
+        {
+          role: "assistant",
+          content: userFacingResponse,
+          result: requiresAuth || requiresConfirmation ? undefined : result,
+          traceId: result?.trace_id,
+        },
       ]);
     }
 
@@ -284,18 +299,35 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
 
       applyResult(result);
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Unable to contact the FinAI backend.",
-      );
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          content: "I couldn't reach the FinAI backend. Check that FastAPI is running on port 8000.",
-        },
-      ]);
+      // Preserve the system-owned result when the optional generation layer
+      // is unavailable. This keeps knowledge/calculation demos usable.
+      try {
+        const fallbackResult = await sendChat({
+          message: text,
+          session_id: sessionId,
+          language,
+          persona,
+          generate_response: false,
+          max_new_tokens: 256,
+        });
+        setError("Model generation was unavailable; showing the verified system result.");
+        applyResult(fallbackResult);
+      } catch (fallbackError) {
+        setError(
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : requestError instanceof Error
+              ? requestError.message
+              : "Unable to contact the FinAI backend.",
+        );
+        setMessages((current) => [
+          ...current,
+          {
+            role: "assistant",
+            content: "FinAI could not complete this request. Check that FastAPI is running on port 8000 and review the backend logs.",
+          },
+        ]);
+      }
     } finally {
       setLoading(false);
     }
@@ -420,6 +452,13 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
               <div className="chat-content">
                 <span>{item.role === "assistant" ? "FINAI" : "YOU"}</span>
                 <div className="chat-bubble"><RichMessage textValue={item.content} /></div>
+                {item.role === "assistant" && item.result && (
+                  <AssistantResultCard
+                    result={item.result}
+                    traceId={item.traceId}
+                    onNavigate={onNavigate}
+                  />
+                )}
               </div>
             </div>
           ))}
@@ -534,6 +573,19 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
               <strong>{traceValue(value)}</strong>
             </div>
           ))}
+          {sessionId && (
+            <button
+              type="button"
+              className="xai-open-button"
+              onClick={() => {
+                const currentTraceId = localStorage.getItem("finai.currentTraceId");
+                if (currentTraceId) localStorage.setItem("finai.currentTraceId", currentTraceId);
+                onNavigate("xai");
+              }}
+            >
+              <FileSearch size={12} /> Open this conversation's trace
+            </button>
+          )}
         </section>
 
         <section className="glass-panel side-card evidence-mini">
@@ -552,6 +604,7 @@ function ArrowPrompt() {
 
 function App() {
   const [section, setSection] = useState<Section>("overview");
+  const [navOpen, setNavOpen] = useState(false);
 
   const content = {
     overview: <PlatformHome onNavigate={(value) => setSection(value as Section)} />,
@@ -565,17 +618,57 @@ function App() {
     knowledge: <KnowledgeHub />,
     analyst: <MarketAnalystHub />,
     global: <GlobalInvestmentHub />,
+    causal: <CausalRiskLab />,
     resources: <ResourcesHub />,
     study: <StudyHub />,
-    token: <TokenGeneratorHub />,
+    models: <ModelIntelligenceHub />,
     diary: <InvestmentDiaryHub />,
     xai: <XAIExplorerHub />,
   }[section];
 
+  const activeItem = navigation.find((item) => item.id === section);
+
+  const navigate = (next: Section) => {
+    setSection(next);
+    setNavOpen(false);
+  };
+
+  const groupStarts = new Set<Section>([
+    "overview",
+    "news",
+    "models",
+    "causal",
+    "resources",
+  ]);
+
+  const groupLabels: Record<Section, string> = {
+    overview: "Core",
+    news: "Intelligence",
+    causal: "Research",
+    resources: "Tools",
+    assistant: "",
+    markets: "",
+    investments: "",
+    portfolio: "",
+    forms: "",
+    arbitrage: "",
+    knowledge: "",
+    analyst: "",
+    global: "",
+    study: "",
+    models: "AI System",
+    diary: "",
+    xai: "",
+  };
+
   return (
     <div className="platform-shell">
       <header className="platform-topbar glass-panel">
-        <button className="platform-brand" type="button" onClick={() => setSection("overview")}>
+        <button className="mobile-menu-button" type="button" aria-label="Open navigation" onClick={() => setNavOpen((open) => !open)}>
+          {navOpen ? <X size={18} /> : <Menu size={18} />}
+        </button>
+
+        <button className="platform-brand" type="button" onClick={() => navigate("overview")}>
           <div className="brand-logo"><Bot size={20} /></div>
           <div>
             <strong>FinAI</strong>
@@ -583,30 +676,78 @@ function App() {
           </div>
         </button>
 
-        <nav className="platform-nav" aria-label="FinAI navigation">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                type="button"
-                key={item.id}
-                className={section === item.id ? "active" : ""}
-                onClick={() => setSection(item.id)}
-              >
-                <Icon size={14} />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
+        <div className="platform-topbar-center">
+          <span className="platform-breadcrumb">Workspace</span>
+          <strong>{activeItem?.label ?? "Overview"}</strong>
+        </div>
 
-        <div className="platform-status">
-          <span className="status-pip" />
-          Local environment
+        <div className="platform-topbar-actions">
+          <button className="ask-finai-button" type="button" onClick={() => navigate("assistant")}>
+            <MessageSquare size={14} />
+            Ask FinAI
+          </button>
+          <div className="platform-status">
+            <span className="status-pip" />
+            Local environment
+          </div>
         </div>
       </header>
 
-      <main className="platform-content">{content}</main>
+      <div className="platform-frame">
+        <div className={navOpen ? "platform-nav-overlay visible" : "platform-nav-overlay"} onClick={() => setNavOpen(false)} />
+
+        <aside className={navOpen ? "platform-sidebar open" : "platform-sidebar"}>
+          <div className="sidebar-heading">
+            <span>FINAI WORKSPACES</span>
+            <small>Navigate without horizontal scrolling</small>
+          </div>
+
+          <nav className="sidebar-nav" aria-label="FinAI navigation">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              const showGroup = groupStarts.has(item.id);
+              return (
+                <div key={item.id}>
+                  {showGroup && <div className="sidebar-group-label">{groupLabels[item.id]}</div>}
+                  <button
+                    type="button"
+                    className={section === item.id ? "active" : ""}
+                    onClick={() => navigate(item.id)}
+                  >
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                    {section === item.id && <i />}
+                  </button>
+                </div>
+              );
+            })}
+          </nav>
+
+          <div className="sidebar-footer">
+            <span className="status-pip" />
+            <div>
+              <strong>FinAI local stack</strong>
+              <small>API · Research · UI</small>
+            </div>
+          </div>
+        </aside>
+
+        <main className="platform-content">
+          <div className="platform-command-strip">
+            <div>
+              <span>FINAI / {activeItem?.label?.toUpperCase() ?? "OVERVIEW"}</span>
+              <strong>{section === "overview" ? "Financial command center" : activeItem?.label}</strong>
+            </div>
+            {section !== "assistant" && (
+              <button type="button" onClick={() => navigate("assistant")}>
+                <MessageSquare size={13} />
+                Open assistant
+              </button>
+            )}
+          </div>
+          {content}
+        </main>
+      </div>
     </div>
   );
 }

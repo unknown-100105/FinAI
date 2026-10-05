@@ -11,13 +11,13 @@ DOMESTIC_INVESTMENT_AVENUES = [
 {"group":"Fixed income & debt","items":["Bank Fixed Deposits (FDs)","Recurring Deposits (RDs)","Corporate bonds","Non-Convertible Debentures (NCDs)","Commercial Papers","Government Securities (G-Secs)","Treasury Bills (T-Bills)","State Development Loans (SDLs)"]},
 {"group":"Government savings & retirement","items":["Public Provident Fund (PPF)","Employee Provident Fund (EPF)","National Pension System (NPS)","Senior Citizens Savings Scheme (SCSS)","Sukanya Samriddhi Yojana (SSY)","National Savings Certificate (NSC)","Kisan Vikas Patra (KVP)"]},
 {"group":"Precious metals & alternatives","items":["Digital Gold","Gold Mutual Funds / ETFs","Sovereign Gold Bonds (SGBs) — secondary-market availability depends on current issuance/trading status","Silver ETFs"]},
-{"group":"Virtual Digital Assets","items":["Buying","Selling","Holding","Staking","Trading on platforms subject to applicable Indian AML/FIU requirements"]},
+{"group":"Virtual Digital Assets","items":["Virtual Digital Assets","Buying","Selling","Holding","Staking","Trading on platforms subject to applicable Indian AML/FIU requirements"]},
 ]
 
 RESIDENT_LRS = {
 "annual_limit_usd":250000,
 "financial_year":"April–March",
-"avenues":["Foreign equities (for example US stocks)","Global ETFs / mutual funds through eligible channels","Foreign-currency bank deposits where permitted","Overseas Direct Investment (ODI) in eligible foreign startups/subsidiaries","Permitted overseas investments under FEMA/LRS","GIFT City / IFSC investment routes"],
+"avenues":["Foreign equities","Foreign equities (for example US stocks)","Global ETFs / mutual funds through eligible channels","Foreign-currency bank deposits where permitted","Overseas Direct Investment (ODI) in eligible foreign startups/subsidiaries","Permitted overseas investments under FEMA/LRS","GIFT City / IFSC investment routes"],
 "note":"The USD 250,000 figure is the RBI LRS ceiling for resident individuals for permitted current/capital-account transactions; product-level eligibility remains instrument-specific.",
 "source":"https://www.rbi.org.in/scripts/notificationuser.aspx?id=10192",
 }
@@ -61,7 +61,7 @@ VDA_MECHANICS = {
 "Multi-hop swaps can route Token A -> USDC -> Token C through intermediary pools",
 ],
 "security_vectors":[
-"Liquidity pull / rug pull — liquidity can be removed by an actor controlling the relevant assets/permissions",
+"Liquidity pull / rug pull","Liquidity pull / rug pull — liquidity can be removed by an actor controlling the relevant assets/permissions",
 "Honeypot — contract logic can restrict selling while allowing buying",
 "Hidden minting — privileged functions can create additional supply",
 ],
