@@ -14,6 +14,10 @@ class ModelRoute:
     fallback_chain: tuple[str, ...]
     risk_level: str
     policy: str
+    network_mode: str
+    data_sensitivity: str
+    allowed_providers: tuple[str, ...]
+    constraints_applied: tuple[str, ...]
 
     def to_dict(self) -> dict:
         return {
@@ -24,6 +28,10 @@ class ModelRoute:
             "fallback_chain": list(self.fallback_chain),
             "risk_level": self.risk_level,
             "policy": self.policy,
+            "network_mode": self.network_mode,
+            "data_sensitivity": self.data_sensitivity,
+            "allowed_providers": list(self.allowed_providers),
+            "constraints_applied": list(self.constraints_applied),
         }
 
 
@@ -39,6 +47,15 @@ def provider_for(spec: ModelSpec) -> str:
     if spec.model_id.startswith("rllm-"):
         return "local"
     return "local"
+
+
+def _normalise_mode(value: str, allowed: set[str], default: str) -> str:
+    normalized = str(value or default).strip().lower()
+    return normalized if normalized in allowed else default
+
+
+def _provider_from_model_id(model_id: str) -> str:
+    return provider_for(get_model_spec(model_id))
 
 
 class ModelRouter:
@@ -88,12 +105,41 @@ class ModelRouter:
         score -= rank * 0.01
         return score
 
-    def _candidates(self, capability: str) -> list[ModelSpec]:
-        return [
+    def _candidates(
+        self,
+        capability: str,
+        network_mode: str,
+        data_sensitivity: str,
+        allowed_providers: set[str],
+    ) -> tuple[list[ModelSpec], tuple[str, ...]]:
+        candidates = [
             spec
             for spec in enabled_models()
             if capability in spec.capabilities
         ]
+        constraints: list[str] = []
+
+        if allowed_providers:
+            candidates = [
+                spec for spec in candidates
+                if provider_for(spec) in allowed_providers
+            ]
+            constraints.append("provider_allow_list")
+
+        if network_mode == "offline":
+            local_only = [spec for spec in candidates if provider_for(spec) == "local"]
+            candidates = local_only
+            constraints.append("offline_local_only")
+
+        elif network_mode == "degraded":
+            constraints.append("degraded_network_local_preference")
+
+        if data_sensitivity == "restricted":
+            local_only = [spec for spec in candidates if provider_for(spec) == "local"]
+            candidates = local_only
+            constraints.append("restricted_data_local_only")
+
+        return candidates, tuple(dict.fromkeys(constraints))
 
     def fallback_chain(
         self,
@@ -131,23 +177,52 @@ class ModelRouter:
         risk_level: str = "low",
         language: str = "English",
         explicit_model: str | None = None,
+        network_mode: str = "online",
+        data_sensitivity: str = "standard",
+        allowed_providers: Optional[list[str]] = None,
     ) -> ModelRoute:
-        candidates = self._candidates(capability)
+        del language
+        network_mode = _normalise_mode(
+            network_mode,
+            {"online", "degraded", "offline"},
+            "online",
+        )
+        data_sensitivity = _normalise_mode(
+            data_sensitivity,
+            {"public", "standard", "financial", "restricted"},
+            "standard",
+        )
+        providers = {
+            str(item).strip().lower()
+            for item in (allowed_providers or [])
+            if str(item).strip()
+        }
+        candidates, constraints_applied = self._candidates(
+            capability,
+            network_mode=network_mode,
+            data_sensitivity=data_sensitivity,
+            allowed_providers=providers,
+        )
         if explicit_model is not None:
             selected = explicit_model.strip().lower()
-            get_model_spec(selected)
-            if selected not in {spec.model_id for spec in candidates}:
+            spec = get_model_spec(selected)
+            if selected not in {item.model_id for item in candidates}:
                 raise ValueError(
-                    f"Model '{selected}' does not support capability '{capability}'."
+                    f"Model '{selected}' is not eligible for capability "
+                    f"'{capability}' under the current execution constraints."
                 )
             return ModelRoute(
                 capability=capability,
                 selected_model=selected,
-                provider=provider_for(get_model_spec(selected)),
+                provider=provider_for(spec),
                 reason="explicit_model_selection",
                 fallback_chain=(selected,),
                 risk_level=risk_level,
                 policy="explicit",
+                network_mode=network_mode,
+                data_sensitivity=data_sensitivity,
+                allowed_providers=tuple(sorted(providers)),
+                constraints_applied=constraints_applied,
             )
 
         if not candidates:
@@ -158,7 +233,15 @@ class ModelRouter:
         ranked = sorted(
             enumerate(candidates),
             key=lambda item: (
-                -self._score(item[1], risk_level, item[0]),
+                -(
+                    self._score(item[1], risk_level, item[0])
+                    + (
+                        35.0
+                        if network_mode == "degraded"
+                        and provider_for(item[1]) == "local"
+                        else 0.0
+                    )
+                ),
                 getattr(item[1], "routing_priority", 100),
                 item[1].model_id,
             ),
@@ -170,11 +253,21 @@ class ModelRouter:
             selected_model=selected.model_id,
             provider=provider_for(selected),
             reason=(
-                "risk_aware_policy_heuristic"
+                "offline_local_only"
+                if network_mode == "offline"
+                else "restricted_data_local_only"
+                if data_sensitivity == "restricted"
+                else "degraded_network_local_preference"
+                if network_mode == "degraded"
+                else "risk_aware_policy_heuristic"
                 if str(risk_level).lower() in {"high", "critical"}
                 else "capability_and_resource_policy_heuristic"
             ),
             fallback_chain=tuple(chain),
             risk_level=risk_level,
-            policy="heuristic",
+            policy="constrained_heuristic" if constraints_applied else "heuristic",
+            network_mode=network_mode,
+            data_sensitivity=data_sensitivity,
+            allowed_providers=tuple(sorted(providers)),
+            constraints_applied=constraints_applied,
         )
