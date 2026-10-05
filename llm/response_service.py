@@ -522,15 +522,17 @@ class ResponseService:
         risk_level: str = "low",
     ) -> Dict[str, Any]:
 
-        selected_model = (
-            model_id
-            if model_id is not None
-            else self.select_model(
-                intent,
-                risk_level=risk_level,
-                language=language,
-            )
+        capability = self.CAPABILITY_BY_INTENT.get(
+            intent,
+            "response_generation",
         )
+        route = self.model_router.route(
+            capability=capability,
+            risk_level=risk_level,
+            language=language,
+            explicit_model=model_id,
+        )
+        selected_model = route.selected_model
 
         capability = self.CAPABILITY_BY_INTENT.get(
             intent,
@@ -659,9 +661,11 @@ class ResponseService:
                         "capability": capability,
                         "model_id": selected_model,
                         "actual_model_id": actual_model_id,
-                        "fallback_used": bool(
-                            result.get("fallback_used", False)
-                        ),
+                        "fallback_used": bool(result.get("fallback_used", False)),
+                        "route_reason": route.reason,
+                        "route_policy": route.policy,
+                        "route_risk_level": route.risk_level,
+                        "route_fallback_candidates": list(route.fallback_chain),
                     },
                 }
 
@@ -692,6 +696,10 @@ class ResponseService:
                 "selection": {
                     "capability": capability,
                     "model_id": selected_model,
+                    "route_reason": route.reason,
+                    "route_policy": route.policy,
+                    "route_risk_level": route.risk_level,
+                    "route_fallback_candidates": list(route.fallback_chain),
                 },
             }
 
