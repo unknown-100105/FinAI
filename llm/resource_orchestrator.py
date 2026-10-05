@@ -39,6 +39,7 @@ class ResourceDecision:
     reason: str
     required_ram_gb: float
     required_vram_gb: float
+    gpu_required: bool
     snapshot: HardwareSnapshot
 
     def to_dict(self) -> dict[str, Any]:
@@ -48,6 +49,7 @@ class ResourceDecision:
             "reason": self.reason,
             "required_ram_gb": self.required_ram_gb,
             "required_vram_gb": self.required_vram_gb,
+            "gpu_required": self.gpu_required,
             "snapshot": self.snapshot.to_dict(),
         }
 
@@ -125,6 +127,7 @@ def assess_local_model(
     *,
     required_ram_gb: float,
     required_vram_gb: float,
+    gpu_required: bool = False,
     snapshot: Optional[HardwareSnapshot] = None,
 ) -> ResourceDecision:
     snapshot = snapshot or detect_hardware()
@@ -134,23 +137,22 @@ def assess_local_model(
         snapshot.cuda_available and snapshot.vram_gb >= required_vram_gb
     )
 
-    if required_vram_gb > 0 and vram_ok:
-        mode = "local_gpu"
-        reason = "local model fits configured RAM and VRAM requirements"
-        fit = ram_ok
-    elif ram_ok:
-        mode = "local_ram"
-        reason = (
-            "local model fits RAM requirements; configured GPU requirement "
-            "is not satisfied"
-            if required_vram_gb > 0
-            else "local model fits configured RAM requirements"
-        )
-        fit = required_vram_gb <= 0
-    else:
+    if not ram_ok:
         mode = "cloud_fallback"
-        reason = "local model does not fit configured RAM/VRAM requirements"
+        reason = "local model does not fit configured RAM requirements"
         fit = False
+    elif gpu_required and not vram_ok:
+        mode = "cloud_fallback"
+        reason = "local model requires GPU resources that are unavailable"
+        fit = False
+    elif required_vram_gb > 0 and vram_ok:
+        mode = "local_gpu"
+        reason = "local model fits configured RAM and preferred VRAM requirements"
+        fit = True
+    else:
+        mode = "local_ram"
+        reason = "local model fits configured RAM requirements"
+        fit = True
 
     return ResourceDecision(
         execution_mode=mode,
@@ -158,5 +160,6 @@ def assess_local_model(
         reason=reason,
         required_ram_gb=float(required_ram_gb),
         required_vram_gb=float(required_vram_gb),
+        gpu_required=bool(gpu_required),
         snapshot=snapshot,
     )
