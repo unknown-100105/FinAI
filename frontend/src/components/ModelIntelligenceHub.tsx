@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Cloud, Cpu, Gauge, RefreshCw, Route, ShieldCheck } from "lucide-react";
 import {
   getFinAIModels,
+  getHardwareResources,
   previewModelRoute,
   type FinAIModel,
   type ModelRoutePreview,
+  type HardwareResourceSnapshot,
 } from "../api/models";
 import "./ModelIntelligenceHub.css";
 
@@ -45,6 +47,7 @@ export default function ModelIntelligenceHub() {
   const [networkMode, setNetworkMode] = useState("online");
   const [dataSensitivity, setDataSensitivity] = useState("standard");
   const [route, setRoute] = useState<ModelRoutePreview | null>(null);
+  const [resources, setResources] = useState<HardwareResourceSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [routeLoading, setRouteLoading] = useState(false);
   const [error, setError] = useState("");
@@ -63,6 +66,14 @@ export default function ModelIntelligenceHub() {
   };
 
   useEffect(() => { void loadModels(); }, []);
+
+  useEffect(() => {
+    void getHardwareResources()
+      .then(setResources)
+      .catch((requestError) => {
+        setError(requestError instanceof Error ? requestError.message : "Resource planner unavailable.");
+      });
+  }, []);
 
   const providers = useMemo(() => {
     const grouped = new Map<string, FinAIModel[]>();
@@ -147,6 +158,25 @@ export default function ModelIntelligenceHub() {
                   <div className="ai-model-tiers"><span title="Quality"><Gauge size={10} /> Q{model.quality_tier}</span><span title="Latency">L{model.latency_tier}</span><span title="Cost">C{model.cost_tier}</span></div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {resources && (
+            <div className="ai-resource-panel">
+              <div className="ai-resource-head"><div><div className="module-kicker">03 · Compute fabric</div><h3>Local resource fit</h3></div><Cpu size={14} /></div>
+              <div className="ai-resource-grid">
+                <div><span>CPU</span><strong>{resources.hardware.cpu_cores} cores</strong></div>
+                <div><span>RAM</span><strong>{resources.hardware.ram_gb} GB</strong></div>
+                <div><span>VRAM</span><strong>{resources.hardware.cuda_available ? resources.hardware.vram_gb + " GB free" : "Unavailable"}</strong></div>
+                <div><span>Storage</span><strong>{resources.hardware.storage_free_gb} GB free</strong></div>
+              </div>
+              {resources.local_models.map((item) => (
+                <div className="ai-resource-model" key={item.model_id}>
+                  <div><strong>{item.model_name}</strong><span>{item.resource.execution_mode.replaceAll("_", " ")}</span></div>
+                  <div className={item.resource.resource_fit ? "ai-key-chip ok" : "ai-key-chip"}>{item.resource.resource_fit ? <CheckCircle2 size={10} /> : null}{item.resource.resource_fit ? "Fits" : "Fallback"}</div>
+                </div>
+              ))}
+              <small className="ai-resource-note">{resources.planning_note}</small>
             </div>
           )}
         </aside>
