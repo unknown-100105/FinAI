@@ -1,4 +1,5 @@
 ﻿from datetime import datetime, timedelta
+import inspect
 from pathlib import Path
 
 from orchestrator.engine import FinAIOrchestrator
@@ -105,6 +106,14 @@ class FinAIHybridEngine:
             "llm_role": plan.llm_role,
             "verification_mode": plan.verification_mode,
         }
+
+    @staticmethod
+    def _generate_response(service, risk_level, **kwargs):
+        """Call injected or production response services compatibly."""
+        parameters = inspect.signature(service.generate).parameters
+        if "risk_level" in parameters:
+            kwargs["risk_level"] = risk_level
+        return service.generate(**kwargs)
 
     def _get_market_data_dispatcher(self):
         if self.market_data is None:
@@ -414,7 +423,8 @@ class FinAIHybridEngine:
                     try:
                         from llm.response_service import ResponseService
 
-                        response_generation = (self.response_service or ResponseService()).generate(
+                        response_generation = self._generate_response(
+                            (self.response_service or ResponseService()),
                             user_text=user_text,
                             intent=intent,
                             verified_result={
@@ -426,8 +436,7 @@ class FinAIHybridEngine:
                             persona=persona,
                             max_new_tokens=max_new_tokens,
                             model_id=model_id,
-                            risk_level=plan.risk_level,
-                        )
+                            )
                         generated = str(response_generation.get("response", "")).strip()
                         if generated:
                             final_response = generated
@@ -563,7 +572,9 @@ class FinAIHybridEngine:
                     "documents": formatted_documents,
                 }
 
-                response_result = service.generate(
+                response_result = self._generate_response(
+                    service,
+                    risk_level=plan.risk_level,
                     user_text=user_text,
                     intent=intent,
                     verified_result=verified_evidence,
@@ -864,7 +875,9 @@ class FinAIHybridEngine:
                         or ResponseService()
                     )
 
-                    response_result = service.generate(
+                    response_result = self._generate_response(
+                        service,
+                        risk_level=plan.risk_level,
                         user_text=user_text,
                         intent=intent,
                         verified_result=calculation["result"],
