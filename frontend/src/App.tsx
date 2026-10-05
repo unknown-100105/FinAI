@@ -22,7 +22,6 @@ import {
   Activity,
   Landmark,
   GraduationCap,
-  Code2,
   BookMarked,
   Sparkles,
   WalletCards,
@@ -43,7 +42,6 @@ import { NewsHub } from "./components/NewsHub";
 import { CryptoArbitrageHub } from "./components/CryptoArbitrageHub";
 import { KnowledgeHub } from "./components/KnowledgeHub";
 import { InvestmentDiaryHub } from "./components/InvestmentDiaryHub";
-import { TokenGeneratorHub } from "./components/TokenGeneratorHub";
 import { StudyHub } from "./components/StudyHub";
 import { ResourcesHub } from "./components/ResourcesHub";
 import { MarketAnalystHub } from "./components/MarketAnalystHub";
@@ -52,6 +50,7 @@ import { XAIExplorerHub } from "./components/XAIExplorerHub";
 import CausalRiskLab from "./components/CausalRiskLab";
 import { PlatformGuide } from "./components/PlatformGuide";
 import { AssistantResultCard } from "./components/AssistantResultCard";
+import ModelIntelligenceHub from "./components/ModelIntelligenceHub";
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
@@ -77,7 +76,7 @@ const navigation = [
   { id: "causal", label: "Causal Risk Lab", icon: BrainCircuit },
   { id: "resources", label: "Schemes & Resources", icon: Landmark },
   { id: "study", label: "Study Centre", icon: GraduationCap },
-  { id: "token", label: "Token Lab", icon: Code2 },
+  { id: "models", label: "Model Intelligence", icon: Cpu },
   { id: "diary", label: "Investment Diary", icon: BookMarked },
   { id: "xai", label: "Explainability", icon: ShieldCheck },
 ] as const;
@@ -622,7 +621,7 @@ function App() {
     causal: <CausalRiskLab />,
     resources: <ResourcesHub />,
     study: <StudyHub />,
-    token: <TokenGeneratorHub />,
+    models: <ModelIntelligenceHub />,
     diary: <InvestmentDiaryHub />,
     xai: <XAIExplorerHub />,
   }[section];
@@ -637,6 +636,7 @@ function App() {
   const groupStarts = new Set<Section>([
     "overview",
     "news",
+    "models",
     "causal",
     "resources",
   ]);
@@ -656,7 +656,7 @@ function App() {
     analyst: "",
     global: "",
     study: "",
-    token: "",
+    models: "AI System",
     diary: "",
     xai: "",
   };
