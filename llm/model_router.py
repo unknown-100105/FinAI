@@ -179,6 +179,7 @@ class ModelRouter:
         network_mode: str = "online",
         data_sensitivity: str = "standard",
         allowed_providers: Optional[set[str]] = None,
+        hardware: Optional[HardwareSnapshot] = None,
     ) -> list[str]:
         hardware = hardware or detect_hardware()
         candidates, _ = self._candidates(
@@ -220,6 +221,7 @@ class ModelRouter:
         network_mode: str = "online",
         data_sensitivity: str = "standard",
         allowed_providers: Optional[list[str]] = None,
+        hardware: Optional[HardwareSnapshot] = None,
     ) -> ModelRoute:
         del language
         network_mode = _normalise_mode(
