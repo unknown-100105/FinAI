@@ -41,3 +41,18 @@ def test_invalid_explicit_model_is_rejected():
     except KeyError:
         return
     raise AssertionError("Unknown model was accepted.")
+
+def test_critical_risk_can_promote_high_reasoning_cloud(monkeypatch):
+    for name in (
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "MISTRAL_API_KEY",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+
+    router = ModelRouter()
+    result = router.route("financial_qa", risk_level="critical")
+
+    assert result.selected_model == "anthropic-claude"
+    assert result.provider == "anthropic"
