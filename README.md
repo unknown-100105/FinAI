@@ -96,9 +96,13 @@ The current builders expect the domain chunk files under `data/domain_chunks/`. 
 
 ## Cloud response providers
 
-Gemini is the primary configured cloud response provider. OpenRouter is implemented as an automatic provider fallback and defaults to `openrouter/auto` when its environment variables are configured.
+FinAI now exposes a provider-agnostic response layer with Google Gemini, OpenAI, OpenRouter, Anthropic and Mistral adapters, plus local/research models. Providers remain server-side behind the ModelGateway; credentials are never sent to the browser.
 
-The fallback path is used only for automatic model selection. Passing an explicit `model_id` remains deterministic.
+The ModelRouter performs deterministic capability/risk-aware policy selection and produces an auditable fallback chain. Provider quality, latency and cost tiers are configuration metadata, not proof of model superiority. Passing an explicit `model_id` remains deterministic and does not silently fail over.
+
+The frontend Model Intelligence workspace shows provider configuration state, model capabilities and route previews without making generation calls.
+
+See `docs/multi-cloud-model-routing.md` for the provider matrix and environment variables.
 
 ## Verification model
 
