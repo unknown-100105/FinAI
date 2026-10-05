@@ -2,6 +2,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Query
 from llm.model_registry import MODEL_REGISTRY, enabled_models, models_for_capability, model_configured
 from llm.model_router import ModelRouter
+from llm.resource_orchestrator import detect_hardware, assess_local_model
 
 router = APIRouter(prefix="/api/v1/models", tags=["models"])
 
@@ -33,6 +34,9 @@ def models(capability: Optional[str] = Query(default=None)) -> Dict[str, Any]:
                 "latency_tier": spec.latency_tier,
                 "cost_tier": spec.cost_tier,
                 "routing_priority": spec.routing_priority,
+                "min_ram_gb": spec.min_ram_gb,
+                "preferred_vram_gb": spec.preferred_vram_gb,
+                "gpu_required": spec.gpu_required,
                 "configuration_note": (
                     "Enabled by environment configuration."
                     if spec.model_id in enabled
@@ -71,3 +75,31 @@ def route_preview(payload: Dict[str, Any]) -> Dict[str, Any]:
         ],
     )
     return route.to_dict()
+
+
+@router.get("/resources")
+def resources() -> Dict[str, Any]:
+    hardware = detect_hardware()
+    local_models = []
+    for spec in enabled_models():
+        if spec.provider != "local":
+            continue
+        decision = assess_local_model(
+            required_ram_gb=spec.min_ram_gb,
+            required_vram_gb=spec.preferred_vram_gb,
+            gpu_required=spec.gpu_required,
+            snapshot=hardware,
+        )
+        local_models.append({
+            "model_id": spec.model_id,
+            "model_name": spec.model_name,
+            "resource": decision.to_dict(),
+        })
+    return {
+        "hardware": hardware.to_dict(),
+        "local_models": local_models,
+        "planning_note": (
+            "Resource values are routing metadata and current machine observations; "
+            "they are not a benchmark of actual model memory consumption."
+        ),
+    }
