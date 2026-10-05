@@ -81,7 +81,9 @@ class ModelRouter:
             score += quality * 3
 
         if spec.model_id in self.preference:
-            score += max(1, 40 - self.preference.index(spec.model_id) * 5)
+            # Operator preference is a policy override for otherwise eligible
+            # candidates; it still cannot select a model outside its capability.
+            score += max(1, 200 - self.preference.index(spec.model_id) * 20)
 
         score -= rank * 0.01
         return score
