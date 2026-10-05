@@ -57,3 +57,36 @@ export async function previewModelRoute(input: {
   }
   return response.json() as Promise<ModelRoutePreview>;
 }
+
+
+export type HardwareResourceSnapshot = {
+  hardware: {
+    cpu_cores: number;
+    ram_gb: number;
+    vram_gb: number;
+    storage_free_gb: number;
+    cuda_available: boolean;
+    platform: string;
+  };
+  local_models: Array<{
+    model_id: string;
+    model_name: string;
+    resource: {
+      execution_mode: string;
+      resource_fit: boolean;
+      reason: string;
+      required_ram_gb: number;
+      required_vram_gb: number;
+      gpu_required: boolean;
+    };
+  }>;
+  planning_note: string;
+};
+
+export async function getHardwareResources() {
+  const response = await fetch(API_BASE_URL + "/api/v1/models/resources");
+  if (!response.ok) {
+    throw new Error("FinAI resource API error " + response.status + ": " + await response.text());
+  }
+  return response.json() as Promise<HardwareResourceSnapshot>;
+}
