@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 
 from llm.model_gateway import ModelGateway
-from llm.model_registry import enabled_models
+from llm.model_registry import enabled_models, provider_configured
 from llm.response_verifier import FinancialResponseVerifier
 from rag.evidence_verifier import RAGEvidenceVerifier
 from response_engine.financial import FinancialResponseEngine
@@ -13,6 +13,9 @@ from llm.response_adapter import SarvamResponseAdapter
 from llm.rllm_finqa_adapter import RLLMFinQAModelAdapter
 from llm.cloud.gemini_adapter import GeminiProResponseAdapter, GeminiResponseAdapter
 from llm.cloud.openrouter_adapter import OpenRouterResponseAdapter
+from llm.cloud.anthropic_adapter import AnthropicResponseAdapter
+from llm.cloud.mistral_adapter import MistralResponseAdapter
+from llm.model_router import ModelRouter
 from llm.cloud.openai_adapter import OpenAIAstraResponseAdapter, OpenAISolResponseAdapter, OpenAIResponseAdapter
 
 
@@ -37,6 +40,8 @@ class ResponseService:
         "gemini-pro-cloud": GeminiProResponseAdapter,
         "rllm-finqa-4b": RLLMFinQAModelAdapter,
         "sarvam-1": SarvamResponseAdapter,
+        "anthropic-claude": AnthropicResponseAdapter,
+        "mistral-large": MistralResponseAdapter,
     }
 
     FALLBACK_MODEL_IDS_BY_CAPABILITY = {
@@ -46,10 +51,14 @@ class ResponseService:
         "response_generation": (
             "gemini-cloud",
             "openrouter-cloud",
+            "anthropic-claude",
+            "mistral-large",
         ),
         "financial_qa": (
             "gemini-cloud",
             "openrouter-cloud",
+            "anthropic-claude",
+            "mistral-large",
             "rllm-finqa-4b",
         ),
     }
@@ -90,6 +99,7 @@ class ResponseService:
         # normal model registry so fallback providers do not affect
         # automatic model selection.
         self._fallback_adapters: Dict[str, Any] = {}
+        self.model_router = ModelRouter()
 
         if gateway is None:
             self._register_enabled_models()
@@ -123,26 +133,24 @@ class ResponseService:
                 ),
             )
 
-    def select_model(self, intent: str) -> str:
-
+    def select_model(
+        self,
+        intent: str,
+        risk_level: str = "low",
+        language: str = "English",
+        explicit_model: Optional[str] = None,
+    ) -> str:
         capability = self.CAPABILITY_BY_INTENT.get(
             intent,
             "response_generation",
         )
-
-        candidates = [
-            spec
-            for spec in enabled_models()
-            if capability in spec.capabilities
-        ]
-
-        if not candidates:
-            raise RuntimeError(
-                f"No enabled model supports capability "
-                f"'{capability}'."
-            )
-
-        return candidates[0].model_id
+        route = self.model_router.route(
+            capability=capability,
+            risk_level=risk_level,
+            language=language,
+            explicit_model=explicit_model,
+        )
+        return route.selected_model
 
     def _get_fallback_adapter(
         self,
@@ -211,12 +219,29 @@ class ResponseService:
 
             attempted = [selected_model]
 
-            fallback_candidates = (
+            configured_fallback_candidates = (
                 self.FALLBACK_MODEL_IDS_BY_CAPABILITY.get(
                     capability,
                     (),
                 )
             )
+            fallback_candidates = [
+                fallback_id
+                for fallback_id in configured_fallback_candidates
+                if (
+                    fallback_id in self._fallback_adapters
+                    or fallback_id in self.gateway.available_models()
+                    or provider_configured(
+                        getattr(
+                            __import__(
+                                "llm.model_registry",
+                                fromlist=["get_model_spec"],
+                            ),
+                            "get_model_spec",
+                        )(fallback_id).provider
+                    )
+                )
+            ]
 
             for fallback_model_id in fallback_candidates:
 
@@ -500,12 +525,17 @@ class ResponseService:
         persona: str = "neutral",
         max_new_tokens: int = 160,
         model_id: Optional[str] = None,
+        risk_level: str = "low",
     ) -> Dict[str, Any]:
 
         selected_model = (
             model_id
             if model_id is not None
-            else self.select_model(intent)
+            else self.select_model(
+                intent,
+                risk_level=risk_level,
+                language=language,
+            )
         )
 
         capability = self.CAPABILITY_BY_INTENT.get(
