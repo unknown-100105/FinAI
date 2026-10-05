@@ -27,6 +27,17 @@ export type ModelRoutePreview = {
   data_sensitivity: string;
   allowed_providers: string[];
   constraints_applied: string[];
+  execution_mode: string;
+  resource_fit: boolean;
+  resource_reason: string;
+  hardware: {
+    cpu_cores: number;
+    ram_gb: number;
+    vram_gb: number;
+    storage_free_gb: number;
+    cuda_available: boolean;
+    platform: string;
+  };
 };
 
 export async function getFinAIModels(capability?: string) {
