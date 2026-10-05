@@ -83,6 +83,9 @@ jobs:
             tests/test_market_overview.py \
             tests/test_market_search_api.py \
             tests/test_model_gateway.py \
+            tests/test_model_router.py \
+            tests/test_model_api.py \
+            tests/test_resource_orchestrator.py \
             tests/test_model_registry.py \
             tests/test_openai_provider.py \
             tests/test_openrouter_provider.py \
