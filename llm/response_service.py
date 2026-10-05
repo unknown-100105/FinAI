@@ -520,17 +520,44 @@ class ResponseService:
         max_new_tokens: int = 160,
         model_id: Optional[str] = None,
         risk_level: str = "low",
+        network_mode: Optional[str] = None,
+        data_sensitivity: Optional[str] = None,
+        allowed_providers: Optional[list[str]] = None,
     ) -> Dict[str, Any]:
 
         capability = self.CAPABILITY_BY_INTENT.get(
             intent,
             "response_generation",
         )
+        runtime_network_mode = (
+            network_mode
+            or __import__("os").getenv("FINAI_NETWORK_MODE", "online")
+        )
+        runtime_data_sensitivity = (
+            data_sensitivity
+            or __import__("os").getenv("FINAI_DATA_SENSITIVITY", "standard")
+        )
+        configured_providers = __import__("os").getenv(
+            "FINAI_ALLOWED_PROVIDERS",
+            "",
+        )
+        runtime_allowed_providers = (
+            allowed_providers
+            if allowed_providers is not None
+            else [
+                item.strip()
+                for item in configured_providers.split(",")
+                if item.strip()
+            ]
+        )
         route = self.model_router.route(
             capability=capability,
             risk_level=risk_level,
             language=language,
             explicit_model=model_id,
+            network_mode=runtime_network_mode,
+            data_sensitivity=runtime_data_sensitivity,
+            allowed_providers=runtime_allowed_providers,
         )
         selected_model = route.selected_model
 
