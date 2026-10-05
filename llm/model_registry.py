@@ -59,10 +59,10 @@ MODEL_REGISTRY = {
         ),
         enabled=False,
         provider="openai",
-        quality_tier=3,
+        quality_tier=4,
         latency_tier=3,
         cost_tier=3,
-        routing_priority=90,
+        routing_priority=92,
     ),
 
     "gemini-pro-cloud": ModelSpec(
@@ -151,7 +151,7 @@ MODEL_REGISTRY = {
         ),
         enabled=False,
         provider="anthropic",
-        quality_tier=3,
+        quality_tier=4,
         latency_tier=2,
         cost_tier=3,
         routing_priority=95,
