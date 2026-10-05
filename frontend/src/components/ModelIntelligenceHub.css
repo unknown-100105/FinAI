@@ -42,3 +42,8 @@
 .ai-resource-model span{display:block;margin-top:3px;color:#62768e;font-size:7px}
 .ai-resource-note{display:block;margin-top:7px;color:#53677e;font-size:6px;line-height:1.45}
 @keyframes finai-spin{to{transform:rotate(360deg)}}
+
+.ai-route-main em{display:inline-flex;margin:1px 0 0 6px;padding:3px 5px;border-radius:999px;font-style:normal;font-size:6px;text-transform:uppercase;letter-spacing:.05em}
+.ai-resource-fit{color:#70d3bd;background:rgba(50,148,123,.08)}
+.ai-resource-fallback{color:#e6b36c;background:rgba(181,125,54,.08)}
+.ai-route-reason{display:block;margin-top:4px;color:#65798f;font-size:6px}
