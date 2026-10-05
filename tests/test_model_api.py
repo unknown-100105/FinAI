@@ -1,4 +1,4 @@
-from app.models_api import models, route_preview
+from app.models_api import models, route_preview, resources
 
 
 def test_model_catalog_includes_provider_metadata():
@@ -38,3 +38,14 @@ def test_route_preview_enforces_offline_constraints():
     assert result["provider"] == "local"
     assert result["reason"] == "offline_local_only"
     assert result["network_mode"] == "offline"
+
+
+def test_resource_api_exposes_hardware_and_local_model_fit():
+    result = resources()
+    assert "hardware" in result
+    assert "cpu_cores" in result["hardware"]
+    assert "ram_gb" in result["hardware"]
+    assert "vram_gb" in result["hardware"]
+    assert "local_models" in result
+    assert result["local_models"]
+    assert "resource" in result["local_models"][0]
