@@ -426,6 +426,7 @@ class FinAIHybridEngine:
                             persona=persona,
                             max_new_tokens=max_new_tokens,
                             model_id=model_id,
+                            risk_level=plan.risk_level,
                         )
                         generated = str(response_generation.get("response", "")).strip()
                         if generated:
