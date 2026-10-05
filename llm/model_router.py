@@ -236,7 +236,7 @@ class ModelRouter:
                 -(
                     self._score(item[1], risk_level, item[0])
                     + (
-                        35.0
+                        100.0
                         if network_mode == "degraded"
                         and provider_for(item[1]) == "local"
                         else 0.0
