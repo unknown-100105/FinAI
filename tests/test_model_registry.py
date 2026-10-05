@@ -13,6 +13,8 @@ def test_registry_contains_expected_candidates():
     assert "rllm-finqa-4b" in MODEL_REGISTRY
     assert "qwen-candidate" in MODEL_REGISTRY
     assert "gemma-candidate" in MODEL_REGISTRY
+    assert "anthropic-claude" in MODEL_REGISTRY
+    assert "mistral-large" in MODEL_REGISTRY
 
 
 def test_gemini_is_current_enabled_model():
@@ -57,3 +59,8 @@ def test_unknown_model_fails():
         return
 
     raise AssertionError("Unknown model was accepted.")
+
+def test_cloud_provider_metadata_is_explicit():
+    assert get_model_spec("anthropic-claude").provider == "anthropic"
+    assert get_model_spec("mistral-large").provider == "mistral"
+    assert get_model_spec("openrouter-cloud").provider == "openrouter"
