@@ -70,3 +70,23 @@ FINAI_ALLOWED_PROVIDERS=
 ~~~
 
 This is an execution-policy boundary, not a claim that every cloud provider has identical privacy, residency or retention characteristics. Provider-specific compliance should be configured separately where required.
+
+## Hardware-aware orchestration
+
+FinAI also evaluates local resource availability before choosing a local model:
+
+- CPU core count
+- system RAM
+- currently available GPU VRAM and CUDA availability
+- free local storage
+
+The model registry exposes conservative routing metadata (`min_ram_gb`, `preferred_vram_gb`, `gpu_required`). These values are configuration hints for orchestration, not measured model-memory benchmarks.
+
+Execution modes are reported as:
+
+- `local_gpu`
+- `local_ram`
+- `cloud`
+- `cloud_fallback`
+
+The route response includes `resource_fit`, `resource_reason` and the current hardware snapshot. When a local candidate does not satisfy its configured resource profile, it is removed from the eligible local candidate set; cloud fallback is still subject to network and data-sensitivity policy.
