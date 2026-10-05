@@ -1,4 +1,5 @@
 from llm.model_router import ModelRouter
+from llm.resource_orchestrator import HardwareSnapshot
 
 
 def test_router_prefers_high_priority_default_model():
@@ -90,3 +91,63 @@ def test_offline_explicit_cloud_model_is_rejected():
     except ValueError:
         return
     raise AssertionError("Cloud model was accepted in offline mode.")
+
+
+def test_resource_aware_route_exposes_hardware_plan():
+    hardware = HardwareSnapshot(
+        cpu_cores=8,
+        ram_gb=16.0,
+        vram_gb=6.0,
+        storage_free_gb=100.0,
+        cuda_available=True,
+        platform="test",
+    )
+    result = ModelRouter().route(
+        "financial_qa",
+        network_mode="offline",
+        hardware=hardware,
+    )
+    assert result.provider == "local"
+    assert result.execution_mode == "local_gpu"
+    assert result.resource_fit is True
+    assert result.hardware["ram_gb"] == 16.0
+
+
+def test_insufficient_local_resources_are_pruned_from_online_candidates(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    hardware = HardwareSnapshot(
+        cpu_cores=4,
+        ram_gb=2.0,
+        vram_gb=0.0,
+        storage_free_gb=50.0,
+        cuda_available=False,
+        platform="test",
+    )
+    result = ModelRouter().route(
+        "financial_qa",
+        network_mode="online",
+        hardware=hardware,
+    )
+    assert result.provider == "gemini"
+    assert "local_resource_constraint" in result.constraints_applied
+
+
+def test_offline_fails_when_no_local_model_fits():
+    hardware = HardwareSnapshot(
+        cpu_cores=2,
+        ram_gb=2.0,
+        vram_gb=0.0,
+        storage_free_gb=20.0,
+        cuda_available=False,
+        platform="test",
+    )
+    try:
+        ModelRouter().route(
+            "financial_qa",
+            network_mode="offline",
+            hardware=hardware,
+        )
+    except RuntimeError as exc:
+        assert "No enabled model" in str(exc)
+        return
+    raise AssertionError("Offline routing unexpectedly selected an unfit model.")
