@@ -25,3 +25,16 @@ def test_route_preview_returns_auditable_policy():
     assert result["risk_level"] == "high"
     assert result["policy"] == "heuristic"
     assert result["fallback_chain"]
+
+def test_route_preview_enforces_offline_constraints():
+    result = route_preview(
+        {
+            "capability": "financial_qa",
+            "risk_level": "medium",
+            "language": "English",
+            "network_mode": "offline",
+        }
+    )
+    assert result["provider"] == "local"
+    assert result["reason"] == "offline_local_only"
+    assert result["network_mode"] == "offline"
