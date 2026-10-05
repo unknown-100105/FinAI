@@ -23,6 +23,10 @@ export type ModelRoutePreview = {
   fallback_chain: string[];
   risk_level: string;
   policy: string;
+  network_mode: string;
+  data_sensitivity: string;
+  allowed_providers: string[];
+  constraints_applied: string[];
 };
 
 export async function getFinAIModels(capability?: string) {
@@ -39,6 +43,9 @@ export async function previewModelRoute(input: {
   risk_level: string;
   language: string;
   model_id?: string;
+  network_mode?: string;
+  data_sensitivity?: string;
+  allowed_providers?: string[];
 }) {
   const response = await fetch(API_BASE_URL + "/api/v1/models/route", {
     method: "POST",
