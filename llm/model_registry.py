@@ -15,6 +15,9 @@ class ModelSpec:
     latency_tier: int = 2
     cost_tier: int = 2
     routing_priority: int = 100
+    min_ram_gb: float = 0.0
+    preferred_vram_gb: float = 0.0
+    gpu_required: bool = False
 
 
 MODEL_REGISTRY = {
@@ -136,6 +139,9 @@ MODEL_REGISTRY = {
         latency_tier=3,
         cost_tier=1,
         routing_priority=40,
+        min_ram_gb=4.0,
+        preferred_vram_gb=4.0,
+        gpu_required=False,
     ),
 
     "anthropic-claude": ModelSpec(
