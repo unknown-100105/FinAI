@@ -149,3 +149,18 @@ This layer sits below the financial authority/policy boundary and above the resp
 The frontend Model Intelligence workspace exposes the model registry, credential configuration state and route preview without invoking a paid model call.
 
 The routing policy is intentionally labeled as a heuristic. It is not a learned benchmark and requires empirical provider evaluation before any model is declared universally best.
+
+## Hardware-aware adaptive orchestration
+
+FinAI's model orchestration can inspect local CPU cores, system RAM, currently available GPU VRAM/CUDA availability and free storage before selecting an eligible local execution path.
+
+The model registry carries conservative resource-routing metadata for local models. These values are configuration hints rather than measured memory benchmarks.
+
+Execution can therefore be represented as:
+
+User intent + risk + network + data sensitivity + model capability + local resource fit
+-> model selection -> execution mode -> fallback -> verification -> XAI
+
+Supported execution modes include `local_gpu`, `local_ram`, `cloud` and `cloud_fallback`.
+
+Offline and restricted-data policies remain authoritative: a local model must fit the configured resource profile, and cloud execution is only available when policy permits it.
