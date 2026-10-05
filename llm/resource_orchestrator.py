@@ -100,8 +100,7 @@ def _cuda_snapshot() -> tuple[bool, float]:
 
         if torch.cuda.is_available():
             free_bytes, _ = torch.cuda.mem_get_info()
-            total_bytes = torch.cuda.get_device_properties(0).total_memory
-            return True, max(free_bytes, total_bytes) / (1024 ** 3)
+            return True, free_bytes / (1024 ** 3)
     except Exception:
         pass
 
