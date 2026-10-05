@@ -8,7 +8,7 @@ FinAI now treats cloud LLMs as interchangeable reasoning providers behind the ex
 | --- | --- | --- | --- |
 | Google Gemini | `gemini-cloud` | `gemini-3.8-flash` | `GEMINI_API_KEY` |
 | OpenAI | `openai-*` | registry-defined | `OPENAI_API_KEY` |
-| Anthropic | `anthropic-claude` | `claude-sonnet-5.5` | `ANTHROPIC_API_KEY` |
+| Anthropic | `anthropic-claude` | `claude-sonnet-5-5` | `ANTHROPIC_API_KEY` |
 | Mistral | `mistral-large` | `mistral-large-latest` | `MISTRAL_API_KEY` |
 | OpenRouter | `openrouter-cloud` | `openrouter/auto` | `OPENROUTER_API_KEY` |
 | Local/research | `rllm-finqa-4b`, research candidates | registry-defined | local artifacts |
@@ -33,7 +33,7 @@ GEMINI_API_KEY=
 GEMINI_MODEL=gemini-3.8-flash
 
 ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=claude-sonnet-5.5
+ANTHROPIC_MODEL=claude-sonnet-5-5
 
 MISTRAL_API_KEY=
 MISTRAL_MODEL=mistral-large-latest
