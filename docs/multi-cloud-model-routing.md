@@ -48,3 +48,25 @@ FINAI_LLM_COST_SENSITIVITY=balanced
 ## Safety boundary
 
 Financial calculations, authority decisions, transactions and verification remain system-owned. A cloud LLM only generates language around verified context. Explicit model selection remains deterministic and does not silently fail over.
+
+
+## Adaptive execution constraints
+
+The router can incorporate runtime execution constraints in addition to capability and risk:
+
+- `online`: normal provider selection.
+- `degraded`: prefers local execution while retaining configured cloud candidates.
+- `offline`: local-only execution.
+- `restricted` data sensitivity: local-only execution.
+
+The route-preview API accepts `network_mode` and `data_sensitivity` and returns `constraints_applied` so the decision remains auditable.
+
+Runtime environment defaults:
+
+~~~text
+FINAI_NETWORK_MODE=online
+FINAI_DATA_SENSITIVITY=standard
+FINAI_ALLOWED_PROVIDERS=
+~~~
+
+This is an execution-policy boundary, not a claim that every cloud provider has identical privacy, residency or retention characteristics. Provider-specific compliance should be configured separately where required.
