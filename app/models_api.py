@@ -8,9 +8,14 @@ router = APIRouter(prefix="/api/v1/models", tags=["models"])
 
 @router.get("")
 def models(capability: Optional[str] = Query(default=None)) -> Dict[str, Any]:
+    normalized_capability = (
+        capability.strip()
+        if isinstance(capability, str) and capability.strip()
+        else None
+    )
     specs = (
-        models_for_capability(capability)
-        if capability
+        models_for_capability(normalized_capability)
+        if normalized_capability
         else list(MODEL_REGISTRY.values())
     )
     enabled = {spec.model_id for spec in enabled_models()}
