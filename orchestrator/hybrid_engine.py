@@ -425,6 +425,7 @@ class FinAIHybridEngine:
 
                         response_generation = self._generate_response(
                             (self.response_service or ResponseService()),
+                            risk_level=plan.risk_level,
                             user_text=user_text,
                             intent=intent,
                             verified_result={
@@ -583,7 +584,6 @@ class FinAIHybridEngine:
                     persona=persona,
                     max_new_tokens=max_new_tokens,
                     model_id=model_id,
-                    risk_level=plan.risk_level,
                 )
 
             final_response = (
