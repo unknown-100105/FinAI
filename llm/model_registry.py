@@ -268,7 +268,7 @@ def provider_configured(provider: str) -> bool:
         "openrouter": "OPENROUTER_API_KEY",
     }
     key = env_by_provider.get(provider)
-    return bool(os.getenv(key, "").strip()) if key else True
+    return bool(os.getenv(key, "").strip()) if key else False
 
 
 def enabled_models():
