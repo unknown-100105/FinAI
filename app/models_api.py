@@ -45,6 +45,13 @@ def route_preview(payload: Dict[str, Any]) -> Dict[str, Any]:
     risk_level = str(payload.get("risk_level", "low")).strip().lower()
     language = str(payload.get("language", "English")).strip()
     model_id = payload.get("model_id")
+    network_mode = str(payload.get("network_mode", "online")).strip().lower()
+    data_sensitivity = str(
+        payload.get("data_sensitivity", "standard")
+    ).strip().lower()
+    allowed_providers = payload.get("allowed_providers")
+    if allowed_providers is not None and not isinstance(allowed_providers, list):
+        raise ValueError("allowed_providers must be a list when supplied")
 
     router = ModelRouter()
     route = router.route(
@@ -52,5 +59,10 @@ def route_preview(payload: Dict[str, Any]) -> Dict[str, Any]:
         risk_level=risk_level,
         language=language,
         explicit_model=str(model_id) if model_id else None,
+        network_mode=network_mode,
+        data_sensitivity=data_sensitivity,
+        allowed_providers=[
+            str(item) for item in (allowed_providers or [])
+        ],
     )
     return route.to_dict()
