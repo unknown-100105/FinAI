@@ -42,6 +42,8 @@ export default function ModelIntelligenceHub() {
   const [capability, setCapability] = useState("financial_qa");
   const [risk, setRisk] = useState("medium");
   const [language, setLanguage] = useState("English");
+  const [networkMode, setNetworkMode] = useState("online");
+  const [dataSensitivity, setDataSensitivity] = useState("standard");
   const [route, setRoute] = useState<ModelRoutePreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -79,7 +81,7 @@ export default function ModelIntelligenceHub() {
     setRouteLoading(true);
     setError("");
     try {
-      setRoute(await previewModelRoute({ capability, risk_level: risk, language }));
+      setRoute(await previewModelRoute({ capability, risk_level: risk, language, network_mode: networkMode, data_sensitivity: dataSensitivity }));
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to preview route.");
     } finally {
@@ -87,7 +89,7 @@ export default function ModelIntelligenceHub() {
     }
   };
 
-  useEffect(() => { void runRoutePreview(); }, [capability, risk, language]);
+  useEffect(() => { void runRoutePreview(); }, [capability, risk, language, networkMode, dataSensitivity]);
 
   return (
     <section className="module-page model-intelligence-page">
@@ -119,6 +121,8 @@ export default function ModelIntelligenceHub() {
           </div>
           <p className="ai-muted">Choose the workload and risk level to see the model FinAI would select before any generation call is made.</p>
           <div className="ai-route-controls">
+            <label>Network<select value={networkMode} onChange={(event) => setNetworkMode(event.target.value)}><option value="online">Online</option><option value="degraded">Degraded</option><option value="offline">Offline</option></select></label>
+            <label>Data sensitivity<select value={dataSensitivity} onChange={(event) => setDataSensitivity(event.target.value)}><option value="public">Public</option><option value="standard">Standard</option><option value="financial">Financial</option><option value="restricted">Restricted</option></select></label>
             <label>Capability<select value={capability} onChange={(event) => setCapability(event.target.value)}>{capabilities.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
             <label>Risk<select value={risk} onChange={(event) => setRisk(event.target.value)}><option>low</option><option>medium</option><option>high</option><option>critical</option></select></label>
             <label>Language<select value={language} onChange={(event) => setLanguage(event.target.value)}><option>English</option><option>Tamil</option><option>Telugu</option><option>Kannada</option><option>Malayalam</option></select></label>
@@ -126,7 +130,7 @@ export default function ModelIntelligenceHub() {
           {route && (
             <div className="ai-route-result">
               <div className="ai-route-main"><div className="ai-route-icon"><Route size={16} /></div><div><span>Selected execution model</span><strong>{route.selected_model}</strong><small>{providerLabels[route.provider] || route.provider} · {route.reason.replaceAll("_", " ")}</small></div></div>
-              <div className="ai-fallback-chain">{route.fallback_chain.map((item, index) => <span key={item}><i>{index + 1}</i>{item}</span>)}</div>
+              <div className="ai-constraint-strip"><span>{route.network_mode}</span><span>{route.data_sensitivity}</span>{route.constraints_applied.map((item) => <span key={item}>{item.replaceAll("_", " ")}</span>)}</div><div className="ai-fallback-chain">{route.fallback_chain.map((item, index) => <span key={item}><i>{index + 1}</i>{item}</span>)}</div>
             </div>
           )}
         </section>
