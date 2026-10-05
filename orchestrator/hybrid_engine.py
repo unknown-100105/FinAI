@@ -886,7 +886,6 @@ class FinAIHybridEngine:
                         persona=persona,
                         max_new_tokens=max_new_tokens,
                         model_id=model_id,
-                        risk_level=plan.risk_level,
                     )
 
                 return {
