@@ -139,3 +139,13 @@ This is a research-scale encoder, not a claim of foundation-model pretraining.
 
 See docs/research-gap-and-novelty.md and
 docs/research-training-runbook.md.
+
+## Multi-cloud model intelligence layer
+
+The language-model layer is provider-agnostic. FinAI currently supports Google Gemini, OpenAI, OpenRouter, Anthropic and Mistral adapters plus local/research models. A deterministic ModelRouter selects an eligible model by capability and risk-aware policy metadata and records an auditable fallback chain.
+
+This layer sits below the financial authority/policy boundary and above the response verification/XAI boundary. Cloud LLMs generate explanations around system-owned calculations, retrieved evidence and other verified results; they do not become the authority for transactions or financial calculations.
+
+The frontend Model Intelligence workspace exposes the model registry, credential configuration state and route preview without invoking a paid model call.
+
+The routing policy is intentionally labeled as a heuristic. It is not a learned benchmark and requires empirical provider evaluation before any model is declared universally best.
