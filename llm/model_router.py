@@ -11,7 +11,7 @@ class ModelRoute:
     selected_model: str
     provider: str
     reason: str
-    fallback_chain: tuple[str, ...]
+    fallback_chain: list[str]
     risk_level: str
     policy: str
     network_mode: str
@@ -146,8 +146,16 @@ class ModelRouter:
         selected_model: str,
         capability: str,
         risk_level: str = "low",
+        network_mode: str = "online",
+        data_sensitivity: str = "standard",
+        allowed_providers: Optional[set[str]] = None,
     ) -> list[str]:
-        candidates = self._candidates(capability)
+        candidates, _ = self._candidates(
+            capability,
+            network_mode=network_mode,
+            data_sensitivity=data_sensitivity,
+            allowed_providers=allowed_providers or set(),
+        )
         ordered = sorted(
             candidates,
             key=lambda spec: (
@@ -216,7 +224,7 @@ class ModelRouter:
                 selected_model=selected,
                 provider=provider_for(spec),
                 reason="explicit_model_selection",
-                fallback_chain=(selected,),
+                fallback_chain=[selected],
                 risk_level=risk_level,
                 policy="explicit",
                 network_mode=network_mode,
@@ -247,7 +255,14 @@ class ModelRouter:
             ),
         )
         selected = ranked[0][1]
-        chain = self.fallback_chain(selected.model_id, capability, risk_level)
+        chain = self.fallback_chain(
+            selected.model_id,
+            capability,
+            risk_level,
+            network_mode=network_mode,
+            data_sensitivity=data_sensitivity,
+            allowed_providers=providers,
+        )
         return ModelRoute(
             capability=capability,
             selected_model=selected.model_id,
@@ -263,7 +278,7 @@ class ModelRouter:
                 if str(risk_level).lower() in {"high", "critical"}
                 else "capability_and_resource_policy_heuristic"
             ),
-            fallback_chain=tuple(chain),
+            fallback_chain=list(chain),
             risk_level=risk_level,
             policy="constrained_heuristic" if constraints_applied else "heuristic",
             network_mode=network_mode,
