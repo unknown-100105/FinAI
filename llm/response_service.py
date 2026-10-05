@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 
 from llm.model_gateway import ModelGateway
-from llm.model_registry import enabled_models, provider_configured
+from llm.model_registry import enabled_models, provider_configured, get_model_spec
 from llm.response_verifier import FinancialResponseVerifier
 from rag.evidence_verifier import RAGEvidenceVerifier
 from response_engine.financial import FinancialResponseEngine
@@ -232,13 +232,7 @@ class ResponseService:
                     fallback_id in self._fallback_adapters
                     or fallback_id in self.gateway.available_models()
                     or provider_configured(
-                        getattr(
-                            __import__(
-                                "llm.model_registry",
-                                fromlist=["get_model_spec"],
-                            ),
-                            "get_model_spec",
-                        )(fallback_id).provider
+                        get_model_spec(fallback_id).provider
                     )
                 )
             ]
