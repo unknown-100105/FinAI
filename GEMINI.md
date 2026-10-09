@@ -1,5 +1,7 @@
 # FinAI — Gemini Review-Only Contract
 
+Read `AGENTS.md` for the shared engineering and financial-safety rules. This file adds Gemini-specific restrictions; Gemini remains strictly review-only.
+
 Gemini CLI is an auxiliary reviewer for this repository.
 
 ## Authority
