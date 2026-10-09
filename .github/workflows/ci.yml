@@ -54,6 +54,7 @@ jobs:
             tests/test_patent_research_loop.py \
             tests/test_incremental_feasibility.py \
             tests/test_pruning_benchmark.py \
+            tests/test_probability_calibration.py \
             tests/test_research_experiments.py \
             tests/test_global_investments.py \
             tests/test_causal_risk_api_fallback.py \
