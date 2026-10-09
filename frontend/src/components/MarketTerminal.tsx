@@ -107,11 +107,6 @@ export function MarketTerminal() {
   };
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    setQuote(null);
-    setBars([]);
-    setAnalytics({});
     const window = datesFor(selectedRange.days);
 
     try {
@@ -121,6 +116,7 @@ export function MarketTerminal() {
         getMarketAnalytics(instrument, window.start, window.end, interval),
       ]);
 
+      setError("");
       const failures: string[] = [];
       if (quoteResult.status === "fulfilled") {
         setQuote(quoteResult.value.quote);
@@ -159,7 +155,6 @@ export function MarketTerminal() {
   }, [instrument, selectedRange.days, interval]);
 
   const loadSide = useCallback(async () => {
-    setSideLoading(true);
     try {
       const [overview, headlines] = await Promise.all([
         getMarketOverview(),
@@ -200,7 +195,7 @@ export function MarketTerminal() {
           <h2>Market & crypto terminal</h2>
           <p>Search instruments, inspect intraday or long-horizon price action, calculate indicators and open instrument-specific news.</p>
         </div>
-        <button className="market-refresh" type="button" onClick={() => { void load(); void loadSide(); }} disabled={loading}>
+        <button className="market-refresh" type="button" onClick={() => { setLoading(true); setSideLoading(true); void load(); void loadSide(); }} disabled={loading}>
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
@@ -211,10 +206,10 @@ export function MarketTerminal() {
         <div className="market-main">
           <div className="instrument-toolbar market-toolbar-enhanced">
             <div className="market-search-stack">
-              <MarketSearchBox value={instrument} onSelect={setInstrument} />
+              <MarketSearchBox value={instrument} onSelect={(symbol) => { setInstrument(symbol); setLoading(true); setSideLoading(true); }} />
               <div className="market-quick-list">
                 {quickSymbols.map((symbol) => (
-                  <button key={symbol} type="button" className={instrument === symbol ? "active" : ""} onClick={() => setInstrument(symbol)}>
+                  <button key={symbol} type="button" className={instrument === symbol ? "active" : ""} onClick={() => { setInstrument(symbol); setLoading(true); setSideLoading(true); }}>
                     {symbol}
                   </button>
                 ))}
@@ -224,13 +219,13 @@ export function MarketTerminal() {
               <div className="control-group">
                 <span>Range</span>
                 <div className="range-tabs">{ranges.map((item) => (
-                  <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => { setRange(item.id); setInterval(item.interval); }}>{item.id}</button>
+                  <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => { setRange(item.id); setInterval(item.interval); setLoading(true); }}>{item.id}</button>
                 ))}</div>
               </div>
               <div className="control-group">
                 <span>Interval</span>
                 <div className="range-tabs interval-tabs">{intervals.map((value) => (
-                  <button key={value} type="button" className={interval === value ? "active" : ""} disabled={!intervalAllowed(value)} onClick={() => setInterval(value)}>{value}</button>
+                  <button key={value} type="button" className={interval === value ? "active" : ""} disabled={!intervalAllowed(value)} onClick={() => { setInterval(value); setLoading(true); }}>{value}</button>
                 ))}</div>
               </div>
             </div>
