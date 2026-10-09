@@ -1,6 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
+from app.main import app
 from app.causal_risk_api import (
     ProbabilityCalibrationRequest,
     calibrate_probabilities,
@@ -35,3 +36,7 @@ def test_probability_calibration_api_rejects_length_mismatch():
     with pytest.raises(HTTPException) as exc:
         calibrate_probabilities(request)
     assert exc.value.status_code == 422
+
+
+def test_probability_calibration_endpoint_is_registered():
+    assert "/api/v1/causal-risk/risk-calibration/probabilities" in app.openapi()["paths"]
