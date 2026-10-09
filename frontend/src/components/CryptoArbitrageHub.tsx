@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRightLeft, Calculator, RefreshCw, Search, TriangleAlert } from "lucide-react";
 import {
   estimateCryptoArbitrage,
@@ -89,7 +89,7 @@ export function CryptoArbitrageHub() {
     }).join(" ");
   }, [chartBars]);
 
-  const loadChart = async () => {
+  const loadChart = useCallback(async () => {
     setChartError("");
     try {
       const symbol = chartSymbol + "/" + "USDT";
@@ -126,19 +126,10 @@ export function CryptoArbitrageHub() {
     } catch (requestError) {
       setChartQuote(null);
       setChartBars([]);
+      setSellChartBars([]);
       setChartError(requestError instanceof Error ? requestError.message : "Crypto chart unavailable.");
     }
-  };
-
-  useEffect(() => { void loadChart(); }, [chartSymbol, chartRange, chartBuyVenue, chartSellVenue, chartTimeframe]);
-  useEffect(() => {
-    const timer = window.setInterval(() => { void loadChart(); }, 10000);
-    return () => window.clearInterval(timer);
-  }, [chartSymbol, chartRange]);
-  useEffect(() => {
-    const timer = window.setInterval(() => { void loadTickers(); }, 15000);
-    return () => window.clearInterval(timer);
-  }, [tickerExchange, tickerSearch]);
+  }, [chartSymbol, chartTimeframe, chartLimit, chartBuyVenue, chartSellVenue]);
 
   useEffect(() => {
     void getCryptoConnectors().then((data) => {
@@ -147,7 +138,7 @@ export function CryptoArbitrageHub() {
     }).catch(() => setConnectors([]));
   }, []);
 
-  const loadTickers = async () => {
+  const loadTickers = useCallback(async () => {
     setTickersBusy(true);
     try {
       const result = await getCryptoTickers(tickerExchange, tickerQuote, tickerSearch, 500, 0);
@@ -159,9 +150,19 @@ export function CryptoArbitrageHub() {
     } finally {
       setTickersBusy(false);
     }
-  };
+  }, [tickerExchange, tickerQuote, tickerSearch]);
 
-  useEffect(() => { void loadTickers(); }, [tickerExchange, tickerQuote]);
+  useEffect(() => {
+    void loadChart();
+    const timer = window.setInterval(() => { void loadChart(); }, 10000);
+    return () => window.clearInterval(timer);
+  }, [loadChart]);
+
+  useEffect(() => {
+    void loadTickers();
+    const timer = window.setInterval(() => { void loadTickers(); }, 15000);
+    return () => window.clearInterval(timer);
+  }, [loadTickers]);
 
   const runEstimate = async () => {
     setLoading(true);
