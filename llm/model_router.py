@@ -165,7 +165,7 @@ class ModelRouter:
             constraints.append("degraded_network_local_preference")
 
         if data_sensitivity == "restricted":
-            local_only = [spec for spec in candidates if provider_for(spec) == "local"]
+            local_only = [spec for spec in candidates if provider_for(spec) in {"local", "ollama"}]
             candidates = local_only
             constraints.append("restricted_data_local_only")
 
