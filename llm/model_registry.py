@@ -321,6 +321,7 @@ def model_configured(spec: ModelSpec) -> bool:
         "anthropic": "ANTHROPIC_API_KEY",
         "mistral": "MISTRAL_API_KEY",
         "openrouter": "OPENROUTER_API_KEY",
+        "ollama": "OLLAMA_MODEL",
     }
     key = env_by_provider.get(spec.provider)
     return bool(os.getenv(key, "").strip()) if key else False
