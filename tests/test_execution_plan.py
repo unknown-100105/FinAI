@@ -1,4 +1,4 @@
-from orchestrator.execution_plan import (
+import pytest\n\nfrom orchestrator.execution_plan import (
     Capability, CapabilityStateGraph, ExecutionMode, StepKind, build_execution_plan,
 )
 
