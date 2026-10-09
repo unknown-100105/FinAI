@@ -144,6 +144,28 @@ MODEL_REGISTRY = {
         gpu_required=False,
     ),
 
+    "ollama-qwen3-4b": ModelSpec(
+        model_id="ollama-qwen3-4b",
+        model_name="qwen3:4b",
+        role="local_general_financial_response",
+        capabilities=(
+            "response_generation",
+            "financial_qa",
+            "financial_reasoning",
+            "financial_explanation",
+            "tool_assisted_qa",
+        ),
+        enabled=False,
+        provider="ollama",
+        quality_tier=2,
+        latency_tier=2,
+        cost_tier=1,
+        routing_priority=65,
+        min_ram_gb=8.0,
+        preferred_vram_gb=4.0,
+        gpu_required=False,
+    ),
+
     "anthropic-claude": ModelSpec(
         model_id="anthropic-claude",
         model_name="claude-sonnet-5-5",
@@ -272,6 +294,7 @@ def provider_configured(provider: str) -> bool:
         "anthropic": "ANTHROPIC_API_KEY",
         "mistral": "MISTRAL_API_KEY",
         "openrouter": "OPENROUTER_API_KEY",
+        "ollama": "OLLAMA_MODEL",
     }
     key = env_by_provider.get(provider)
     return bool(os.getenv(key, "").strip()) if key else False
