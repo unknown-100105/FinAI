@@ -61,21 +61,12 @@ def test_unknown_capability_is_unavailable():
 
 
 def test_prerequisite_cycle_is_rejected():
-    graph = CapabilityStateGraph(prerequisites={"a": ("b",), "b": ("a",)})
-    try:
-        graph.set_prerequisites("a", ("b",))
-    except ValueError as exc:
-        assert "cycle" in str(exc)
-    else:
-        raise AssertionError("cycle should be rejected")
+    with pytest.raises(ValueError, match="cycle"):
+        CapabilityStateGraph(prerequisites={"a": ("b",), "b": ("a",)})
 
 
 def test_empty_request_fields_are_rejected():
     graph = graph_for()
     for kwargs in ({"request_id": "", "intent": "chat"}, {"request_id": "id", "intent": ""}):
-        try:
+        with pytest.raises(ValueError):
             build_execution_plan(graph=graph, **kwargs)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError("empty required fields must be rejected")
