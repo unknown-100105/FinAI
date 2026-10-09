@@ -1,4 +1,9 @@
 ﻿from typing import Any, Dict, Optional
+
+from dotenv import load_dotenv
+
+# Load local configuration before importing modules that inspect provider env vars.
+load_dotenv(override=False)
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
