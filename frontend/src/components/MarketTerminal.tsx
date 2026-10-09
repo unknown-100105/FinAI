@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Activity, ArrowDownRight, ArrowUpRight, BarChart3, ExternalLink,
   Newspaper, RefreshCw, ShieldCheck,
@@ -106,11 +106,7 @@ export function MarketTerminal() {
     return true;
   };
 
-  useEffect(() => {
-    setInterval(selectedRange.interval);
-  }, [range]);
-
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     setQuote(null);
@@ -160,9 +156,9 @@ export function MarketTerminal() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [instrument, selectedRange.days, interval]);
 
-  const loadSide = async () => {
+  const loadSide = useCallback(async () => {
     setSideLoading(true);
     try {
       const [overview, headlines] = await Promise.all([
@@ -177,14 +173,18 @@ export function MarketTerminal() {
     } finally {
       setSideLoading(false);
     }
-  };
+  }, [instrument]);
 
-  useEffect(() => { void load(); }, [instrument, range, interval]);
   useEffect(() => {
-    const timer = window.setInterval(() => { void load(); }, interval === "1m" || interval === "5m" || interval === "15m" || interval === "30m" ? 15000 : 60000);
+    void load();
+    const timer = window.setInterval(
+      () => { void load(); },
+      interval === "1m" || interval === "5m" || interval === "15m" || interval === "30m" ? 15000 : 60000,
+    );
     return () => window.clearInterval(timer);
-  }, [instrument, range, interval]);
-  useEffect(() => { void loadSide(); }, [instrument]);
+  }, [load, interval]);
+
+  useEffect(() => { void loadSide(); }, [loadSide]);
 
   const firstClose = bars.length ? bars[0].close : null;
   const lastClose = bars.length ? bars[bars.length - 1].close : null;
@@ -224,7 +224,7 @@ export function MarketTerminal() {
               <div className="control-group">
                 <span>Range</span>
                 <div className="range-tabs">{ranges.map((item) => (
-                  <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => setRange(item.id)}>{item.id}</button>
+                  <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => { setRange(item.id); setInterval(item.interval); }}>{item.id}</button>
                 ))}</div>
               </div>
               <div className="control-group">
