@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from typing import Any, Dict, List
 import numpy as np
 from fastapi import APIRouter, HTTPException
@@ -12,6 +13,10 @@ from causal_risk.stability import assess_discovery_stability
 from causal_risk.consensus import build_consensus_graph
 from causal_risk.research_graph import validate_research_graph
 from causal_risk.calibration import calibrate_consensus_edges
+from causal_risk.probability_calibration import (
+    ProbabilityCalibrator,
+    evaluate_probability_calibration,
+)
 from causal_risk.market_dataset import DEFAULT_CAUSAL_PROXIES, build_market_return_dataset
 from app.market_api import _get_service
 from market_data.resolver import InstrumentResolver
@@ -465,6 +470,57 @@ def gate_research_graph(request: ResearchGraphGateRequest):
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class ProbabilityCalibrationRequest(BaseModel):
+    # These must be predictions/labels from a calibration split that the predictor
+    # did not train on, and a separate untouched evaluation split.
+    calibration_scores: List[float] = Field(min_length=2, max_length=100000)
+    calibration_labels: List[int] = Field(min_length=2, max_length=100000)
+    test_scores: List[float] = Field(min_length=1, max_length=100000)
+    test_labels: List[int] = Field(min_length=1, max_length=100000)
+    sample_weight: List[float] | None = Field(default=None, min_length=2, max_length=100000)
+    backend: str = Field(default="auto", pattern="^(auto|calibre|sklearn_isotonic)$")
+    n_bins: int = Field(default=10, ge=1, le=100)
+
+
+@router.post("/risk-calibration/probabilities")
+def calibrate_probabilities(request: ProbabilityCalibrationRequest):
+    """Fit on a calibration split and report metrics only on a separate test split."""
+    try:
+        if len(request.calibration_scores) != len(request.calibration_labels):
+            raise ValueError("calibration_scores and calibration_labels lengths differ")
+        if len(request.test_scores) != len(request.test_labels):
+            raise ValueError("test_scores and test_labels lengths differ")
+        if request.sample_weight is not None and len(request.sample_weight) != len(request.calibration_scores):
+            raise ValueError("sample_weight must match calibration_scores")
+
+        calibrator = ProbabilityCalibrator(backend=request.backend).fit(
+            request.calibration_scores,
+            request.calibration_labels,
+            sample_weight=request.sample_weight,
+        )
+        calibrated = calibrator.transform(request.test_scores)
+        report = evaluate_probability_calibration(
+            request.test_labels,
+            calibrated,
+            n_bins=request.n_bins,
+        )
+        return {
+            "status": "PROBABILITY_CALIBRATION_EVALUATED",
+            "backend": calibrator.backend,
+            "metrics": asdict(report),
+            "calibrated_probabilities": [float(value) for value in calibrated],
+            "semantics": (
+                "Metrics are calculated on the supplied test split. Independence of the "
+                "calibration and test observations must be enforced by the caller. "
+                "This endpoint does not persist a calibrator or promote it to production."
+            ),
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=501, detail=str(exc)) from exc
 
 
 class MarketCalibrationRequest(BaseModel):
