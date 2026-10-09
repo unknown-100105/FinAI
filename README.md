@@ -19,6 +19,14 @@ FinAI is a financial-domain assistant with a staged pipeline for routing, policy
 
 ## Backend setup
 
+For a repeatable Windows setup, run the bootstrap script from the repository root in PowerShell:
+
+```powershell
+.\\scripts\\bootstrap_windows.ps1
+```
+
+The script installs the declared runtime/test dependencies into `.venv` and verifies imports using that exact interpreter. Then run tests with ` .\\.venv\\Scripts\\python.exe -m pytest -q ` (this avoids the common issue where VS Code's selected interpreter is not the interpreter used by the terminal). The script does not generate ignored model artifacts or RAG indexes.
+
 Create and activate a virtual environment, then install:
 
 ```powershell
@@ -183,3 +191,19 @@ The registry includes major markets across North America, Europe, Asia-Pacific, 
 Investment knowledge API endpoints:
 - `/api/v1/investments/scope`
 - `/api/v1/investments/global-markets`
+
+
+## Optional local Ollama model
+
+FinAI includes an opt-in Ollama chat adapter. Install Ollama separately, pull a compatible local model (for example, `ollama pull qwen3:4b`), and set `OLLAMA_MODEL=qwen3:4b` in the root `.env` file. `OLLAMA_BASE_URL` defaults to `http://127.0.0.1:11434`. Then run:
+
+```powershell
+python scripts/smoke_ollama.py
+python scripts/smoke_ollama.py --generate
+```
+
+Ollama becomes an eligible response model only when `OLLAMA_MODEL` is configured. It can be selected for offline/restricted routing when the resource check passes. The router's resource estimates are conservative metadata, not measured memory guarantees, and actual model quality must be benchmarked locally. LLM responses remain subject to FinAI's financial authority, response and claim verification paths.
+
+## Optional Calibre probability calibration
+
+The optional `finite-sample/calibre` dependency requires Python 3.12+, so it is intentionally isolated from the project's primary environment. Install Python 3.12, then run ` .\\scripts\\bootstrap_windows.ps1 -InstallCalibre ` to create a separate `.venv-calibre`. The probability-calibration utility uses Calibre when installed and otherwise falls back to scikit-learn isotonic regression. API evaluation is available at `POST /api/v1/causal-risk/risk-calibration/probabilities`. Supply a calibration split and a separate untouched test split; this endpoint evaluates the result and does not persist or promote the calibrator to production.
