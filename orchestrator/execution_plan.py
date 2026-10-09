@@ -91,11 +91,15 @@ class CapabilityStateGraph:
         self._capabilities[capability.name] = capability
 
     def set_prerequisites(self, name: str, required: Iterable[str]) -> None:
+        previous = self._prerequisites.get(name)
         self._prerequisites[name] = tuple(dict.fromkeys(required))
         try:
             self._validate_acyclic()
         except Exception:
-            self._prerequisites.pop(name, None)
+            if previous is None:
+                self._prerequisites.pop(name, None)
+            else:
+                self._prerequisites[name] = previous
             raise
 
     def get(self, name: str) -> Optional[Capability]:
