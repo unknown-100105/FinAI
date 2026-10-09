@@ -1,3 +1,6 @@
+import pytest
+from fastapi import HTTPException
+
 from app.causal_risk_api import (
     ProbabilityCalibrationRequest,
     calibrate_probabilities,
@@ -29,5 +32,6 @@ def test_probability_calibration_api_rejects_length_mismatch():
         test_labels=[1],
         backend="sklearn_isotonic",
     )
-    result = calibrate_probabilities(request)
-    assert result.status_code == 422
+    with pytest.raises(HTTPException) as exc:
+        calibrate_probabilities(request)
+    assert exc.value.status_code == 422
