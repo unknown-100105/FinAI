@@ -146,7 +146,7 @@ MODEL_REGISTRY = {
 
     "ollama-qwen3-4b": ModelSpec(
         model_id="ollama-qwen3-4b",
-        model_name="qwen3:4b",
+        model_name="OLLAMA_MODEL (default qwen3:4b)",
         role="local_general_financial_response",
         capabilities=(
             "response_generation",
