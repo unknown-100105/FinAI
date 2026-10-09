@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BriefcaseBusiness,
   Heart,
@@ -84,7 +84,7 @@ export function WealthWorkspace() {
     [watchlist, portfolioSymbols],
   );
 
-  const refreshQuotes = async () => {
+  const refreshQuotes = useCallback(async () => {
     if (!trackedSymbols.length) return;
 
     setLoading(true);
@@ -108,14 +108,13 @@ export function WealthWorkspace() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [trackedSymbols]);
 
   useEffect(() => {
     window.localStorage.setItem(
       "finai.watchlist",
       JSON.stringify(watchlist),
     );
-    void refreshQuotes();
   }, [watchlist]);
 
   useEffect(() => {
@@ -123,8 +122,11 @@ export function WealthWorkspace() {
       "finai.portfolio",
       JSON.stringify(holdings),
     );
-    void refreshQuotes();
   }, [holdings]);
+
+  useEffect(() => {
+    void refreshQuotes();
+  }, [refreshQuotes]);
 
   const addWatchlist = () => {
     const symbol = newSymbol.trim().toUpperCase();
