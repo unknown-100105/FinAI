@@ -49,7 +49,9 @@ jobs:
             tests/test_api_main.py \
             tests/test_advanced_causal.py \
             tests/test_probability_calibration.py \
+            tests/test_probability_calibration_api.py \
             tests/test_ollama_adapter.py \
+            tests/test_ollama_routing.py \
             tests/test_causal_risk.py \
             tests/test_new_api_routes.py \
             tests/test_research_upgrades.py \
