@@ -125,12 +125,12 @@ function EMIResultCard({ finance, traceId, onNavigate }: { finance: any; traceId
   const [annualPrepayment, setAnnualPrepayment] = useState(50000);
   const [showSchedule, setShowSchedule] = useState(false);
 
-  if (!result) return null;
-
-  const principal = Number(result.principal);
-  const annualRate = Number(result.annual_rate);
-  const baseEmi = Number(result.monthly_emi);
-  const months = Number(result.tenure_months);
+  // Hooks must run in the same order even when the API result is absent.
+  // Safe numeric fallbacks let memoized calculations run before the null guard.
+  const principal = Number(result?.principal ?? 0);
+  const annualRate = Number(result?.annual_rate ?? 0);
+  const baseEmi = Number(result?.monthly_emi ?? 0);
+  const months = Number(result?.tenure_months ?? 0);
   const schedule = useMemo(
     () => emiSchedule(principal, annualRate, baseEmi, months),
     [principal, annualRate, baseEmi, months],
@@ -156,6 +156,8 @@ function EMIResultCard({ finance, traceId, onNavigate }: { finance: any; traceId
     () => amortizeWithExtra(principal, annualRate, baseEmi, extraMonthly, annualPrepayment),
     [principal, annualRate, baseEmi, extraMonthly, annualPrepayment],
   );
+
+  if (!result) return null;
 
   return (
     <section className="chat-result-card emi-result-card">
