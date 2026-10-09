@@ -68,7 +68,7 @@ def _provider_from_model_id(model_id: str) -> str:
 
 
 def _resource_assessment(spec: ModelSpec, hardware: HardwareSnapshot):
-    if provider_for(spec) != "local":
+    if provider_for(spec) not in {"local", "ollama"}:
         return None
     return assess_local_model(
         required_ram_gb=getattr(spec, "min_ram_gb", 0.0),
@@ -157,7 +157,7 @@ class ModelRouter:
             constraints.append("provider_allow_list")
 
         if network_mode == "offline":
-            local_only = [spec for spec in candidates if provider_for(spec) == "local"]
+            local_only = [spec for spec in candidates if provider_for(spec) in {"local", "ollama"}]
             candidates = local_only
             constraints.append("offline_local_only")
 
@@ -288,7 +288,7 @@ class ModelRouter:
             key=lambda item: (
                 0 if (
                     network_mode == "degraded"
-                    and provider_for(item[1]) == "local"
+                    and provider_for(item[1]) in {"local", "ollama"}
                 ) else 1 if network_mode == "degraded" else 0,
                 -self._score(item[1], risk_level, item[0]),
                 getattr(item[1], "routing_priority", 100),
