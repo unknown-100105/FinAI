@@ -10,7 +10,8 @@ import hmac
 import os
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import Field
+from app.finite_input import FiniteInputModel
 
 from finance_engine.epcrp import EvidenceEdge, EvidenceGatedRiskGraph, RiskNode
 from finance_engine.counterfactual_screening import (
@@ -52,12 +53,12 @@ router = APIRouter(
 )
 
 
-class EPCRPNodeInput(BaseModel):
+class EPCRPNodeInput(FiniteInputModel):
     name: str
     intercept: float = 0.0
 
 
-class EPCRPEdgeInput(BaseModel):
+class EPCRPEdgeInput(FiniteInputModel):
     source: str
     target: str
     coefficient: float
@@ -70,7 +71,7 @@ class EPCRPEdgeInput(BaseModel):
     coefficient_std: float = 0.0
 
 
-class EPCRPEvaluateRequest(BaseModel):
+class EPCRPEvaluateRequest(FiniteInputModel):
     nodes: List[EPCRPNodeInput] = Field(min_length=1)
     edges: List[EPCRPEdgeInput] = Field(default_factory=list)
     source_values: Dict[str, float] = Field(default_factory=dict)
@@ -84,7 +85,7 @@ class EPCRPEvaluateRequest(BaseModel):
     seed: int = 17
 
 
-class IntervalInput(BaseModel):
+class IntervalInput(FiniteInputModel):
     low: float
     high: float
 
@@ -92,7 +93,7 @@ class IntervalInput(BaseModel):
         return Interval(float(self.low), float(self.high))
 
 
-class ScreeningNodeInput(BaseModel):
+class ScreeningNodeInput(FiniteInputModel):
     name: str
     domain: IntervalInput
     parents: Dict[str, float] = Field(default_factory=dict)
@@ -100,12 +101,12 @@ class ScreeningNodeInput(BaseModel):
     noise: IntervalInput = Field(default_factory=lambda: IntervalInput(low=0.0, high=0.0))
 
 
-class ScreeningActionInput(BaseModel):
+class ScreeningActionInput(FiniteInputModel):
     action_id: str
     interventions: Dict[str, IntervalInput]
 
 
-class ScreeningRequest(BaseModel):
+class ScreeningRequest(FiniteInputModel):
     nodes: List[ScreeningNodeInput] = Field(min_length=1)
     target: str
     target_interval: IntervalInput

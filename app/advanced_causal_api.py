@@ -5,7 +5,8 @@ from typing import Any, Dict, List
 
 import numpy as np
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import Field
+from app.finite_input import FiniteInputModel
 
 from causal_risk.gfnets import GFlowConfig, GFlowNetTailGenerator
 from causal_risk.constrained_gfnets import CausalConstrainedTailGenerator
@@ -42,7 +43,7 @@ router = APIRouter(prefix="/api/v1/causal-risk", tags=["causal-risk-research"])
 _gfn_registry: dict[str, GFlowNetTailGenerator] = {}
 
 
-class RiskCalibrationRequest(BaseModel):
+class RiskCalibrationRequest(FiniteInputModel):
     samples: List[List[float]] = Field(min_length=60, max_length=5000)
     target: List[float] = Field(min_length=60, max_length=5000)
     feature_names: List[str] = Field(min_length=2, max_length=100)
@@ -66,7 +67,7 @@ def risk_calibration(request: RiskCalibrationRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class GFlowTrainRequest(BaseModel):
+class GFlowTrainRequest(FiniteInputModel):
     n_factors: int = Field(ge=1, le=20)
     hidden_dim: int = Field(default=64, ge=8, le=256)
     epochs: int = Field(default=150, ge=1, le=2000)
@@ -81,7 +82,7 @@ class GFlowTrainRequest(BaseModel):
     portfolio_weights: List[float] | None = Field(default=None, max_length=20)
 
 
-class ChannelCalibrationRequest(BaseModel):
+class ChannelCalibrationRequest(FiniteInputModel):
     scm_samples: List[Dict[str, float]] = Field(min_length=80, max_length=5000)
     observed_channels: Dict[str, List[float]]
     alpha: float = Field(default=1.0, gt=0, le=100)
@@ -164,7 +165,7 @@ def gfnets_train(request: GFlowTrainRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class GFlowGenerateRequest(BaseModel):
+class GFlowGenerateRequest(FiniteInputModel):
     registry_key: str = Field(min_length=3, max_length=128)
     center: Dict[str, float] = Field(min_length=1, max_length=20)
     draws: int = Field(default=64, ge=1, le=5000)
@@ -188,7 +189,7 @@ def gfnets_generate(request: GFlowGenerateRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class MultimodalTrainRequest(BaseModel):
+class MultimodalTrainRequest(FiniteInputModel):
     inputs: Dict[str, List[List[float]]]
     hidden_dim: int = Field(default=64, ge=8, le=256)
     layers: int = Field(default=2, ge=1, le=6)
@@ -232,7 +233,7 @@ def multimodal_train(request: MultimodalTrainRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class MultimodalNodeRequest(BaseModel):
+class MultimodalNodeRequest(FiniteInputModel):
     node_id: str = Field(min_length=1, max_length=128)
     node_type: str = Field(min_length=1, max_length=64)
     modality: str = Field(min_length=1, max_length=32)
@@ -240,7 +241,7 @@ class MultimodalNodeRequest(BaseModel):
     provenance: str = Field(min_length=1, max_length=512)
 
 
-class MultimodalEdgeRequest(BaseModel):
+class MultimodalEdgeRequest(FiniteInputModel):
     source: str = Field(min_length=1, max_length=128)
     target: str = Field(min_length=1, max_length=128)
     relation: str = Field(min_length=1, max_length=128)
@@ -249,7 +250,7 @@ class MultimodalEdgeRequest(BaseModel):
     provenance: str = Field(min_length=1, max_length=512)
 
 
-class MultimodalEncodeRequest(BaseModel):
+class MultimodalEncodeRequest(FiniteInputModel):
     nodes: List[MultimodalNodeRequest] = Field(min_length=1, max_length=500)
     edges: List[MultimodalEdgeRequest] = Field(max_length=2000)
     target_node: str = Field(min_length=1, max_length=128)
@@ -298,7 +299,7 @@ def multimodal_encode(request: MultimodalEncodeRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class TemporalSnapshotRequest(BaseModel):
+class TemporalSnapshotRequest(FiniteInputModel):
     node_features: List[List[float]] = Field(min_length=2, max_length=100)
     target: List[float] = Field(min_length=2, max_length=100)
     edge_sources: List[int] = Field(max_length=1000)
@@ -306,7 +307,7 @@ class TemporalSnapshotRequest(BaseModel):
     time_deltas: List[float] = Field(max_length=1000)
 
 
-class TemporalTrainRequest(BaseModel):
+class TemporalTrainRequest(FiniteInputModel):
     snapshots: List[TemporalSnapshotRequest] = Field(min_length=5, max_length=120)
     hidden_features: int = Field(default=32, ge=4, le=128)
     heads: int = Field(default=4, ge=1, le=16)
@@ -362,7 +363,7 @@ def temporal_gnn_train(request: TemporalTrainRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class RegimeBenchmarkRequest(BaseModel):
+class RegimeBenchmarkRequest(FiniteInputModel):
     samples: List[List[float]] = Field(min_length=22, max_length=5000)
     y_true: List[float] = Field(min_length=22, max_length=5000)
     y_pred: List[float] = Field(min_length=22, max_length=5000)
@@ -429,7 +430,7 @@ def research_status():
     }
 
 
-class TailBacktestRequest(BaseModel):
+class TailBacktestRequest(FiniteInputModel):
     realized_loss: List[float] = Field(min_length=20, max_length=5000)
     forecast_var: List[float] = Field(min_length=20, max_length=5000)
     level: float = Field(default=0.95, gt=0.5, lt=1.0)
@@ -447,7 +448,7 @@ def tail_backtest(request: TailBacktestRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class ScenarioQualityRequest(BaseModel):
+class ScenarioQualityRequest(FiniteInputModel):
     scenarios: List[List[float]] = Field(min_length=2, max_length=5000)
     empirical_samples: List[List[float]] | None = Field(default=None, max_length=5000)
     causal_edge_matrix: List[List[float]] | None = Field(default=None, max_length=100)
@@ -470,7 +471,7 @@ def scenario_quality(request: ScenarioQualityRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class AblationSummaryRequest(BaseModel):
+class AblationSummaryRequest(FiniteInputModel):
     results: Dict[str, Dict[str, float]]
     primary_metric: str = Field(min_length=1, max_length=64)
 
@@ -485,7 +486,7 @@ def ablation(request: AblationSummaryRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class RobustnessPerturbationRequest(BaseModel):
+class RobustnessPerturbationRequest(FiniteInputModel):
     samples: List[List[float]] = Field(min_length=2, max_length=5000)
     scale: float = Field(default=1.0, gt=0, le=10)
     missing_columns: List[int] = Field(default_factory=list, max_length=100)
@@ -520,7 +521,7 @@ def robustness_perturb(request: RobustnessPerturbationRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class ResearchCounterfactualRequest(BaseModel):
+class ResearchCounterfactualRequest(FiniteInputModel):
     shock: Dict[str, float] = Field(min_length=1, max_length=100)
     allocation: Dict[str, float] = Field(min_length=1, max_length=100)
     nodes: List[str] = Field(min_length=1, max_length=100)
@@ -543,7 +544,7 @@ def research_counterfactual(request: ResearchCounterfactualRequest):
 
  
  
-class MicrostructureRequest(BaseModel):
+class MicrostructureRequest(FiniteInputModel):
     bids: List[List[float]] = Field(min_length=1, max_length=1000)
     asks: List[List[float]] = Field(min_length=1, max_length=1000)
 
@@ -559,7 +560,7 @@ def microstructure(request: MicrostructureRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class MultimodalIngestionRequest(BaseModel):
+class MultimodalIngestionRequest(FiniteInputModel):
     documents: List[Dict[str, Any]] = Field(default_factory=list, max_length=1000)
     events: List[Dict[str, Any]] = Field(default_factory=list, max_length=1000)
     relations: List[Dict[str, Any]] = Field(default_factory=list, max_length=2000)
@@ -590,7 +591,7 @@ def multimodal_ingest(request: MultimodalIngestionRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class CausalResearchPipelineRequest(BaseModel):
+class CausalResearchPipelineRequest(FiniteInputModel):
     samples: List[List[float]] = Field(min_length=60, max_length=5000)
     node_ids: List[str] = Field(min_length=2, max_length=100)
     lambda1: float = Field(default=0.02, ge=0, le=2)
@@ -628,7 +629,7 @@ def causal_research_pipeline(request: CausalResearchPipelineRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class FeasibilityScreenRequest(BaseModel):
+class FeasibilityScreenRequest(FiniteInputModel):
     nodes: List[str] = Field(min_length=2, max_length=100)
     edges: List[Dict[str, Any]] = Field(max_length=1000)
     prefix: Dict[str, float] = Field(default_factory=dict, max_length=100)
@@ -679,7 +680,7 @@ def feasibility_screen(request: FeasibilityScreenRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-class ConstrainedGFlowNetTrainRequest(BaseModel):
+class ConstrainedGFlowNetTrainRequest(FiniteInputModel):
     factor_ids: List[str] = Field(min_length=1, max_length=20)
     hidden_dim: int = Field(default=64, ge=8, le=256)
     epochs: int = Field(default=150, ge=1, le=2000)
@@ -693,7 +694,7 @@ class ConstrainedGFlowNetTrainRequest(BaseModel):
     portfolio_weights: List[float] | None = Field(default=None, max_length=20)
 
 
-class ConstrainedGFlowNetGenerateRequest(BaseModel):
+class ConstrainedGFlowNetGenerateRequest(FiniteInputModel):
     factor_ids: List[str] = Field(min_length=1, max_length=20)
     center: Dict[str, float] = Field(min_length=1, max_length=20)
     nodes: List[str] = Field(min_length=2, max_length=100)
