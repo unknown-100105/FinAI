@@ -63,10 +63,11 @@ Start the chosen model with its supported server command (the exact `--model-id`
 must match your installed engine/model):
 
 ```powershell
-$env:COLI_MODEL = "D:\models\olmoe-int8"
 $env:COLI_API_KEY = "local-finetoken"
-.coli.cmd serve --host 127.0.0.1 --port 8000 --model-id olmoe-colibri
+.\coli.cmd serve --host 127.0.0.1 --port 8000 --model "D:\models\YOUR_PREPARED_MODEL" --model-id "olmoe-colibri"
 ```
+
+Replace `D:\models\YOUR_PREPARED_MODEL` with the directory containing model files prepared by Colibrì's setup/conversion workflow; do not assume that directory exists merely because the engine was installed.
 
 In a second PowerShell window, check the local server health endpoint described
 by the selected Colibrì release, then configure FinAI:
