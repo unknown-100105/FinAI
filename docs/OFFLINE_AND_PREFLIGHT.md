@@ -16,8 +16,8 @@ From the repository root:
 
 ```powershell
 Set-Location "C:\Users\roghe\FinAI"
-..venv\Scripts\python.exe .\scripts\finai_preflight.py
-..venv\Scripts\python.exe .\scripts\finai_preflight.py --json
+.\.venv\Scripts\python.exe .\scripts\finai_preflight.py
+.\.venv\Scripts\python.exe .\scripts\finai_preflight.py --json
 ```
 
 To enforce offline mode for the current PowerShell session:
@@ -25,7 +25,7 @@ To enforce offline mode for the current PowerShell session:
 ```powershell
 $env:FINAI_NETWORK_MODE = "offline"
 $env:FINAI_DATA_SENSITIVITY = "restricted"
-..venv\Scripts\python.exe -m pytest -q tests\test_network_mode_enforcement.py tests\test_model_gateway.py tests\test_response_provider_fallback.py
+.\.venv\Scripts\python.exe -m pytest -q tests\test_network_mode_enforcement.py tests\test_model_gateway.py tests\test_response_provider_fallback.py
 ```
 
 Return to normal connectivity explicitly with:
@@ -42,6 +42,8 @@ These environment variables apply to processes started from that PowerShell sess
 The rLLM-FinQA 4B adapter uses 4-bit CUDA quantization and therefore requires a compatible NVIDIA CUDA environment. The router now marks that model as GPU-required rather than claiming that CPU-only execution is supported.
 
 The adapter uses `local_files_only=True` and does not download multiple gigabytes during a request. Provision the model files in the Hugging Face cache before selecting offline generation, or set `FINAI_RLLM_MODEL_PATH` to an existing local model directory. This setting must point to model files in the format expected by Transformers.
+
+The optional Sarvam-1 base adapter also uses `local_files_only=True`; set `FINAI_SARVAM_BASE_MODEL_PATH` to an existing local Transformers model directory when it is not available in the Hugging Face cache. Its PEFT adapter directory must also be present locally. Neither local-model path downloads weights automatically during a request.
 
 The embedding model used by RAG is separate. `FINAI_RAG_DEVICE` can be set to `cuda` or `cpu`; when unset the embedding adapter chooses CUDA if available and otherwise CPU. RAG still requires the source chunks, SQLite database, FAISS index, and document ID map described by the preflight report.
 
