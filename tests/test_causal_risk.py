@@ -496,3 +496,74 @@ def test_validate_graph_rejects_non_finite_edge_weights():
             (CausalEdge("a", "b", invalid),),
         )
         assert "non-finite edge weight: a->b" in errors
+
+def test_research_graph_rejects_unknown_endpoint_without_crashing():
+    from causal_risk.research_graph import validate_research_graph
+
+    result = validate_research_graph(
+        ["a", "b"],
+        [{
+            "source": "a",
+            "target": "unknown",
+            "weight": 0.2,
+            "lag": 0,
+            "selection_frequency": 1.0,
+            "sign_consistency": 1.0,
+        }],
+        approved=True,
+    )
+    assert result["status"] == "RESEARCH_GRAPH_REJECTED"
+    assert result["counterfactual_ready"] is False
+    assert any("unknown node" in error for error in result["errors"])
+
+
+def test_research_graph_rejects_malformed_numeric_edge_fields():
+    from causal_risk.research_graph import validate_research_graph
+
+    base = {
+        "source": "a",
+        "target": "b",
+        "weight": 0.2,
+        "lag": 0,
+        "selection_frequency": 1.0,
+        "sign_consistency": 1.0,
+    }
+    cases = (
+        ("weight", 10**10000),
+        ("lag", "not-a-number"),
+        ("selection_frequency", "not-a-number"),
+        ("sign_consistency", 10**10000),
+    )
+
+    for field, invalid in cases:
+        edge = {**base, field: invalid}
+        result = validate_research_graph(["a", "b"], [edge], approved=True)
+        assert result["status"] == "RESEARCH_GRAPH_REJECTED"
+        assert result["structurally_valid"] is False
+        assert result["counterfactual_ready"] is False
+        assert result["errors"]
+
+
+def test_research_graph_rejects_invalid_threshold_values():
+    from causal_risk.research_graph import validate_research_graph
+
+    edge = {
+        "source": "a",
+        "target": "b",
+        "weight": 0.2,
+        "lag": 0,
+        "selection_frequency": 1.0,
+        "sign_consistency": 1.0,
+    }
+
+    for field in ("min_selection_frequency", "require_sign_consistency"):
+        for invalid in ("not-a-number", float("nan"), float("inf"), 10**10000):
+            result = validate_research_graph(
+                ["a", "b"],
+                [edge],
+                approved=True,
+                **{field: invalid},
+            )
+            assert result["status"] == "RESEARCH_GRAPH_REJECTED"
+            assert result["counterfactual_ready"] is False
+            assert result["errors"]
