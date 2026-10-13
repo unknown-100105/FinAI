@@ -164,3 +164,55 @@ def test_non_list_texts_rejected():
 
     with pytest.raises(TypeError):
         adapter.embed("single string")
+
+
+def test_offline_mode_resolves_embedding_snapshot_from_cache_only(monkeypatch, tmp_path):
+    from huggingface_hub import snapshot_download
+
+    requested = []
+    created = []
+    model_path = str(tmp_path / "qwen-model")
+    (tmp_path / "qwen-model").mkdir()
+
+    def fake_snapshot_download(**kwargs):
+        requested.append(kwargs)
+        return model_path
+
+    def fake_sentence_transformer(model_source, **kwargs):
+        created.append((model_source, kwargs))
+        return FakeModel()
+
+    monkeypatch.setenv("FINAI_NETWORK_MODE", "offline")
+    monkeypatch.delenv("FINAI_EMBEDDING_MODEL_PATH", raising=False)
+    monkeypatch.setattr(
+        "huggingface_hub.snapshot_download",
+        fake_snapshot_download,
+    )
+    monkeypatch.setattr(
+        module,
+        "SentenceTransformer",
+        fake_sentence_transformer,
+    )
+
+    adapter = QwenEmbeddingAdapter(device="cpu")
+    assert adapter.embedding_dimension() == 2
+
+    assert requested == [{
+        "repo_id": "Qwen/Qwen3-Embedding-0.6B",
+        "local_files_only": True,
+    }]
+    assert created == [(model_path, {"device": "cpu"})]
+
+
+def test_offline_mode_reports_missing_embedding_cache(monkeypatch):
+    monkeypatch.setenv("FINAI_NETWORK_MODE", "offline")
+    monkeypatch.delenv("FINAI_EMBEDDING_MODEL_PATH", raising=False)
+
+    def no_cache(**kwargs):
+        raise RuntimeError("no local entry")
+
+    monkeypatch.setattr("huggingface_hub.snapshot_download", no_cache)
+
+    adapter = QwenEmbeddingAdapter(device="cpu")
+    with pytest.raises(FileNotFoundError, match="not available in the local Hugging Face cache"):
+        adapter.embedding_dimension()
