@@ -248,3 +248,5 @@ Set `FINAI_RESEARCH_API_TOKEN` to a unique random secret of at least 32 characte
 ## ResilientPay bridge status
 
 The branch includes a local-first payment-intent journal and adapter contract in resilient_pay/ledger.py. It supports idempotency conflict checks, confirmed/authenticated adapter dispatch, state transitions, reconciliation-required handling for ambiguous outcomes, and an integrity-checkable hash-chained journal. LocalSimulationAdapter is a sandbox-only simulator. This is not a live bank or Hyperledger Fabric settlement integration; see docs/RESILIENTPAY_SETTLEMENT_BRIDGE.md.
+
+Run the local-only ResilientPay simulation with `python scripts/demo_resilient_pay.py`. It uses an in-memory journal and a SIM-prefixed adapter; no external payment service is called and no real funds are moved.
