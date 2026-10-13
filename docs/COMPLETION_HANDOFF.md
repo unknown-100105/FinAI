@@ -45,6 +45,7 @@ CI command. Local and hosted test runs must be repeated against the current bran
   streaming.
 - `scripts/finai_preflight.py` checks packages and required/generated artifact presence
   without exposing secret values or contacting providers. See `docs/OFFLINE_AND_PREFLIGHT.md`.
+- `llm/colibri_adapter.py` is an opt-in, loopback-only adapter for a separately installed Colibrì OpenAI-compatible server. It is registered as `colibri-local` only when `FINAI_COLIBRI_BASE_URL` is set. The external engine and weights remain separately provisioned; the FinAI adapter does not implement expert streaming itself. See `docs/OFFLINE_AND_PREFLIGHT.md`.
 - `scripts/build_rag_faiss.py` validates saved index/ID/checkpoint alignment and fails
   closed for ambiguous indexes. Approved source chunks and large derived artifacts
   still need to be supplied/provisioned in each clean clone.
