@@ -154,3 +154,19 @@ The registry includes major markets across North America, Europe, Asia-Pacific, 
 Investment knowledge API endpoints:
 - `/api/v1/investments/scope`
 - `/api/v1/investments/global-markets`
+
+
+## Experimental counterfactual screening (research prototype)
+
+FinAI now has an optional research prototype in **finance_engine/counterfactual_screening.py** for conservative feasibility screening over a supplied bounded linear acyclic structural model. It uses backward necessary intervals, forward reachable intervals, descendant-cone recomputation, and reason-coded screening certificates before a caller invokes a more expensive scenario evaluator.
+
+This component is **not yet wired into production orchestration**, does not discover causal structure, and does not replace a calibrated risk engine. **RETAIN** means “not proved impossible by this filter,” not “feasible” or “financially validated.” The novelty and patentability of this specific mechanism remain unestablished.
+
+Run the focused tests from the repository root:
+
+```powershell
+python -m pytest tests/test_counterfactual_screening.py -q
+python benchmarks/counterfactual_screening_benchmark.py
+```
+
+The benchmark script writes **benchmarks/counterfactual_screening_benchmark.json**. Results currently apply only to a synthetic smoke example; do not present them as actual-market performance. Design notes and the preliminary public-web prior-art scan are in **docs/patent-candidate-intervention-feasibility-screening.md**. Have a registered patent agent review the claims and perform filing-grade prior-art analysis before making any filing decision.
