@@ -1,7 +1,16 @@
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.patent_mechanism_api import router
+
+TEST_TOKEN = "test-only-research-api-token-0123456789abcdef"
+AUTH_HEADERS = {"Authorization": f"Bearer {TEST_TOKEN}"}
+
+
+@pytest.fixture(autouse=True)
+def configure_research_token(monkeypatch):
+    monkeypatch.setenv("FINAI_RESEARCH_API_TOKEN", TEST_TOKEN)
 
 
 def build_client():
@@ -10,21 +19,47 @@ def build_client():
     return TestClient(app)
 
 
+def test_experimental_routes_require_a_valid_bearer_token():
+    client = build_client()
+    response = client.post(
+        "/api/v1/research/patent-mechanisms/epcrp/evaluate",
+        json={"nodes": [{"name": "A"}], "interventions": {"A": 1},
+              "portfolio_exposures": {"A": 1}, "as_of": "2026-10-13T00:00:00Z"},
+    )
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_experimental_routes_fail_closed_when_token_not_configured(monkeypatch):
+    monkeypatch.delenv("FINAI_RESEARCH_API_TOKEN", raising=False)
+    client = build_client()
+    response = client.post(
+        "/api/v1/research/patent-mechanisms/epcrp/evaluate",
+        headers=AUTH_HEADERS,
+        json={"nodes": [{"name": "A"}], "interventions": {"A": 1},
+              "portfolio_exposures": {"A": 1}, "as_of": "2026-10-13T00:00:00Z"},
+    )
+    assert response.status_code == 503
+
+
 def test_epcrp_endpoint_returns_paired_world_delta_and_manifest():
     client = build_client()
-    response = client.post("/api/v1/research/patent-mechanisms/epcrp/evaluate", json={
-        "nodes": [{"name": "A"}, {"name": "B"}],
-        "edges": [{
-            "source": "A", "target": "B", "coefficient": 2.0,
-            "evidence_id": "EDGE-AB", "support_score": 0.95
-        }],
-        "source_values": {"A": 2.0},
-        "interventions": {"A": 3.0},
-        "portfolio_exposures": {"B": 1.0},
-        "as_of": "2026-10-13T00:00:00Z",
-        "regime": "baseline",
-        "model_version": "api-test-v1"
-    })
+    response = client.post("/api/v1/research/patent-mechanisms/epcrp/evaluate",
+        headers=AUTH_HEADERS,
+        json={
+            "nodes": [{"name": "A"}, {"name": "B"}],
+            "edges": [{
+                "source": "A", "target": "B", "coefficient": 2.0,
+                "evidence_id": "EDGE-AB", "support_score": 0.95
+            }],
+            "source_values": {"A": 2.0},
+            "interventions": {"A": 3.0},
+            "portfolio_exposures": {"B": 1.0},
+            "as_of": "2026-10-13T00:00:00Z",
+            "regime": "baseline",
+            "model_version": "api-test-v1"
+        },
+    )
     assert response.status_code == 200, response.text
     payload = response.json()
     assert payload["status"] == "EXPERIMENTAL_EPCRP_RESULT"
@@ -37,6 +72,7 @@ def test_epcrp_endpoint_returns_paired_world_delta_and_manifest():
 def test_epcrp_endpoint_returns_422_for_unknown_node():
     response = build_client().post(
         "/api/v1/research/patent-mechanisms/epcrp/evaluate",
+        headers=AUTH_HEADERS,
         json={
             "nodes": [{"name": "A"}],
             "source_values": {},
@@ -51,6 +87,7 @@ def test_epcrp_endpoint_returns_422_for_unknown_node():
 def test_feasibility_screen_endpoint_labels_retain_as_uncertain():
     response = build_client().post(
         "/api/v1/research/patent-mechanisms/feasibility-screen",
+        headers=AUTH_HEADERS,
         json={
             "nodes": [
                 {"name": "A", "domain": {"low": 0, "high": 10}},
@@ -76,6 +113,7 @@ def test_feasibility_screen_endpoint_labels_retain_as_uncertain():
 def test_feasibility_screen_endpoint_masks_out_of_domain_intervention():
     response = build_client().post(
         "/api/v1/research/patent-mechanisms/feasibility-screen",
+        headers=AUTH_HEADERS,
         json={
             "nodes": [
                 {"name": "A", "domain": {"low": 0, "high": 10}},
