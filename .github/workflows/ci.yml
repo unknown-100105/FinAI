@@ -50,6 +50,7 @@ jobs:
             tests/test_capability_plan_integration.py \
             tests/test_finai_preflight.py \
             tests/test_rllm_offline_loading.py \
+            tests/test_rag_faiss_resume.py \
             tests/test_advanced_causal.py \
             tests/test_causal_risk.py \
             tests/test_new_api_routes.py \
