@@ -243,3 +243,8 @@ PowerShell:
 Then start FinAI using the normal API command for this checkout. Restart the process after changing the variable. Do not expose these research-only endpoints to public clients; they currently have no dedicated authentication or rate limiting.
 
 Set `FINAI_RESEARCH_API_TOKEN` to a unique random secret of at least 32 characters before using these local-only research routes. The placeholder in `.env.example` is intentionally empty; do not commit actual credentials.
+
+
+## ResilientPay bridge status
+
+The branch includes a local-first payment-intent journal and adapter contract in resilient_pay/ledger.py. It supports idempotency conflict checks, confirmed/authenticated adapter dispatch, state transitions, reconciliation-required handling for ambiguous outcomes, and an integrity-checkable hash-chained journal. LocalSimulationAdapter is a sandbox-only simulator. This is not a live bank or Hyperledger Fabric settlement integration; see docs/RESILIENTPAY_SETTLEMENT_BRIDGE.md.
