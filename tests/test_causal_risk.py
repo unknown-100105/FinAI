@@ -434,3 +434,50 @@ def test_tail_evaluation_reports_expected_shortfall_metrics():
     summary = result["tail_evaluation"]["summary"]
     assert summary["systemic_stress_cvar95"] >= summary["systemic_stress_p95"]
     assert summary["absolute_portfolio_impact_cvar95"] >= summary["absolute_portfolio_impact_p95"]
+
+def test_allocation_validator_rejects_non_finite_values():
+    from causal_risk.constraints import validate_allocation
+
+    for invalid in (float("nan"), float("inf"), float("-inf")):
+        result = validate_allocation({"equity": invalid, "debt": 100.0})
+        assert result["passed"] is False
+        assert "non-finite allocation: equity" in result["errors"]
+
+
+def test_allocation_validator_rejects_overflowing_total():
+    from causal_risk.constraints import validate_allocation
+
+    result = validate_allocation({"equity": 1e308, "debt": 1e308})
+    assert result["passed"] is False
+    assert "allocation total must be finite" in result["errors"]
+    assert result["total_percent"] is None
+
+
+def test_shock_validator_rejects_non_finite_values():
+    from causal_risk.constraints import validate_shocks
+
+    for invalid in (float("nan"), float("inf"), float("-inf")):
+        result = validate_shocks({"rates": invalid}, ("rates",))
+        assert result["passed"] is False
+        assert "non-finite shock: rates" in result["errors"]
+
+
+def test_counterfactual_engine_rejects_non_finite_inputs():
+    valid_allocation = {"equity": 55, "debt": 30, "gold": 10, "cash": 5}
+
+    try:
+        run_counterfactual({"rates": float("nan")}, valid_allocation)
+    except ValueError as exc:
+        assert "non-finite shock: rates" in str(exc)
+    else:
+        raise AssertionError("expected non-finite shock to fail validation")
+
+    try:
+        run_counterfactual(
+            {"rates": 10},
+            {"equity": float("nan"), "debt": 30, "gold": 10, "cash": 5},
+        )
+    except ValueError as exc:
+        assert "non-finite allocation: equity" in str(exc)
+    else:
+        raise AssertionError("expected non-finite allocation to fail validation")
