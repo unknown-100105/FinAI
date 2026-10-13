@@ -6,11 +6,15 @@ Pull request: https://github.com/unknown-100105/FinAI/pull/6 (draft; not merged)
 
 ## Changes added in this continuation
 
-- The hybrid engine now attaches a `capability_execution_plan` diagnostic to every result returned through `FinAIHybridEngine.process`, while preserving the existing `execution_plan` response contract.
-- The diagnostic distinguishes policy, deterministic finance, retrieval, generation, and verification capabilities; records observed stage/status; and flags missing required capabilities without replacing the existing policy/authority/risk enforcement.
-- Execution-plan intent detection now recognizes canonical finance intents such as `EMI_QUERY`, `SIP`, and tax/loan calculation labels.
-- XAI traces now retain the capability-plan diagnostic in a separate field so it does not overwrite the existing execution/authority decision.
-- Added integration tests for the request result and XAI trace; added the integration test module to the artifact-independent CI set.
+- The hybrid engine attaches a `capability_execution_plan` diagnostic to each result returned from `FinAIHybridEngine.process`, without replacing the legacy `execution_plan`.
+- XAI traces record the diagnostic in a separate field, preserving the existing authority/execution decision.
+- Canonical calculation-intent detection was extended for EMI/SIP/loan/tax-style requests.
+- The RAG retriever now fails early with concrete missing-asset instructions rather than beginning an embedding-model load when the SQLite/FAISS/ID-map files are missing.
+- The FAISS index builder validates vector count, ID-map order/uniqueness, checkpoint consistency, embedding model identity, and vector dimension. Ambiguous non-empty indexes fail closed; embedding device selection can use `FINAI_RAG_DEVICE` or CPU/CUDA auto-detection.
+- Added a local-only preflight report (`scripts/finai_preflight.py`) and Windows/offline operations guide (`docs/OFFLINE_AND_PREFLIGHT.md`). It checks package/file presence and credential names without printing secrets or contacting services.
+- Added centralized network-mode policy and guards for cloud generation at the gateway, cloud fallback selection, Yahoo Finance quote/history/search/news, CCXT live order-book/market requests, and mempool.space mining-statistics calls. The local rLLM adapter now requires local weight files and uses Hugging Face `local_files_only=True`; the Qwen embedding adapter uses local cache-only resolution in offline mode.
+- Corrected rLLM registry metadata so the current quantized adapter is not advertised as CPU-capable.
+- Added focused integration, offline-policy, model-loading, preflight, and FAISS-resume tests to the artifact-independent CI list.
 
 ## Verification caveat
 
@@ -20,16 +24,16 @@ Recent GitHub Actions runs ended in failure within seconds and the job API retur
 
 ## Still required before a complete or production-ready claim
 
-1. Reconcile the user’s saved local stash (Frontend 2.0 design system/API client, artifact bootstrap and smoke scripts, configuration, parser hardening, and other backend changes). Do not drop or blindly pop the stash.
-2. Run backend regression tests, frontend build/lint, and API smoke tests against the current branch; resolve any failures/warnings that materially affect behavior.
-3. Reproducibly provision the generated TF-IDF router artifact and approved/licensed RAG source chunks/indexes for a clean clone.
-4. Implement and test complete offline/degraded mode, including making sure offline mode cannot fall through to live network providers.
-5. Implement and benchmark actual Colibrì/Calibre-style weight streaming only after the intended approach, model format, memory/disk behavior, and hardware constraints are specified and measured. No weight-streaming runtime is claimed by the capability plan.
-6. Validate each configured cloud/model provider with server-side credentials and end-to-end fallback tests.
-7. Replace demo authentication/session semantics, sample account/payment identifiers and mock bank operations before any production use.
-8. Implement or integrate the ResilientPay/DLT settlement bridge with explicit authorization, idempotency, ledger reconciliation, recovery, test-net or local-network tests, and security review.
-9. Expand causal-risk research evaluation with realistic, chronologically held-out datasets, baselines, ablations, repeated runs, false-prune analysis, runtime and uncertainty reporting. The current toy benchmark is not real-market validation and does not prove patentability.
-10. Complete accessibility/mobile/runtime testing for Frontend 2.0 and merge the PR only after CI, local stash reconciliation, and final review.
+1. Reconcile the user's saved local stash (Frontend 2.0 design system/API client, artifact bootstrap and smoke scripts, configuration, parser hardening, and other backend changes). It is not accessible through remote repository editing. Do not drop or blindly pop it.
+2. Run backend regression tests, frontend build/lint, and API smoke tests against the current branch; resolve failures and review warnings.
+3. Provision the generated TF-IDF router artifact and approved/licensed RAG source chunks/indexes for a clean clone. The source datasets and large generated indexes are not included here.
+4. The shared network guard covers the named adapters above; it is not an OS-level sandbox for arbitrary direct HTTP calls or future providers. Audit every outbound integration and test that offline blocks the entire application request path, not only individual adapters.
+5. Implement and measure actual Colibrì/Calibre-style GPU/RAM/NVMe weight streaming. The current rLLM adapter uses local-only 4-bit CUDA loading; it does **not** implement NVMe offload or streaming.
+6. Validate configured model providers with live server-side credentials, quotas, reachable endpoints, and end-to-end fallback tests.
+7. Replace demo authentication/session semantics, sample account/payment identifiers, and mock bank operations before production use.
+8. Implement/integrate the ResilientPay/DLT settlement bridge with explicit authorization, idempotency, reconciliation, recovery, local/test-network coverage, and a security review. No live bank or DLT settlement bridge is claimed here.
+9. Expand causal-risk evaluation with realistically sourced, chronologically held-out datasets, baselines, ablations, repeated runs, false-prune testing, runtime/memory and uncertainty reporting. The current benchmark is a finite toy experiment, not real-market validation or a patentability determination.
+10. Complete accessibility/mobile/runtime testing for Frontend 2.0, then merge only after reproducible local verification and passing hosted CI.
 
 ## Local verification commands
 
