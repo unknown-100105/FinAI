@@ -220,3 +220,13 @@ The registry includes major markets across North America, Europe, Asia-Pacific, 
 Investment knowledge API endpoints:
 - `/api/v1/investments/scope`
 - `/api/v1/investments/global-markets`
+
+
+## Experimental causal-risk research prototypes
+
+The research branch includes two explicitly experimental mechanisms:
+
+- **Evidence-Gated Paired-World Causal Risk Propagation (EPCRP):** finance_engine/epcrp.py compares baseline and intervention worlds and records edge acceptance/rejection plus evidence lineage. See docs/EPCRP_EVIDENCE_GATED_CAUSAL_RISK.md.
+- **Intervention feasibility screening:** finance_engine/counterfactual_screening.py screens bounded linear-DAG interventions using conservative interval bounds. RETAIN means only that infeasibility was not proven.
+
+Run python -m pytest -q tests/test_epcrp.py tests/test_counterfactual_screening.py and python benchmarks/counterfactual_screening_benchmark.py from the repository root. These are research prototypes and synthetic benchmarks, not real-market validation, causal discovery, or proof of patentability. They are not enabled as production decision paths by default.
