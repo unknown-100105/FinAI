@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List
 
 from .arbitrage import estimate_arbitrage, rank_opportunities
+from policy.network_mode import assert_external_network_allowed
 
 
 def _load_ccxt():
@@ -20,6 +21,7 @@ def fetch_orderbook_snapshot(
     symbol: str,
     limit: int = 20,
 ) -> Dict[str, Any]:
+    assert_external_network_allowed("CCXT order-book request")
     ccxt = _load_ccxt()
     exchange_class = getattr(ccxt, exchange_id, None)
 
