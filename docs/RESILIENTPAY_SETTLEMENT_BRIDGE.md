@@ -20,3 +20,9 @@ Run from the repository root:
     python -m pytest -q tests/test_resilient_pay_ledger.py
 
 Use integer minor units such as INR paise. Production adapters must resolve account references against an authenticated account directory; do not treat arbitrary client-provided payer/payee strings as authorization.
+
+Run a complete local simulation (creates only an in-memory SQLite journal and never calls a network):
+
+    python scripts/demo_resilient_pay.py
+
+The script explicitly prints that no real funds were moved and exits non-zero if hash-chain verification fails.
