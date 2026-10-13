@@ -1,4 +1,8 @@
-﻿from typing import Any, Dict, Optional
+﻿import os
+from typing import Any, Dict, Optional
+
+from llm.model_registry import get_model_spec
+from policy.network_mode import assert_external_network_allowed
 
 
 class ModelGateway:
@@ -126,6 +130,35 @@ class ModelGateway:
         adapter = self.get_adapter(
             selected_model
         )
+
+        # Enforce process-wide network/data policy at the last boundary before
+        # invoking an adapter, including callers that bypass ResponseService.
+        try:
+            spec = get_model_spec(selected_model)
+        except KeyError:
+            spec = None
+
+        if spec is not None and spec.provider != "local":
+            assert_external_network_allowed(
+                f"{spec.provider} LLM provider"
+            )
+            sensitivity = os.getenv(
+                "FINAI_DATA_SENSITIVITY",
+                "standard",
+            ).strip().lower()
+            if sensitivity == "restricted":
+                raise RuntimeError(
+                    "Restricted data may only be sent to local providers."
+                )
+            configured_allow_list = {
+                item.strip().lower()
+                for item in os.getenv("FINAI_ALLOWED_PROVIDERS", "").split(",")
+                if item.strip()
+            }
+            if configured_allow_list and spec.provider not in configured_allow_list:
+                raise RuntimeError(
+                    f"Provider '{spec.provider}' is not in FINAI_ALLOWED_PROVIDERS."
+                )
 
         result = adapter.generate(
             user_text=user_text,
