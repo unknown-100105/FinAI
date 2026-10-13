@@ -212,7 +212,7 @@ def multimodal_train(request: MultimodalTrainRequest):
         )
         if total_cells > 250_000:
             raise ValueError("multimodal training input exceeds 250000 cells")
-        return train_multimodal_encoder(
+        result = train_multimodal_encoder(
             request.inputs,
             config=MultimodalEncoderConfig(
                 hidden_dim=request.hidden_dim,
@@ -224,6 +224,10 @@ def multimodal_train(request: MultimodalTrainRequest):
             mask_probability=request.mask_probability,
             seed=request.seed,
         )
+        # PyTorch modules are not JSON-serializable.
+        result.pop("model", None)
+        result["model_persisted"] = False
+        return result
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

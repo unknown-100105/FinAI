@@ -293,3 +293,45 @@ def test_research_evaluation_metrics_are_available():
     assert summary["status"] == "ABLATION_SUMMARY_READY"
     perturbed = perturb_features([[1.0, 2.0], [3.0, 4.0]], scale=2.0, missing_columns=[1], seed=2)
     assert np.allclose(perturbed[:, 1], 0.0)
+
+
+def test_multimodal_training_api_returns_json_serializable_result():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    response = TestClient(app).post(
+        "/api/v1/causal-risk/multimodal/train",
+        json={
+            "inputs": {
+                "market": [
+                    [0.1, 0.2],
+                    [0.2, 0.3],
+                    [0.3, 0.5],
+                    [0.4, 0.6],
+                ],
+                "macro": [
+                    [0.4, 0.2],
+                    [0.3, 0.4],
+                    [0.2, 0.5],
+                    [0.1, 0.6],
+                ],
+            },
+            "hidden_dim": 8,
+            "layers": 1,
+            "heads": 2,
+            "epochs": 1,
+            "learning_rate": 0.001,
+            "mask_probability": 0.5,
+            "seed": 42,
+        },
+    )
+
+    assert response.status_code == 200, response.text
+
+    payload = response.json()
+    assert payload["status"] == "MULTIMODAL_ENCODER_RESEARCH_TRAINED"
+    assert payload["embedding_dimension"] == 8
+    assert payload["model_persisted"] is False
+    assert "model" not in payload
+    assert len(payload["embedding"]) == 4
+    assert len(payload["embedding"][0]) == 8
