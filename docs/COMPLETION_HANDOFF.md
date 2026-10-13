@@ -30,6 +30,27 @@ Regression coverage lives in `tests/test_execution_plan.py` and
 `tests/test_capability_plan_integration.py`; both are listed in the artifact-independent
 CI command. Local and hosted test runs must be repeated against the current branch.
 
+## Offline and clean-checkout safeguards
+
+- `policy/network_mode.py` is the shared policy for `online`, `degraded`, and
+  `offline`. The current explicit guards cover provider generation through the model
+  gateway, constrained LLM fallback selection, Yahoo Finance market/news lookups,
+  live CCXT market requests, and mempool.space requests.
+- These guards do not form a process/OS-level network sandbox. Audit new outbound HTTP
+  clients and do not label the entire service offline-safe until every external path is
+  covered.
+- The local rLLM adapter uses `local_files_only=True`; the Qwen embedding adapter
+  resolves only a cached Hugging Face snapshot when `FINAI_NETWORK_MODE=offline`.
+  The current rLLM model adapter is GPU-only 4-bit quantization, not NVMe model-weight
+  streaming.
+- `scripts/finai_preflight.py` checks packages and required/generated artifact presence
+  without exposing secret values or contacting providers. See `docs/OFFLINE_AND_PREFLIGHT.md`.
+- `scripts/build_rag_faiss.py` validates saved index/ID/checkpoint alignment and fails
+  closed for ambiguous indexes. Approved source chunks and large derived artifacts
+  still need to be supplied/provisioned in each clean clone.
+
+
+
 ## Fresh Windows checkout
 
 Run in PowerShell from the repository root:
