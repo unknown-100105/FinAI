@@ -7,6 +7,11 @@ from scripts.finai_preflight import audit, main
 
 def test_preflight_reports_missing_router_and_rag_assets_without_network_calls(tmp_path, monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "do-not-print-this-secret")
+    monkeypatch.setenv(
+        "FINAI_COLIBRI_BASE_URL",
+        "http://127.0.0.1:8000/v1",
+    )
+    monkeypatch.setenv("FINAI_COLIBRI_API_KEY", "local-api-secret")
     report = audit(tmp_path)
 
     assert report["scope"] == "local_presence_check_only_no_network_calls"
@@ -16,9 +21,14 @@ def test_preflight_reports_missing_router_and_rag_assets_without_network_calls(t
     assert report["provider_credentials"]["configured_provider_names"] == ["gemini"]
     assert report["provider_credentials"]["secret_values_exposed"] is False
     assert report["provider_credentials"]["reachability_verified"] is False
+    assert report["local_inference"]["colibri_configured"] is True
+    assert report["local_inference"]["colibri_model"] == "olmoe-colibri"
+    assert report["local_inference"]["colibri_server_reachability_verified"] is False
+    assert report["local_inference"]["api_key_values_exposed"] is False
 
     serialized = json.dumps(report)
     assert "do-not-print-this-secret" not in serialized
+    assert "local-api-secret" not in serialized
 
 
 def test_preflight_emits_machine_readable_json_and_strict_exit_code(tmp_path, capsys):
