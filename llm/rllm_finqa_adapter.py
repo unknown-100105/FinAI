@@ -34,7 +34,6 @@ class RLLMFinQAModelAdapter:
                 "CUDA is required for rLLM-FinQA-4B."
             )
 
-        offline = os.getenv("FINAI_NETWORK_MODE", "online").strip().lower() == "offline"
         configured_model_path = os.getenv("FINAI_RLLM_MODEL_PATH", "").strip()
         model_reference = configured_model_path or self.MODEL_ID
 
