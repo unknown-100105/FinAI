@@ -64,6 +64,10 @@ The included smoke benchmark uses eight synthetic interest-rate shock bands and 
 5. Replace toy bounds with documented, calibrated inputs only after the underlying risk model is validated.
 6. Have a registered patent agent conduct a filing-grade search across patent families and non-patent literature, and review office actions/prosecution histories before preparing a filing.
 
+## Additional related publication found in follow-up search
+
+CN121981842A, “Financial Risk Early Warning Method and System Based on Social Media Information” (published 5 May 2026), describes multi-source social-media features, enterprise/event/user dynamic causal graphs, causal inference and counterfactual analysis, risk-conduction paths and interpreted warning reports. See [Google Patents](https://patents.google.com/patent/CN121981842A/en). This reinforces that generic dynamic causal-graph risk propagation and explanations are crowded. The candidate must remain confined to the particular bounded interval-feasibility certificate and descendant-cone computation mechanism, and even that narrow difference still needs a claim-by-claim patent-family and prosecution-history search.
+
 ## Current limitations
 
 - Supports bounded linear acyclic structural equations only.
