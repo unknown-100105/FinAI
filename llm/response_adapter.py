@@ -71,6 +71,12 @@ class SarvamResponseAdapter:
                 f"model directory: {configured_base_path}"
             )
 
+        adapter_path = Path(self.adapter_path)
+        if not adapter_path.exists():
+            raise FileNotFoundError(
+                f"FinAI adapter path does not exist: {adapter_path}"
+            )
+
         # Local models must be pre-provisioned explicitly; do not allow a user
         # request to start an unexpected multi-gigabyte Hugging Face download.
         start = time.perf_counter()
@@ -101,14 +107,6 @@ class SarvamResponseAdapter:
             trust_remote_code=True,
             local_files_only=True,
         )
-
-        adapter_path = Path(self.adapter_path)
-
-        if not adapter_path.exists():
-            raise FileNotFoundError(
-                f"FinAI adapter path does not exist: "
-                f"{adapter_path}"
-            )
 
         self.model = PeftModel.from_pretrained(
             self.model,
