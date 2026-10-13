@@ -232,6 +232,7 @@ class EvidenceGatedRiskGraph:
     @staticmethod
     def _evidence_lineage(*, edges: Sequence[EvidenceEdge],
                           interventions: Mapping[str, float],
+                          source_values: Mapping[str, float],
                           node_delta: Mapping[str, float],
                           portfolio_exposures: Mapping[str, float]
                           ) -> dict[str, tuple[str, ...]]:
@@ -241,11 +242,18 @@ class EvidenceGatedRiskGraph:
             outgoing.setdefault(edge.source, []).append(edge)
             incoming.setdefault(edge.target, []).append(edge)
 
+        # Propagation paths stop at nodes fixed to observed source values. An
+        # intervened node is an explicit root: incoming edges do not propagate its
+        # shock, though those edges can still be needed for its baseline-world value.
         impacted: set[str] = set(interventions)
         stack = list(interventions)
         while stack:
             parent = stack.pop()
             for edge in outgoing.get(parent, []):
+                if edge.target in interventions:
+                    continue
+                if edge.target in source_values:
+                    continue
                 if edge.target not in impacted:
                     impacted.add(edge.target)
                     stack.append(edge.target)
@@ -259,15 +267,43 @@ class EvidenceGatedRiskGraph:
             stack = [output]
             while stack:
                 target = stack.pop()
+                if target in source_values:
+                    continue
                 for edge in incoming.get(target, []):
                     if edge.source not in ancestors:
                         ancestors.add(edge.source)
                         stack.append(edge.source)
+
+            # First record evidence along paths whose source nodes are changed
+            # by an intervention and whose target contributes to this output.
             evidence_ids = {
                 edge.evidence_id for edge in edges
                 if edge.source in impacted and edge.target in ancestors
+                and edge.target not in interventions
+                and edge.target not in source_values
                 and edge.evidence_id.strip()
             }
+
+            # Baseline-world evaluation still uses incoming equations for an
+            # intervened ancestor unless that node is itself a fixed source value.
+            # Preserve that provenance separately in the union without claiming
+            # those edges carried the intervention through the counterfactual world.
+            pending = [
+                node for node in interventions
+                if node in ancestors and node not in source_values
+            ]
+            visited_baseline: set[str] = set()
+            while pending:
+                target = pending.pop()
+                if target in visited_baseline or target in source_values:
+                    continue
+                visited_baseline.add(target)
+                for edge in incoming.get(target, []):
+                    if edge.evidence_id.strip():
+                        evidence_ids.add(edge.evidence_id)
+                    if edge.source not in visited_baseline:
+                        pending.append(edge.source)
+
             by_output[output] = tuple(sorted(evidence_ids))
         return by_output
 
@@ -311,8 +347,8 @@ class EvidenceGatedRiskGraph:
             "portfolio_delta",
         )
         lineage = self._evidence_lineage(
-            edges=accepted, interventions=interventions, node_delta=delta,
-            portfolio_exposures=portfolio_exposures,
+            edges=accepted, interventions=interventions, source_values=source_values,
+            node_delta=delta, portfolio_exposures=portfolio_exposures,
         )
 
         interval: Optional[tuple[float, float]] = None
