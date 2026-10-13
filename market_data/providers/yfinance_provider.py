@@ -4,6 +4,8 @@ from typing import List, Optional
 import pandas as pd
 import yfinance as yf
 
+from policy.network_mode import assert_external_network_allowed
+
 from ..base import MarketDataProvider
 from ..models import MarketBar, MarketQuote
 
@@ -119,6 +121,7 @@ class YFinanceProvider(MarketDataProvider):
         asset_type: str,
         exchange: Optional[str] = None,
     ) -> MarketQuote:
+        assert_external_network_allowed("yfinance quote")
         yahoo_symbol = self._resolve_symbol(
             symbol=symbol,
             asset_type=asset_type,
@@ -198,6 +201,7 @@ class YFinanceProvider(MarketDataProvider):
                 "History start must not be after history end."
             )
 
+        assert_external_network_allowed("yfinance history")
         yahoo_symbol = self._resolve_symbol(
             symbol=symbol,
             asset_type=asset_type,
