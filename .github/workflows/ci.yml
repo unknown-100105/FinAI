@@ -48,6 +48,7 @@ jobs:
             tests/test_api_main.py \
             tests/test_execution_plan.py \
             tests/test_epcrp.py \
+            tests/test_patent_mechanism_api.py \
             tests/test_counterfactual_screening.py \
             tests/test_capability_plan_integration.py \
             tests/test_finai_preflight.py \
