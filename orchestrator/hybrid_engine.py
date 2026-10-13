@@ -46,30 +46,39 @@ class FinAIHybridEngine:
 
     def _get_rag_retriever(self):
         if self.rag_retriever is None:
+            db_path = ROOT / "data" / "rag" / "finai_rag.db"
+            index_path = (
+                ROOT / "data" / "rag" / "embeddings" / "finai_rag.faiss"
+            )
+            document_ids_path = (
+                ROOT / "data" / "rag" / "embeddings" / "document_ids.npy"
+            )
+            required_assets = (db_path, index_path, document_ids_path)
+            missing_assets = [path for path in required_assets if not path.is_file()]
+            if missing_assets:
+                missing = ", ".join(str(path) for path in missing_assets)
+                raise FileNotFoundError(
+                    "FinAI RAG assets are incomplete: "
+                    f"{missing}. First provide approved source chunks under "
+                    "data/domain_chunks/, then run scripts/build_rag_index.py "
+                    "and scripts/build_rag_faiss.py. Large datasets and generated "
+                    "indexes are intentionally not downloaded automatically."
+                )
+
             from rag.hybrid_retriever import HybridRetriever
             from llm.qwen_embedding_adapter import QwenEmbeddingAdapter
 
+            # The adapter selects CUDA when it is available and otherwise uses CPU.
+            # Avoid hard-coding CUDA on CPU-only clean clones.
             embedding_adapter = QwenEmbeddingAdapter(
-                device="cuda",
+                device=None,
                 max_seq_length=640,
             )
 
             self.rag_retriever = HybridRetriever(
-                db_path=ROOT / "data" / "rag" / "finai_rag.db",
-                faiss_index_path=(
-                    ROOT
-                    / "data"
-                    / "rag"
-                    / "embeddings"
-                    / "finai_rag.faiss"
-                ),
-                document_ids_path=(
-                    ROOT
-                    / "data"
-                    / "rag"
-                    / "embeddings"
-                    / "document_ids.npy"
-                ),
+                db_path=db_path,
+                faiss_index_path=index_path,
+                document_ids_path=document_ids_path,
                 embedding_adapter=embedding_adapter,
             )
 
