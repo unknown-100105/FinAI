@@ -18,6 +18,8 @@ from threading import Lock
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, Iterable, List, Optional
 
+from policy.network_mode import assert_external_network_allowed
+
 REGULATORY_SOURCE = "Government of India, Lok Sabha AU5805, 30-03-2026"
 REGULATORY_SOURCE_URL = "https://sansad.in/getFile/loksabhaquestions/annex/187/AU5805_lMTYNK.pdf?source=pqals"
 
@@ -150,6 +152,7 @@ def registered_vda_services() -> List[Dict[str, str]]:
 
 
 def _exchange(exchange_id: str):
+    assert_external_network_allowed("CCXT market request")
     ccxt = _ccxt()
     exchange_class = getattr(ccxt, exchange_id, None)
     if exchange_class is None:
