@@ -197,7 +197,13 @@ def build_execution_plan(
     for capability, kind, required in requested:
         # Deterministic finance is intent-dependent; do not force it on every request.
         if capability == "deterministic_finance" and not any(
-            token in intent.lower() for token in ("calculate", "loan", "budget", "portfolio", "payment", "interest", "tax")
+            token in intent.lower()
+            for token in (
+                "calculate", "calculation", "emi", "loan", "budget",
+                "portfolio", "payment", "interest", "tax", "sip",
+                "compound", "fixed_deposit", "recurring_deposit",
+                "finance_engine", "financial_calculation",
+            )
         ):
             continue
         if not graph.is_available(capability, mode):
