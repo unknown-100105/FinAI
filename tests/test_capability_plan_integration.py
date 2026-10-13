@@ -1,6 +1,7 @@
 """Request-path integration tests for the capability execution-plan diagnostics."""
 
 from orchestrator.hybrid_engine import FinAIHybridEngine
+from xai.trace import XAITrace
 
 
 def _engine_with_stubbed_core():
@@ -76,3 +77,26 @@ def test_requested_generation_without_observed_provider_blocks_diagnostic_plan(m
         "response generation" in explanation.lower()
         for explanation in plan["explanations"]
     )
+
+
+def test_xai_trace_records_capability_plan_without_overwriting_authority():
+    trace = XAITrace("capability-plan-trace-test")
+    trace.record_execution_plan({
+        "capability": "finance_engine",
+        "decision": "EXECUTE",
+        "execution_class": "COMPUTE",
+        "authority_class": "DETERMINISTIC_RESULT",
+        "authority_source": "finance_engine",
+    })
+    diagnostic = {
+        "schema_version": "1.0",
+        "planner_role": "request_path_diagnostic",
+        "blocked": False,
+        "steps": [{"step_id": "01_policy", "kind": "policy_check"}],
+    }
+
+    trace.record_capability_execution_plan(diagnostic)
+
+    assert trace.data["capability_execution_plan"] == diagnostic
+    assert trace.data["execution"]["capability"] == "finance_engine"
+    assert trace.data["authority"]["authority_source"] == "finance_engine"
