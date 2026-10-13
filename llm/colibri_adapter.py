@@ -39,6 +39,11 @@ class ColibriResponseAdapter:
         if self.timeout_seconds <= 0:
             raise ValueError("FINAI_COLIBRI_TIMEOUT_SECONDS must be positive.")
 
+        # Validate the endpoint at construction time. A typo or remote URL
+        # must not leave a misleadingly eligible "local" route behind.
+        if self.base_url:
+            self._chat_completions_url(self.base_url)
+
     @staticmethod
     def _chat_completions_url(base_url: str) -> str:
         raw = str(base_url or "").strip()
