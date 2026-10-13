@@ -103,6 +103,34 @@ python scripts/finai_preflight.py --json
 
 See [Offline mode and preflight guide](docs/OFFLINE_AND_PREFLIGHT.md) for the network-policy contract, local model requirements, artifact prerequisites, and tests. Offline checks cover the currently guarded provider paths, not arbitrary direct network calls from future modules.
 
+## Optional local Colibrì inference
+
+FinAI can optionally route response generation to a separately installed
+[Colibrì inference engine](https://github.com/JustVugg/colibri) through its
+OpenAI-compatible local API. FinAI does **not** bundle the third-party engine or
+its model weights, and this adapter does not implement Colibrì's GPU/RAM/NVMe
+weight streaming itself.
+
+Follow the upstream [Windows guide](https://github.com/JustVugg/colibri/blob/main/docs/windows.md)
+and [API guide](https://github.com/JustVugg/colibri/blob/main/docs/api.md) to
+install a supported runtime/model and bind its server to `127.0.0.1`. Then
+set these values in the PowerShell session that launches FinAI (or in your
+local `.env` file, which must not be committed):
+
+```powershell
+$env:FINAI_COLIBRI_BASE_URL = "http://127.0.0.1:8000/v1"
+$env:FINAI_COLIBRI_MODEL = "olmoe-colibri" # must match the server's configured model ID
+$env:FINAI_COLIBRI_API_KEY = "local-finetoken"
+$env:FINAI_NETWORK_MODE = "offline"
+$env:FINAI_DATA_SENSITIVITY = "restricted"
+```
+
+The adapter is disabled while `FINAI_COLIBRI_BASE_URL` is blank, accepts only
+loopback endpoints, and refuses redirects. Check the actual model identifier
+with the local server's `/v1/models` endpoint before running FinAI tests. See
+[Offline mode and preflight](docs/OFFLINE_AND_PREFLIGHT.md) for the full setup
+and limitations.
+
 ## Cloud response providers
 
 FinAI now exposes a provider-agnostic response layer with Google Gemini, OpenAI, OpenRouter, Anthropic and Mistral adapters, plus local/research models. Providers remain server-side behind the ModelGateway; credentials are never sent to the browser.
