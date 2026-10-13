@@ -39,3 +39,5 @@ The experimental handlers live in app/patent_mechanism_api.py. They are not moun
 - POST /api/v1/research/patent-mechanisms/feasibility-screen
 
 These endpoints accept caller-supplied model inputs. They return explicit experimental status metadata and do not authorize trades, payments, or other real-world financial actions. Do not expose them publicly without authentication, rate limiting, input-size controls, and security review.
+
+The endpoints also require a bearer token from `FINAI_RESEARCH_API_TOKEN` (minimum 32 characters). Keep it secret, configure it only in the local server environment, and do not use a committed example value as a real token.
