@@ -29,3 +29,13 @@ Before using EPCRP for decisions, evaluate graph edges and assumptions against c
 ## Relationship to intervention feasibility screening
 
 The related **finance_engine/counterfactual_screening.py** component answers a different question: it computes conservative interval bounds for whether a bounded linear DAG can reach a target range under candidate interventions. It is a cheap feasibility screen, not a causal-discovery method. RETAIN means only “not proven impossible”; it must not be interpreted as a verified feasible outcome. Keep both components opt-in and experimental until their integration and empirical validity are reviewed.
+
+
+## Optional HTTP endpoints
+
+The experimental handlers live in app/patent_mechanism_api.py. They are not mounted in the standard API process by default. For local research only, set FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS=true in the server process environment and restart the API.
+
+- POST /api/v1/research/patent-mechanisms/epcrp/evaluate
+- POST /api/v1/research/patent-mechanisms/feasibility-screen
+
+These endpoints accept caller-supplied model inputs. They return explicit experimental status metadata and do not authorize trades, payments, or other real-world financial actions. Do not expose them publicly without authentication, rate limiting, input-size controls, and security review.
