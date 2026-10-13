@@ -1,5 +1,8 @@
 """Request-path integration tests for the capability execution-plan diagnostics."""
 
+import pytest
+
+from orchestrator import hybrid_engine
 from orchestrator.hybrid_engine import FinAIHybridEngine
 from xai.trace import XAITrace
 
@@ -100,3 +103,12 @@ def test_xai_trace_records_capability_plan_without_overwriting_authority():
     assert trace.data["capability_execution_plan"] == diagnostic
     assert trace.data["execution"]["capability"] == "finance_engine"
     assert trace.data["authority"]["authority_source"] == "finance_engine"
+
+
+def test_missing_rag_assets_fail_before_embedding_model_load(monkeypatch, tmp_path):
+    monkeypatch.setattr(hybrid_engine, "ROOT", tmp_path)
+    engine = FinAIHybridEngine.__new__(FinAIHybridEngine)
+    engine.rag_retriever = None
+
+    with pytest.raises(FileNotFoundError, match="RAG assets are incomplete"):
+        engine._get_rag_retriever()
