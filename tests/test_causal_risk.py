@@ -481,3 +481,18 @@ def test_counterfactual_engine_rejects_non_finite_inputs():
         assert "non-finite allocation: equity" in str(exc)
     else:
         raise AssertionError("expected non-finite allocation to fail validation")
+
+def test_validate_graph_rejects_non_finite_edge_weights():
+    from causal_risk.schema import CausalEdge, CausalNode, validate_graph
+
+    nodes = (
+        CausalNode("a", "Node A", "test"),
+        CausalNode("b", "Node B", "test"),
+    )
+
+    for invalid in (float("nan"), float("inf"), float("-inf")):
+        errors = validate_graph(
+            nodes,
+            (CausalEdge("a", "b", invalid),),
+        )
+        assert "non-finite edge weight: a->b" in errors

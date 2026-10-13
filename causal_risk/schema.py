@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, Iterable, List, Tuple
 
@@ -63,6 +64,15 @@ def validate_graph(nodes: Iterable[CausalNode], edges: Iterable[CausalEdge]) -> 
     for edge in edges:
         if edge.source not in node_ids or edge.target not in node_ids:
             errors.append(f"unknown endpoint: {edge.source}->{edge.target}")
+
+        try:
+            weight = float(edge.weight)
+        except (AttributeError, TypeError, ValueError, OverflowError):
+            errors.append(f"non-numeric edge weight: {edge.source}->{edge.target}")
+        else:
+            if not math.isfinite(weight):
+                errors.append(f"non-finite edge weight: {edge.source}->{edge.target}")
+
         if edge.source == edge.target and edge.lag == 0:
             errors.append(f"contemporaneous self-loop: {edge.source}")
     return errors
