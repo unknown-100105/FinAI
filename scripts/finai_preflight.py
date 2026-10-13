@@ -22,9 +22,18 @@ REQUIRED_PACKAGES = (
     "sklearn",
     "numpy",
     "joblib",
+    "requests",
+    "yfinance",
+    "ccxt",
     "torch",
+    "transformers",
+    "peft",
+    "bitsandbytes",
+    "accelerate",
+    "sentencepiece",
     "faiss",
     "sentence_transformers",
+    "openai",
 )
 PROVIDER_KEY_NAMES = (
     "GEMINI_API_KEY",
@@ -64,6 +73,26 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
         _file_check(
             root,
             "requirements.txt",
+            required=True,
+        ),
+        _file_check(
+            root,
+            "app/main.py",
+            required=True,
+        ),
+        _file_check(
+            root,
+            "router/train_tfidf_router.py",
+            required=True,
+        ),
+        _file_check(
+            root,
+            "scripts/build_rag_index.py",
+            required=True,
+        ),
+        _file_check(
+            root,
+            "scripts/build_rag_faiss.py",
             required=True,
         ),
         _file_check(
