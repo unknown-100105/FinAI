@@ -13,8 +13,8 @@ Pull request: https://github.com/unknown-100105/FinAI/pull/6 (draft; not merged)
 - The FAISS index builder validates vector count, ID-map order/uniqueness, checkpoint consistency, embedding model identity, and vector dimension. Ambiguous non-empty indexes fail closed; embedding device selection can use `FINAI_RAG_DEVICE` or CPU/CUDA auto-detection.
 - Added a local-only preflight report (`scripts/finai_preflight.py`) and Windows/offline operations guide (`docs/OFFLINE_AND_PREFLIGHT.md`). It checks package/file presence and credential names without printing secrets or contacting services.
 - Added centralized network-mode policy and guards for cloud generation at both gateway and direct Gemini/OpenAI/OpenRouter/Anthropic/Mistral provider boundaries, cloud fallback selection, Yahoo Finance quote/history/search/news, CCXT live order-book/market requests, and mempool.space mining-statistics calls. Restricted data and provider allow-list policy are also checked at direct cloud-provider boundaries. The local rLLM adapter now requires local weight files and uses Hugging Face `local_files_only=True`; the Qwen embedding adapter uses local cache-only resolution in offline mode.
-- Corrected rLLM registry metadata so the current quantized adapter is not advertised as CPU-capable.
-- Added focused integration, offline-policy, model-loading, preflight, and FAISS-resume tests to the artifact-independent CI list.
+- Corrected rLLM registry metadata so the current quantized adapter is not advertised as CPU-capable. rLLM, Sarvam, and optional local embedding model paths now resolve relative to the repository root, and the Sarvam base model is also local-only with early validation of its adapter directory.
+- Added focused integration, direct cloud-provider policy, offline market-provider, local model-loading, preflight, and FAISS-resume tests to the artifact-independent CI list. The preflight dependency list now includes core analytics, provider, local-model, and test packages.
 
 ## Verification caveat
 
