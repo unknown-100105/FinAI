@@ -14,6 +14,14 @@ from orchestrator.market_operation_planner import (
     plan_market_operations,
 )
 from orchestrator.risk_controller import RiskCapabilityController
+from orchestrator.execution_plan import (
+    Capability,
+    CapabilityStateGraph,
+    ExecutionMode,
+    build_execution_plan,
+)
+import os
+from uuid import uuid4
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -132,7 +140,209 @@ class FinAIHybridEngine:
             self.market_data = MarketDataDispatcher(service)
 
         return self.market_data
+    @staticmethod
+    def _provider_configured() -> bool:
+        """Return whether any supported cloud response provider has a key configured."""
+        key_names = (
+            "OPENAI_API_KEY",
+            "OPENROUTER_API_KEY",
+            "ANTHROPIC_API_KEY",
+            "MISTRAL_API_KEY",
+            "GOOGLE_API_KEY",
+            "GEMINI_API_KEY",
+            "SARVAM_API_KEY",
+        )
+        return any(bool(os.getenv(name, "").strip()) for name in key_names)
+
+    def _capability_plan_for_result(
+        self,
+        *,
+        result: dict,
+        request_id: str,
+        user_text: str,
+        generate_response: bool,
+    ) -> dict:
+        """Attach an auditable, non-authorizing capability plan to every engine result.
+
+        The existing router, policy engine, authority contract, and risk controller
+        remain the enforcement points. This plan diagnoses the path and its currently
+        observed capabilities; it does not authorize or execute tools itself.
+        """
+        router = result.get("router") or {}
+        legacy_plan = result.get("execution_plan") or {}
+        intent = str(router.get("intent") or "UNCLASSIFIED")
+        stage = str(result.get("stage") or "")
+        status = str(result.get("status") or "")
+        generation = result.get("response_generation")
+        generation = generation if isinstance(generation, dict) else {}
+        generation_status = str(generation.get("status") or "")
+        verification = generation.get("verification")
+        verification_observed = (
+            isinstance(verification, dict)
+            or generation_status in {
+                "GENERATED_VERIFIED",
+                "VERIFICATION_FAILED",
+                "INCOMPLETE_GENERATION",
+            }
+        )
+
+        rag_paths = (
+            ROOT / "data" / "rag" / "finai_rag.db",
+            ROOT / "data" / "rag" / "embeddings" / "finai_rag.faiss",
+            ROOT / "data" / "rag" / "embeddings" / "document_ids.npy",
+        )
+        retrieval_available = (
+            getattr(self, "rag_retriever", None) is not None
+            or all(path.exists() for path in rag_paths)
+        )
+        response_service_available = (
+            getattr(self, "response_service", None) is not None
+            or self._provider_configured()
+        )
+        generation_failed = generation_status in {
+            "PROVIDER_UNAVAILABLE",
+            "MODEL_UNAVAILABLE",
+            "GENERATION_ERROR",
+        }
+        model_available = (
+            bool(generation) and not generation_failed
+            if generate_response and stage in {
+                "finance_engine", "rag", "financial_knowledge"
+            } and status != "MISSING_PARAMETERS"
+            else response_service_available
+        )
+        verification_available = (
+            verification_observed
+            if generate_response and generation
+            else verification_observed or not generate_response
+        )
+
+        all_modes = tuple(ExecutionMode)
+        online_only = (ExecutionMode.ONLINE, ExecutionMode.DEGRADED)
+        graph = CapabilityStateGraph(
+            capabilities=(
+                Capability(
+                    "policy",
+                    True,
+                    all_modes,
+                    metadata={"source": "existing_policy_and_risk_controller"},
+                ),
+                Capability(
+                    "deterministic_finance",
+                    getattr(self, "finance", None) is not None,
+                    all_modes,
+                    reason="deterministic finance dispatcher is not initialized",
+                    metadata={"source": "finance_dispatcher"},
+                ),
+                Capability(
+                    "retrieval",
+                    retrieval_available,
+                    all_modes if retrieval_available else online_only,
+                    reason="RAG retriever or all required local index artifacts are unavailable",
+                    metadata={"source": "hybrid_rrf"},
+                ),
+                Capability(
+                    "model_generation",
+                    model_available,
+                    online_only,
+                    reason="no usable response generation result or provider configuration was observed",
+                    metadata={"source": "injected response service or server-side provider configuration"},
+                ),
+                Capability(
+                    "claim_verification",
+                    verification_available,
+                    all_modes,
+                    reason="this request did not produce an observable claim-verification result",
+                    metadata={"observed": verification_observed},
+                ),
+                Capability(
+                    "response_verification",
+                    verification_available,
+                    all_modes,
+                    reason="this request did not produce an observable response-verification result",
+                    metadata={"observed": verification_observed},
+                ),
+            ),
+            prerequisites={
+                "deterministic_finance": ("policy",),
+                "retrieval": ("policy",),
+                "model_generation": ("policy",),
+                "claim_verification": ("model_generation",),
+                "response_verification": ("claim_verification",),
+            },
+        )
+        needs_retrieval = (
+            str(legacy_plan.get("capability") or "") == "rag"
+            and stage == "rag"
+        )
+        needs_generation = (
+            bool(generate_response)
+            and stage in {"finance_engine", "rag", "financial_knowledge"}
+            and status != "MISSING_PARAMETERS"
+            and (bool(generation) or status in {"VERIFICATION_FAILED", "INCOMPLETE_GENERATION"})
+        )
+        plan = build_execution_plan(
+            request_id=request_id,
+            intent=intent,
+            graph=graph,
+            mode=ExecutionMode.ONLINE,
+            require_retrieval=needs_retrieval,
+            require_model=needs_generation,
+            require_claim_verification=needs_generation,
+            require_response_verification=needs_generation,
+        ).to_dict()
+        plan["planner_role"] = "request_path_diagnostic"
+        plan["enforcement"] = (
+            "Existing routing, policy, authority, and risk-control layers remain authoritative."
+        )
+        plan["observed_stage"] = stage or None
+        plan["observed_status"] = status or None
+        return plan
+
     def process(
+        self,
+        user_text: str,
+        authenticated: bool = False,
+        confirmed: bool = False,
+        account_id: str = "ACC1001",
+        card_id: str = "CARD1001",
+        transaction_id: str = "TXN002",
+        upi_id: str = "UPI1001",
+        transfer_id: str = "TRF1001",
+        refund_id: str = "REF1001",
+        generate_response: bool = False,
+        language: str = "English",
+        persona: str = "neutral",
+        max_new_tokens: int = 256,
+        model_id: str | None = None,
+    ):
+        request_id = uuid4().hex
+        result = self._process_core(
+            user_text=user_text,
+            authenticated=authenticated,
+            confirmed=confirmed,
+            account_id=account_id,
+            card_id=card_id,
+            transaction_id=transaction_id,
+            upi_id=upi_id,
+            transfer_id=transfer_id,
+            refund_id=refund_id,
+            generate_response=generate_response,
+            language=language,
+            persona=persona,
+            max_new_tokens=max_new_tokens,
+            model_id=model_id,
+        )
+        result = dict(result)
+        result["capability_execution_plan"] = self._capability_plan_for_result(
+            result=result,
+            request_id=request_id,
+            user_text=user_text,
+            generate_response=generate_response,
+        )
+        return result
+
+    def _process_core(
         self,
         user_text: str,
         authenticated: bool = False,
