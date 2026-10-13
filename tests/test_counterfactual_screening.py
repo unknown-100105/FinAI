@@ -35,7 +35,7 @@ def actions():
     ]
 
 
-def sampled_exact_evaluator(model, target, target_interval, trials=3000):
+def sampled_reference_evaluator(model, target, target_interval, trials=3000):
     def evaluate(action):
         rng = random.Random(20261013 + sum(ord(c) for c in action.action_id))
         for _ in range(trials):
@@ -87,12 +87,12 @@ def test_screening_retains_every_feasible_sampled_action():
     model, band = build_model(), Interval(10, 15)
     result = benchmark_screening(
         model, "portfolio_loss", band, actions(),
-        sampled_exact_evaluator(model, "portfolio_loss", band),
+        sampled_reference_evaluator(model, "portfolio_loss", band),
     )
-    assert result["all_exhaustive_feasible_actions_retained"] is True
-    assert result["screening_recall"] == 1.0
-    assert result["exact_evaluations_avoided"] > 0
-    assert result["screened_exact_evaluations"] < result["exhaustive_exact_evaluations"]
+    assert result["all_reference_feasible_actions_retained"] is True
+    assert result["reference_recall"] == 1.0
+    assert result["candidate_evaluations_avoided"] > 0
+    assert result["screened_reference_evaluation_calls"] < result["exhaustive_reference_evaluation_calls"]
 
 
 def test_only_intervention_descendant_cone_is_recomputed():
