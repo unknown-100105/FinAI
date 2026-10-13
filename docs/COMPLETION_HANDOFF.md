@@ -146,3 +146,12 @@ Attach the exact commit SHA and record the following from a clean checkout:
 
 Never report an unrun test as passing. Record unavailable external dependencies as
 blocked rather than silently skipping them.
+
+
+## Research prototype additions (13 October 2026)
+
+The completion branch now carries two separate experimental causal-risk prototypes:
+- **EPCRP:** evidence-gated paired-world deltas with regime/time-scope checks and evidence-linked output lineage (finance_engine/epcrp.py).
+- **Intervention feasibility screening:** conservative interval screening for bounded linear DAG interventions (finance_engine/counterfactual_screening.py).
+
+Both are opt-in research components. Neither is a causal discovery engine or a validated production risk model. The linear-DAG assumptions, financial calibration, temporal modeling, production API/orchestrator integration, and claim-focused legal review remain open. Synthetic benchmarks must not be presented as proof of financial accuracy, novelty, or patentability.
