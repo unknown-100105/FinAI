@@ -79,11 +79,20 @@ def validate_resume_state(
 
     latest_id = document_ids[-1] if document_ids else 0
     if not checkpoint_exists:
-        # This can happen if the process stopped after saving the index/ID map but
-        # before writing the checkpoint. The aligned ID map is the recovery source.
-        return latest_id, len(document_ids)
+        if vector_count or document_ids:
+            raise ValueError(
+                "A non-empty FAISS index has no checkpoint.json, so its embedding "
+                "model and resume position cannot be verified. Back up the artifacts "
+                "before rebuilding; refusing to append duplicate or incompatible vectors."
+            )
+        return 0, 0
 
     checkpoint_model = checkpoint.get("model_id")
+    if vector_count and not checkpoint_model:
+        raise ValueError(
+            "Checkpoint is missing model_id for a non-empty index; refusing to "
+            "resume without verifying embedding-model identity."
+        )
     if checkpoint_model and checkpoint_model != MODEL_ID:
         raise ValueError(
             f"Checkpoint model '{checkpoint_model}' does not match index builder "
@@ -176,6 +185,12 @@ def main() -> None:
         print("Creating FAISS IndexFlatIP...")
         index = faiss.IndexFlatIP(
             dimension
+        )
+
+    if int(index.d) != int(dimension):
+        raise ValueError(
+            f"Existing FAISS dimension {index.d} does not match embedding dimension "
+            f"{dimension}. Back up the old artifacts and rebuild the index."
         )
 
     if IDS_PATH.exists():
