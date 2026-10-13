@@ -112,3 +112,12 @@ def test_colibri_fails_with_actionable_error_when_not_configured(monkeypatch):
             verified_result={},
             source="test",
         )
+
+
+def test_colibri_rejects_remote_endpoint_during_adapter_initialization(monkeypatch):
+    monkeypatch.setenv(
+        "FINAI_COLIBRI_BASE_URL",
+        "https://remote-model.example/v1",
+    )
+    with pytest.raises(ValueError, match="localhost"):
+        ColibriResponseAdapter()
