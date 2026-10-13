@@ -335,25 +335,30 @@ def benchmark_screening(
     target: str,
     target_interval: Interval,
     actions: Iterable[CounterfactualAction],
-    exact_evaluator: Callable[[CounterfactualAction], bool],
+    reference_evaluator: Callable[[CounterfactualAction], bool],
 ) -> dict:
-    """Compare filtered and exhaustive candidate evaluation using a caller oracle.
+    """Compare screened candidates against a caller-supplied reference evaluator.
 
-    Exhaustive evaluation is run for all actions only to validate the screen.
-    A production path would run the expensive evaluator only for RETAIN actions.
-    The evaluator should be deterministic or use a fixed seed per action.
+    The reference evaluator is called for every candidate to validate the screen,
+    and again for retained candidates to model a filtered run. The callback may
+    be analytic/exhaustive or sampled; all recall claims inherit its limitations.
+    A production path would call the expensive evaluator only for RETAIN actions.
     """
     action_list = list(actions)
     certificates = model.screen_actions(target, target_interval, action_list)
     by_id = {c.action_id: c for c in certificates}
-    exhaustive = {a.action_id: bool(exact_evaluator(a)) for a in action_list}
+    exhaustive = {a.action_id: bool(reference_evaluator(a)) for a in action_list}
     retained = [a for a in action_list if by_id[a.action_id].status == "RETAIN"]
-    screened = {a.action_id: bool(exact_evaluator(a)) for a in retained}
+    screened = {a.action_id: bool(reference_evaluator(a)) for a in retained}
     exhaustive_feasible = {i for i, ok in exhaustive.items() if ok}
     screened_feasible = {i for i, ok in screened.items() if ok}
     missed = sorted(exhaustive_feasible - screened_feasible)
     pruned = [a.action_id for a in action_list if by_id[a.action_id].status == "MASK"]
     masked_feasible = sorted(exhaustive_feasible.intersection(pruned))
+    recall = (
+        len(exhaustive_feasible - set(missed)) / len(exhaustive_feasible)
+        if exhaustive_feasible else 1.0
+    )
     return {
         "graph_version": model.graph_version,
         "target": target,
@@ -361,18 +366,17 @@ def benchmark_screening(
         "candidate_count": len(action_list),
         "masked_count": len(pruned),
         "retained_count": len(retained),
-        "exhaustive_exact_evaluations": len(action_list),
-        "screened_exact_evaluations": len(retained),
-        "exact_evaluations_avoided": len(pruned),
-        "evaluation_reduction_fraction": len(pruned) / len(action_list) if action_list else 0.0,
+        "exhaustive_reference_evaluation_calls": len(action_list),
+        "screened_reference_evaluation_calls": len(retained),
+        "candidate_evaluations_avoided": len(pruned),
+        "candidate_evaluation_reduction_fraction": len(pruned) / len(action_list) if action_list else 0.0,
         "interval_equations_evaluated": sum(c.interval_equations_evaluated for c in certificates),
-        "exhaustive_feasible_action_ids": sorted(exhaustive_feasible),
-        "screened_feasible_action_ids": sorted(screened_feasible),
-        "missed_feasible_action_ids": missed,
-        "masked_feasible_action_ids": masked_feasible,
-        "screening_recall": (len(exhaustive_feasible - set(missed)) / len(exhaustive_feasible))
-        if exhaustive_feasible else 1.0,
-        "all_exhaustive_feasible_actions_retained": not masked_feasible,
-        "validation_evaluator_calls_including_reference": len(action_list) + len(retained),
+        "exhaustive_reference_feasible_action_ids": sorted(exhaustive_feasible),
+        "screened_reference_feasible_action_ids": sorted(screened_feasible),
+        "missed_reference_feasible_action_ids": missed,
+        "masked_reference_feasible_action_ids": masked_feasible,
+        "reference_recall": recall,
+        "all_reference_feasible_actions_retained": not masked_feasible,
+        "validation_reference_calls_including_crosscheck": len(action_list) + len(retained),
         "certificates": [c.as_dict() for c in certificates],
     }
