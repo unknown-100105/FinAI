@@ -155,3 +155,8 @@ The completion branch now carries two separate experimental causal-risk prototyp
 - **Intervention feasibility screening:** conservative interval screening for bounded linear DAG interventions (finance_engine/counterfactual_screening.py).
 
 Both are opt-in research components. Neither is a causal discovery engine or a validated production risk model. The linear-DAG assumptions, financial calibration, temporal modeling, production API/orchestrator integration, and claim-focused legal review remain open. Synthetic benchmarks must not be presented as proof of financial accuracy, novelty, or patentability.
+
+
+## ResilientPay settlement seam
+
+The completion branch includes the experimental local-first payment journal in resilient_pay/ledger.py. It deliberately stops at a payment-intent/adapter contract and a simulation-only adapter. It must not be represented as live banking or Fabric settlement. The external gateway, channel/chaincode, credentials/identities, reconciliation protocol, and independent security review remain deployment-specific.
