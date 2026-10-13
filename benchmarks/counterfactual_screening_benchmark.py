@@ -80,7 +80,7 @@ def main() -> None:
     output_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({k: v for k, v in report.items() if k != "certificates"}, indent=2))
     print(f"\nFull certificates written to: {output_path}")
-    if not report["all_exhaustive_feasible_actions_retained"]:
+    if not report["all_reference_feasible_actions_retained"]:
         raise SystemExit("FAIL: screening masked at least one oracle-feasible action")
 
 
