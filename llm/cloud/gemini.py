@@ -5,6 +5,7 @@ from typing import Any, Dict
 import requests
 
 from .base import CloudLLMProvider
+from policy.network_mode import assert_cloud_provider_allowed
 
 
 class GeminiProvider(CloudLLMProvider):
@@ -82,6 +83,8 @@ class GeminiProvider(CloudLLMProvider):
             raise RuntimeError(
                 "GEMINI_API_KEY is not configured."
             )
+
+        assert_cloud_provider_allowed("gemini")
 
         prompt = self._build_prompt(
             user_text=user_text,
