@@ -70,3 +70,5 @@ The files are committed to the remote branch, but full Windows/Node test executi
 ## Opt-in research API
 
 Added app/patent_mechanism_api.py with EPCRP and bounded-DAG feasibility-screen endpoints and added endpoint tests to CI. app/main.py mounts this router only when FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS is explicitly enabled. The handlers use caller-supplied models and are not connected to bank execution or production authorization. Test execution on the final branch remains pending because the current hosted Actions runs fail before exposing any job steps.
+
+The opt-in experimental HTTP routes now also fail closed unless a bearer token of at least 32 characters is configured via `FINAI_RESEARCH_API_TOKEN`; tests include missing/invalid token cases. This is an extra guard, not a substitute for deployment authentication/rate limiting.
