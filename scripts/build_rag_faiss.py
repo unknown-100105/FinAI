@@ -206,11 +206,6 @@ def main() -> None:
         checkpoint=checkpoint,
         checkpoint_exists=checkpoint_exists,
     )
-    if not checkpoint_exists and indexed_count:
-        print(
-            "WARNING: checkpoint.json is missing; recovered resume position "
-            "from the aligned FAISS index and document ID map."
-        )
     print("RESUME LAST ID:", last_id)
     print("RESUME COUNT:", indexed_count)
 
