@@ -231,8 +231,11 @@ def main(argv: list[str] | None = None) -> int:
     missing_packages = [
         name for name, present in report["packages"].items() if not present
     ]
-    missing_artifacts = report["artifacts"]["rag_assets_missing"]
-    if not report["artifacts"]["router_model_present"]:
+    missing_artifacts = list(report["artifacts"]["rag_assets_missing"])
+    if (
+        not report["artifacts"]["router_model_present"]
+        and "router/models/finai_router_tfidf.joblib" not in missing_artifacts
+    ):
         missing_artifacts.append("router/models/finai_router_tfidf.joblib")
 
     if args.json:
