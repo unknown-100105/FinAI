@@ -3,6 +3,8 @@ from typing import Any, Dict, List, Optional
 
 import yfinance as yf
 
+from policy.network_mode import assert_external_network_allowed
+
 
 def _timestamp(value: Any) -> Optional[str]:
     if value is None:
@@ -76,6 +78,7 @@ def fetch_news(
         raise ValueError("News query must not be empty.")
 
     count = max(1, min(int(count), 25))
+    assert_external_network_allowed("yfinance financial news")
 
     try:
         search = yf.Search(
