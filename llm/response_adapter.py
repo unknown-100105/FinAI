@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import re
 import time
 from typing import Any, Dict
@@ -62,11 +63,22 @@ class SarvamResponseAdapter:
         )
         from peft import PeftModel
 
+        configured_base_path = os.getenv("FINAI_SARVAM_BASE_MODEL_PATH", "").strip()
+        base_model = configured_base_path or self.BASE_MODEL
+        if configured_base_path and not Path(configured_base_path).is_dir():
+            raise FileNotFoundError(
+                "FINAI_SARVAM_BASE_MODEL_PATH does not point to an existing "
+                f"model directory: {configured_base_path}"
+            )
+
+        # Local models must be pre-provisioned explicitly; do not allow a user
+        # request to start an unexpected multi-gigabyte Hugging Face download.
         start = time.perf_counter()
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.BASE_MODEL,
+            base_model,
             trust_remote_code=True,
+            local_files_only=True,
         )
 
         if self.tokenizer.pad_token_id is None:
@@ -82,11 +94,12 @@ class SarvamResponseAdapter:
         )
 
         self.model = AutoModelForCausalLM.from_pretrained(
-            self.BASE_MODEL,
+            base_model,
             quantization_config=quant_config,
             device_map="auto",
             dtype=torch.float16,
             trust_remote_code=True,
+            local_files_only=True,
         )
 
         adapter_path = Path(self.adapter_path)
