@@ -241,3 +241,5 @@ PowerShell:
     $env:FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS = "true"
 
 Then start FinAI using the normal API command for this checkout. Restart the process after changing the variable. Do not expose these research-only endpoints to public clients; they currently have no dedicated authentication or rate limiting.
+
+Set `FINAI_RESEARCH_API_TOKEN` to a unique random secret of at least 32 characters before using these local-only research routes. The placeholder in `.env.example` is intentionally empty; do not commit actual credentials.
