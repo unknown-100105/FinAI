@@ -94,6 +94,15 @@ python scripts/build_rag_faiss.py
 
 The current builders expect the domain chunk files under `data/domain_chunks/`. Those source datasets must be obtained or generated separately. A fresh clone therefore does not contain a ready-to-query production RAG index until these assets are prepared.
 
+Before running end-to-end tests on a fresh clone, run the local preflight and review offline-mode behavior:
+
+```powershell
+python scripts/finai_preflight.py
+python scripts/finai_preflight.py --json
+```
+
+See [Offline mode and preflight guide](docs/OFFLINE_AND_PREFLIGHT.md) for the network-policy contract, local model requirements, artifact prerequisites, and tests. Offline checks cover the currently guarded provider paths, not arbitrary direct network calls from future modules.
+
 ## Cloud response providers
 
 FinAI now exposes a provider-agnostic response layer with Google Gemini, OpenAI, OpenRouter, Anthropic and Mistral adapters, plus local/research models. Providers remain server-side behind the ModelGateway; credentials are never sent to the browser.
