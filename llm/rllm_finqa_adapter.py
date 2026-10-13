@@ -1,4 +1,6 @@
-﻿import time
+﻿import os
+import time
+from pathlib import Path
 from typing import Any, Dict
 
 import torch
@@ -32,6 +34,16 @@ class RLLMFinQAModelAdapter:
                 "CUDA is required for rLLM-FinQA-4B."
             )
 
+        offline = os.getenv("FINAI_NETWORK_MODE", "online").strip().lower() == "offline"
+        configured_model_path = os.getenv("FINAI_RLLM_MODEL_PATH", "").strip()
+        model_reference = configured_model_path or self.MODEL_ID
+
+        if offline and configured_model_path and not Path(configured_model_path).is_dir():
+            raise FileNotFoundError(
+                "FINAI_NETWORK_MODE=offline but FINAI_RLLM_MODEL_PATH does not "
+                f"point to a local model directory: {configured_model_path}"
+            )
+
         quant_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
@@ -39,21 +51,22 @@ class RLLMFinQAModelAdapter:
             bnb_4bit_compute_dtype=torch.bfloat16,
         )
 
+        # In offline mode Transformers must only resolve files already present
+        # in the local path/cache. This prevents a silent Hugging Face download.
+        load_options = {"local_files_only": offline}
         start = time.perf_counter()
 
-        self.tokenizer = (
-            AutoTokenizer.from_pretrained(
-                self.MODEL_ID,
-            )
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_reference,
+            **load_options,
         )
 
-        self.model = (
-            AutoModelForCausalLM.from_pretrained(
-                self.MODEL_ID,
-                quantization_config=quant_config,
-                device_map="auto",
-                low_cpu_mem_usage=True,
-            )
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_reference,
+            quantization_config=quant_config,
+            device_map="auto",
+            low_cpu_mem_usage=True,
+            **load_options,
         )
 
         self.load_seconds = (
