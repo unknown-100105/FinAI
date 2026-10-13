@@ -232,11 +232,20 @@ def main(argv: list[str] | None = None) -> int:
         name for name, present in report["packages"].items() if not present
     ]
     missing_artifacts = list(report["artifacts"]["rag_assets_missing"])
+    missing_artifacts.extend(
+        path for path in report["artifacts"]["rag_source_chunks_missing"]
+        if path not in missing_artifacts
+    )
     if (
         not report["artifacts"]["router_model_present"]
         and "router/models/finai_router_tfidf.joblib" not in missing_artifacts
     ):
         missing_artifacts.append("router/models/finai_router_tfidf.joblib")
+    if (
+        not report["artifacts"]["router_training_inputs_available"]
+        and not report["artifacts"]["router_model_present"]
+    ):
+        missing_artifacts.append("approved router training JSONL (one of the known paths)")
 
     if args.json:
         print(json.dumps(report, indent=2, ensure_ascii=False))
