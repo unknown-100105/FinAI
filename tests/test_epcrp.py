@@ -72,17 +72,37 @@ class EPCRPTests(unittest.TestCase):
                 portfolio_exposures={"B": 1.0}, as_of="2026-10-13T00:00:00Z",
             )
 
-    def test_direct_intervention_does_not_claim_incoming_edge_causation(self):
+    def test_direct_intervention_lineage_includes_baseline_reference_edge(self):
         graph = EvidenceGatedRiskGraph(
             nodes=[RiskNode("A"), RiskNode("B")],
             edges=[EvidenceEdge("A", "B", 9.0, "EDGE-INTO-B")],
         )
         result = graph.run_counterfactual(
-            source_values={"A": 1.0}, interventions={"B": 5.0},
+            source_values={"A": 1.0}, interventions={"B": 13.0},
             portfolio_exposures={"B": 1.0}, as_of="2026-10-13T00:00:00Z",
         )
+        # Baseline B is computed through A->B; intervention B=13 overrides it.
+        self.assertAlmostEqual(result.baseline["B"], 9.0)
+        self.assertAlmostEqual(result.counterfactual["B"], 13.0)
         self.assertAlmostEqual(result.portfolio_delta, 4.0)
-        self.assertEqual(result.evidence_by_output["B"], ())
+        self.assertEqual(result.evidence_by_output["B"], ("EDGE-INTO-B",))
+
+    def test_observed_source_node_blocks_intervention_propagation(self):
+        graph = EvidenceGatedRiskGraph(
+            nodes=[RiskNode("A"), RiskNode("B"), RiskNode("C")],
+            edges=[
+                EvidenceEdge("A", "B", 2.0, "EDGE-AB"),
+                EvidenceEdge("B", "C", 3.0, "EDGE-BC"),
+            ],
+        )
+        result = graph.run_counterfactual(
+            source_values={"B": 3.0},
+            interventions={"A": 4.0},
+            portfolio_exposures={"C": 1.0},
+            as_of="2026-10-13T00:00:00Z",
+        )
+        self.assertAlmostEqual(result.portfolio_delta, 0.0)
+        self.assertEqual(result.evidence_by_output["C"], ())
 
     def test_uncertainty_is_seeded_and_json_serializable(self):
         kwargs = dict(
