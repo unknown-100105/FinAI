@@ -38,10 +38,10 @@ class RLLMFinQAModelAdapter:
         configured_model_path = os.getenv("FINAI_RLLM_MODEL_PATH", "").strip()
         model_reference = configured_model_path or self.MODEL_ID
 
-        if offline and configured_model_path and not Path(configured_model_path).is_dir():
+        if configured_model_path and not Path(configured_model_path).is_dir():
             raise FileNotFoundError(
-                "FINAI_NETWORK_MODE=offline but FINAI_RLLM_MODEL_PATH does not "
-                f"point to a local model directory: {configured_model_path}"
+                "FINAI_RLLM_MODEL_PATH does not point to a local model directory: "
+                f"{configured_model_path}"
             )
 
         quant_config = BitsAndBytesConfig(
@@ -51,9 +51,11 @@ class RLLMFinQAModelAdapter:
             bnb_4bit_compute_dtype=torch.bfloat16,
         )
 
-        # In offline mode Transformers must only resolve files already present
-        # in the local path/cache. This prevents a silent Hugging Face download.
-        load_options = {"local_files_only": offline}
+        # This local specialist must never download multi-gigabyte weights as a
+        # side effect of a chat request. Provision/cache the model explicitly.
+        # This also makes offline mode safe if a caller passed it as a request
+        # option instead of setting the process-wide environment variable.
+        load_options = {"local_files_only": True}
         start = time.perf_counter()
 
         self.tokenizer = AutoTokenizer.from_pretrained(
