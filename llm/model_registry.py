@@ -141,7 +141,9 @@ MODEL_REGISTRY = {
         routing_priority=40,
         min_ram_gb=4.0,
         preferred_vram_gb=4.0,
-        gpu_required=False,
+        # The current adapter uses 4-bit CUDA quantization. Do not advertise
+        # this model as runnable on CPU-only hosts.
+        gpu_required=True,
     ),
 
     "anthropic-claude": ModelSpec(
