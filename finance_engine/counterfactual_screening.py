@@ -287,7 +287,7 @@ class BoundedLinearDAG:
             affected = self.descendants(normalized) if normalized else set()
             ranges = dict(baseline)
             recomputed, equation_evaluations = [], 0
-            reachable_target = baseline[target]
+            reachable_target = None if reason else baseline[target]
 
             if reason is None:
                 for name in self.order:
