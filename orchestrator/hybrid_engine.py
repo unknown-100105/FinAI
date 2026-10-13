@@ -194,6 +194,19 @@ class FinAIHybridEngine:
                 "INCOMPLETE_GENERATION",
             }
         )
+        # Distinguish capabilities that exist on the machine from stages that
+        # belong in this request's observed execution path.
+        needs_retrieval = (
+            str(legacy_plan.get("capability") or "") == "rag"
+            and stage == "rag"
+        )
+        needs_generation = (
+            bool(generate_response)
+            and stage in {"finance_engine", "rag", "financial_knowledge"}
+            and status not in {
+                "MISSING_PARAMETERS", "RAG_ERROR", "NO_EVIDENCE",
+            }
+        )
 
         rag_paths = (
             ROOT / "data" / "rag" / "finai_rag.db",
@@ -213,17 +226,17 @@ class FinAIHybridEngine:
             "MODEL_UNAVAILABLE",
             "GENERATION_ERROR",
         }
-        model_available = (
+        model_available = needs_generation and (
             bool(generation) and not generation_failed
             if generate_response and stage in {
                 "finance_engine", "rag", "financial_knowledge"
             } and status != "MISSING_PARAMETERS"
             else response_service_available
         )
-        verification_available = (
+        verification_available = needs_generation and (
             verification_observed
             if generate_response and generation
-            else verification_observed or not generate_response
+            else verification_observed
         )
 
         all_modes = tuple(ExecutionMode)
@@ -245,10 +258,14 @@ class FinAIHybridEngine:
                 ),
                 Capability(
                     "retrieval",
-                    retrieval_available,
-                    all_modes if retrieval_available else online_only,
-                    reason="RAG retriever or all required local index artifacts are unavailable",
-                    metadata={"source": "hybrid_rrf"},
+                    retrieval_available and needs_retrieval,
+                    all_modes if retrieval_available and needs_retrieval else online_only,
+                    reason=(
+                        "RAG retriever or all required local index artifacts are unavailable"
+                        if needs_retrieval
+                        else "retrieval is not required by the observed request path"
+                    ),
+                    metadata={"source": "hybrid_rrf", "requested_for_path": needs_retrieval},
                 ),
                 Capability(
                     "model_generation",
@@ -279,17 +296,6 @@ class FinAIHybridEngine:
                 "claim_verification": ("model_generation",),
                 "response_verification": ("claim_verification",),
             },
-        )
-        needs_retrieval = (
-            str(legacy_plan.get("capability") or "") == "rag"
-            and stage == "rag"
-        )
-        needs_generation = (
-            bool(generate_response)
-            and stage in {"finance_engine", "rag", "financial_knowledge"}
-            and status not in {
-                "MISSING_PARAMETERS", "RAG_ERROR", "NO_EVIDENCE",
-            }
         )
         plan = build_execution_plan(
             request_id=request_id,
