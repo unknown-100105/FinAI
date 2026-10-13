@@ -35,12 +35,16 @@ class QwenEmbeddingAdapter:
     def _resolve_model_source(self) -> str:
         configured_path = os.getenv("FINAI_EMBEDDING_MODEL_PATH", "").strip()
         if configured_path:
-            if not Path(configured_path).is_dir():
+            local_path = Path(configured_path).expanduser()
+            if not local_path.is_absolute():
+                local_path = Path(__file__).resolve().parents[1] / local_path
+            local_path = local_path.resolve()
+            if not local_path.is_dir():
                 raise FileNotFoundError(
                     "FINAI_EMBEDDING_MODEL_PATH does not point to an existing "
-                    f"model directory: {configured_path}"
+                    f"model directory: {local_path}"
                 )
-            return configured_path
+            return str(local_path)
 
         if get_network_mode() == "offline":
             # Resolve the already-cached snapshot without making a network call;
