@@ -15,12 +15,20 @@ production security controls work in a live deployment.
 - `build_execution_plan` produces a conservative plan for policy, deterministic
   finance, retrieval, model generation, claim verification, and response verification.
 - Prerequisite cycles are rejected. Missing required capabilities block the plan.
-- The planner does not perform policy authorization, execute tools, guarantee a model
-  is actually reachable, or persist state. The caller must re-check authorization at
-  execution time and provide a durable store if persistence is required.
+- `FinAIHybridEngine.process` now attaches a `capability_execution_plan`
+  diagnostic to each returned result. This is separate from the legacy `execution_plan`
+  authority/controller contract and records the observed stage and status.
+- `XAISessionOrchestrator` writes this diagnostic into a separate XAI trace field
+  (`capability_execution_plan`); it does not overwrite the recorded authority decision.
+- This is request-path observability, **not an authorization or execution gate**. The
+  existing router, policy, authority, and risk-control layers remain authoritative.
+  The capability graph object is still in-memory; only the resulting diagnostic is
+  recorded with the existing XAI trace. Full policy-gated execution-plan dispatch,
+  durable graph-state storage, and enforced offline/degraded mode remain incomplete.
 
-Regression coverage lives in `tests/test_execution_plan.py`. These tests are included
-in the artifact-independent CI test command.
+Regression coverage lives in `tests/test_execution_plan.py` and
+`tests/test_capability_plan_integration.py`; both are listed in the artifact-independent
+CI command. Local and hosted test runs must be repeated against the current branch.
 
 ## Fresh Windows checkout
 
