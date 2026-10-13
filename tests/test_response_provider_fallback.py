@@ -275,3 +275,55 @@ def test_kyc_uses_financial_qa_fallback_when_cloud_providers_fail():
         "openrouter-cloud",
         "rllm-finqa-4b",
     ]
+
+
+@pytest.mark.parametrize(
+    "network_mode,data_sensitivity",
+    [
+        ("offline", "standard"),
+        ("online", "restricted"),
+    ],
+)
+def test_offline_or_restricted_policy_never_uses_cloud_fallbacks(
+    network_mode,
+    data_sensitivity,
+):
+    local = FakeAdapter(
+        "rllm",
+        error=RuntimeError("Local model files are not provisioned"),
+    )
+    gemini = FakeAdapter("gemini")
+    openrouter = FakeAdapter("openrouter")
+
+    gateway = ModelGateway(default_model="rllm-finqa-4b")
+    gateway.register(
+        "rllm-finqa-4b",
+        local,
+        capabilities=["response_generation", "financial_qa"],
+    )
+    service = ResponseService(gateway=gateway)
+    service._fallback_adapters["gemini-cloud"] = gemini
+    service._fallback_adapters["openrouter-cloud"] = openrouter
+
+    with pytest.raises(
+        RuntimeError,
+        match="All configured LLM providers failed",
+    ):
+        service._generate_with_provider_fallback(
+            selected_model="rllm-finqa-4b",
+            explicit_model=False,
+            user_text="Explain loan interest.",
+            intent="INTEREST_QUERY",
+            verified_result={},
+            source="test",
+            language="English",
+            persona="neutral",
+            max_new_tokens=64,
+            capability="financial_qa",
+            network_mode=network_mode,
+            data_sensitivity=data_sensitivity,
+        )
+
+    assert len(local.calls) == 1
+    assert gemini.calls == []
+    assert openrouter.calls == []
