@@ -427,6 +427,22 @@ class PaymentService:
             raise SettlementOutcomeUnknown(
                 "adapter failed; intent moved to reconciliation and must not be retried blindly"
             ) from exc
-        return self.ledger.mark_submitted(
-            payment_id, external_reference=reference, sandbox=receipt.sandbox
-        )
+        try:
+            return self.ledger.mark_submitted(
+                payment_id, external_reference=reference, sandbox=receipt.sandbox
+            )
+        except Exception as exc:
+            # The destination may have accepted the intent even if local persistence
+            # failed. Do not leave it apparently safe for an automatic retry.
+            try:
+                self.ledger.mark_reconciliation_required(
+                    payment_id,
+                    reason="adapter receipt obtained but local journal update failed",
+                )
+            except Exception:
+                # Preserve the original persistence exception; operators must inspect
+                # the journal and destination before retrying.
+                pass
+            raise SettlementOutcomeUnknown(
+                "adapter returned a reference but local persistence failed; reconcile before retry"
+            ) from exc
