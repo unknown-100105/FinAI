@@ -11,6 +11,7 @@ from xai.claims import build_finance_claims
 
 from llm.response_adapter import SarvamResponseAdapter
 from llm.rllm_finqa_adapter import RLLMFinQAModelAdapter
+from llm.colibri_adapter import ColibriResponseAdapter
 from llm.cloud.gemini_adapter import GeminiProResponseAdapter, GeminiResponseAdapter
 from llm.cloud.openrouter_adapter import OpenRouterResponseAdapter
 from llm.cloud.anthropic_adapter import AnthropicResponseAdapter
@@ -39,6 +40,7 @@ class ResponseService:
         "openai-sol": OpenAISolResponseAdapter,
         "gemini-pro-cloud": GeminiProResponseAdapter,
         "rllm-finqa-4b": RLLMFinQAModelAdapter,
+        "colibri-local": ColibriResponseAdapter,
         "sarvam-1": SarvamResponseAdapter,
         "anthropic-claude": AnthropicResponseAdapter,
         "mistral-large": MistralResponseAdapter,
@@ -53,6 +55,7 @@ class ResponseService:
             "openrouter-cloud",
             "anthropic-claude",
             "mistral-large",
+            "colibri-local",
         ),
         "financial_qa": (
             "gemini-cloud",
@@ -60,6 +63,7 @@ class ResponseService:
             "anthropic-claude",
             "mistral-large",
             "rllm-finqa-4b",
+            "colibri-local",
         ),
     }
 
