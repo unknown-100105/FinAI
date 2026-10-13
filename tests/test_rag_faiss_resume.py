@@ -88,3 +88,13 @@ def test_checkpoint_must_match_the_saved_id_map_prefix():
             },
             checkpoint_exists=True,
         )
+
+
+def test_nonempty_index_without_checkpoint_fails_closed():
+    with pytest.raises(ValueError, match="no checkpoint.json"):
+        validate_resume_state(
+            vector_count=1,
+            document_ids=[3],
+            checkpoint={},
+            checkpoint_exists=False,
+        )
