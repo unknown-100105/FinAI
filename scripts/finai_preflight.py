@@ -137,6 +137,11 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
         if os.getenv(key, "").strip()
     ]
 
+    colibri_configured = bool(
+        os.getenv("FINAI_COLIBRI_BASE_URL", "").strip()
+    )
+    colibri_model = os.getenv("FINAI_COLIBRI_MODEL", "olmoe-colibri").strip()
+
     missing_router_inputs = [
         path
         for path in (
@@ -178,6 +183,12 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
             "configured_provider_names": configured_providers,
             "secret_values_exposed": False,
             "reachability_verified": False,
+        },
+        "local_inference": {
+            "colibri_configured": colibri_configured,
+            "colibri_model": colibri_model if colibri_configured else None,
+            "colibri_server_reachability_verified": False,
+            "api_key_values_exposed": False,
         },
         "artifacts": {
             "router_model_present": router_model.is_file(),
@@ -237,6 +248,17 @@ def _next_steps(
             "After preparing source chunks, run scripts/build_rag_index.py and then "
             "scripts/build_rag_faiss.py; missing generated assets: "
             + ", ".join(missing_rag_assets)
+        )
+    if os.getenv("FINAI_COLIBRI_BASE_URL", "").strip():
+        steps.append(
+            "Colibrì is configured but has not been contacted by preflight. Start its "
+            "separately installed loopback server and test with tests/test_colibri_adapter.py; "
+            "preflight does not verify server health or model availability."
+        )
+    else:
+        steps.append(
+            "Optional local Colibrì inference is disabled. See docs/OFFLINE_AND_PREFLIGHT.md "
+            "and the upstream Colibrì Windows/API guides before enabling it."
         )
     if not steps:
         steps.append(
