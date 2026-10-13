@@ -2,6 +2,17 @@ from llm.model_router import ModelRouter
 from llm.resource_orchestrator import HardwareSnapshot
 
 
+def capable_gpu():
+    return HardwareSnapshot(
+        cpu_cores=8,
+        ram_gb=16.0,
+        vram_gb=8.0,
+        storage_free_gb=100.0,
+        cuda_available=True,
+        platform="test",
+    )
+
+
 def test_router_prefers_high_priority_default_model():
     router = ModelRouter()
     result = router.route("response_generation", risk_level="low")
@@ -22,6 +33,7 @@ def test_explicit_model_selection_is_deterministic():
         "financial_qa",
         risk_level="high",
         explicit_model="rllm-finqa-4b",
+        hardware=capable_gpu(),
     )
     assert result.selected_model == "rllm-finqa-4b"
     assert result.policy == "explicit"
@@ -31,7 +43,7 @@ def test_explicit_model_selection_is_deterministic():
 def test_preference_can_promote_an_enabled_candidate(monkeypatch):
     monkeypatch.setenv("FINAI_LLM_PREFERENCE", "rllm-finqa-4b")
     router = ModelRouter()
-    result = router.route("financial_qa")
+    result = router.route("financial_qa", hardware=capable_gpu())
     assert result.selected_model == "rllm-finqa-4b"
 
 
@@ -60,7 +72,11 @@ def test_critical_risk_can_promote_high_reasoning_cloud(monkeypatch):
 
 def test_offline_routing_is_local_only():
     router = ModelRouter()
-    result = router.route("financial_qa", network_mode="offline")
+    result = router.route(
+        "financial_qa",
+        network_mode="offline",
+        hardware=capable_gpu(),
+    )
     assert result.provider == "local"
     assert result.reason == "offline_local_only"
     assert "offline_local_only" in result.constraints_applied
@@ -68,14 +84,22 @@ def test_offline_routing_is_local_only():
 
 def test_restricted_data_is_local_only():
     router = ModelRouter()
-    result = router.route("financial_qa", data_sensitivity="restricted")
+    result = router.route(
+        "financial_qa",
+        data_sensitivity="restricted",
+        hardware=capable_gpu(),
+    )
     assert result.provider == "local"
     assert result.reason == "restricted_data_local_only"
 
 
 def test_degraded_network_prefers_local_model():
     router = ModelRouter(preference=["gemini-cloud"])
-    result = router.route("financial_qa", network_mode="degraded")
+    result = router.route(
+        "financial_qa",
+        network_mode="degraded",
+        hardware=capable_gpu(),
+    )
     assert result.provider == "local"
     assert result.reason == "degraded_network_local_preference"
 
