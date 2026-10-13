@@ -37,11 +37,17 @@ class RLLMFinQAModelAdapter:
         configured_model_path = os.getenv("FINAI_RLLM_MODEL_PATH", "").strip()
         model_reference = configured_model_path or self.MODEL_ID
 
-        if configured_model_path and not Path(configured_model_path).is_dir():
-            raise FileNotFoundError(
-                "FINAI_RLLM_MODEL_PATH does not point to a local model directory: "
-                f"{configured_model_path}"
-            )
+        if configured_model_path:
+            local_path = Path(configured_model_path).expanduser()
+            if not local_path.is_absolute():
+                local_path = Path(__file__).resolve().parents[1] / local_path
+            local_path = local_path.resolve()
+            if not local_path.is_dir():
+                raise FileNotFoundError(
+                    "FINAI_RLLM_MODEL_PATH does not point to a local model directory: "
+                    f"{local_path}"
+                )
+            model_reference = str(local_path)
 
         quant_config = BitsAndBytesConfig(
             load_in_4bit=True,
