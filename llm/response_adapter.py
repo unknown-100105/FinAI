@@ -12,6 +12,9 @@ from xai.claim_extractor import FinancialClaimExtractor
 from xai.claim_verifier import ClaimVerifier
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
 class SarvamResponseAdapter:
 
     BASE_MODEL = "sarvamai/sarvam-1"
@@ -65,13 +68,22 @@ class SarvamResponseAdapter:
 
         configured_base_path = os.getenv("FINAI_SARVAM_BASE_MODEL_PATH", "").strip()
         base_model = configured_base_path or self.BASE_MODEL
-        if configured_base_path and not Path(configured_base_path).is_dir():
-            raise FileNotFoundError(
-                "FINAI_SARVAM_BASE_MODEL_PATH does not point to an existing "
-                f"model directory: {configured_base_path}"
-            )
+        if configured_base_path:
+            configured_path = Path(configured_base_path).expanduser()
+            if not configured_path.is_absolute():
+                configured_path = REPO_ROOT / configured_path
+            configured_path = configured_path.resolve()
+            if not configured_path.is_dir():
+                raise FileNotFoundError(
+                    "FINAI_SARVAM_BASE_MODEL_PATH does not point to an existing "
+                    f"model directory: {configured_path}"
+                )
+            base_model = str(configured_path)
 
-        adapter_path = Path(self.adapter_path)
+        adapter_path = Path(self.adapter_path).expanduser()
+        if not adapter_path.is_absolute():
+            adapter_path = REPO_ROOT / adapter_path
+        adapter_path = adapter_path.resolve()
         if not adapter_path.exists():
             raise FileNotFoundError(
                 f"FinAI adapter path does not exist: {adapter_path}"
