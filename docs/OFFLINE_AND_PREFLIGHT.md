@@ -44,6 +44,7 @@ The rLLM-FinQA 4B adapter uses 4-bit CUDA quantization and therefore requires a 
 The adapter uses `local_files_only=True` and does not download multiple gigabytes during a request. Provision the model files in the Hugging Face cache before selecting offline generation, or set `FINAI_RLLM_MODEL_PATH` to an existing local model directory. This setting must point to model files in the format expected by Transformers.
 
 The optional Sarvam-1 base adapter also uses `local_files_only=True`; set `FINAI_SARVAM_BASE_MODEL_PATH` to an existing local Transformers model directory when it is not available in the Hugging Face cache. Its PEFT adapter directory must also be present locally. Neither local-model path downloads weights automatically during a request.
+Relative model paths in `FINAI_RLLM_MODEL_PATH`, `FINAI_SARVAM_BASE_MODEL_PATH`, and `FINAI_EMBEDDING_MODEL_PATH` are resolved from the repository root, not the shell's current working directory. The variables are documented in `.env.example`.
 
 The embedding model used by RAG is separate. `FINAI_RAG_DEVICE` can be set to `cuda` or `cpu`; when unset the embedding adapter chooses CUDA if available and otherwise CPU. RAG still requires the source chunks, SQLite database, FAISS index, and document ID map described by the preflight report.
 
@@ -55,4 +56,4 @@ A clean preflight does **not** prove that API credentials are valid, providers a
 
 ## Guard scope
 
-Offline guards currently cover the model gateway, response-service cloud fallback policy, Yahoo Finance quotes/history/discovery/news, CCXT order-book and live market queries, and the public mempool.space mining-statistics adapter. The entire process is not a network sandbox: any future provider or direct HTTP client must use the shared `assert_external_network_allowed` guard (or an equivalent explicit policy) before outbound requests.
+Offline guards currently cover the model gateway and direct Gemini/OpenAI/OpenRouter/Anthropic/Mistral provider boundaries, response-service cloud fallback policy, Yahoo Finance quotes/history/discovery/news, CCXT order-book and live market queries, and the public mempool.space mining-statistics adapter. The entire process is not a network sandbox: any future provider or direct HTTP client must use `assert_external_network_allowed` or `assert_cloud_provider_allowed` (or an equivalent explicit policy) before outbound requests.
