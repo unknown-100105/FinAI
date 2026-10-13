@@ -56,6 +56,7 @@ jobs:
             tests/test_domain_router.py \
             tests/test_finance_encyclopedia.py \
             tests/test_finance_engine.py \
+            tests/test_counterfactual_screening.py \
             tests/test_finance_services.py \
             tests/test_financial_catalog.py \
             tests/test_financial_parameters.py \
