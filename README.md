@@ -230,3 +230,14 @@ The research branch includes two explicitly experimental mechanisms:
 - **Intervention feasibility screening:** finance_engine/counterfactual_screening.py screens bounded linear-DAG interventions using conservative interval bounds. RETAIN means only that infeasibility was not proven.
 
 Run python -m pytest -q tests/test_epcrp.py tests/test_counterfactual_screening.py and python benchmarks/counterfactual_screening_benchmark.py from the repository root. These are research prototypes and synthetic benchmarks, not real-market validation, causal discovery, or proof of patentability. They are not enabled as production decision paths by default.
+
+
+### Running the experimental research endpoints (local only)
+
+The EPCRP and feasibility-screen HTTP routes are disabled by default. To mount them in a local development server, set the environment variable before starting the API process:
+
+PowerShell:
+
+    $env:FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS = "true"
+
+Then start FinAI using the normal API command for this checkout. Restart the process after changing the variable. Do not expose these research-only endpoints to public clients; they currently have no dedicated authentication or rate limiting.
