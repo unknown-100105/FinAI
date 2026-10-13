@@ -77,3 +77,5 @@ The opt-in experimental HTTP routes now also fail closed unless a bearer token o
 ## ResilientPay research integration seam
 
 Added resilient_pay/ledger.py with SQLite-backed intent storage, idempotency keys, strict state transitions, settlement-adapter protocol, simulation-only adapter, reconciliation-required state for ambiguous adapter errors, and hash-chain verification. Regression tests are included in the CI artifact-independent test list. This is not a live bank/Fabric connector, account-balance ledger, or cross-device offline double-spend solution. A real Fabric gateway remains blocked on the selected SDK, channel/chaincode contract, identity provisioning, policies, reconciliation contract, and local test-network/security validation.
+
+Added scripts/demo_resilient_pay.py as a no-network, in-memory end-to-end exercise of prepare → simulate-submit → settle → audit-chain verification. It is a demonstration only, not evidence of a live payment/DLT connector.
