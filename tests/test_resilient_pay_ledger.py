@@ -1,3 +1,8 @@
+import json
+from pathlib import Path
+import subprocess
+import sys
+
 import pytest
 
 from resilient_pay.ledger import (
@@ -139,3 +144,17 @@ def test_journal_detects_modified_payload():
         valid, failing_sequence = ledger.verify_journal()
         assert valid is False
         assert failing_sequence == 1
+
+
+def test_demo_script_is_a_no_network_sandbox_flow():
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, str(root / "scripts" / "demo_resilient_pay.py")],
+        cwd=root, capture_output=True, text=True, timeout=15, check=True,
+    )
+    payload = json.loads(result.stdout)
+    assert payload["demo_only"] is True
+    assert payload["real_funds_moved"] is False
+    assert payload["journal_integrity"] == {"valid": True, "failing_sequence": None}
+    assert payload["payment"]["state"] == "SETTLED"
+    assert payload["payment"]["settlement_mode"] == "sandbox"
