@@ -1,4 +1,5 @@
-﻿from typing import Any, Dict, Optional
+﻿import os
+from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
@@ -67,6 +68,11 @@ app.include_router(market_intelligence_router)
 app.include_router(investment_knowledge_router)
 app.include_router(causal_risk_router)
 app.include_router(advanced_causal_router)
+
+# Experimental patent-mechanism endpoints remain disabled unless explicitly opted in.
+if os.getenv("FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS", "").strip().casefold() in {"1", "true", "yes", "on"}:
+    from app.patent_mechanism_api import router as patent_mechanism_router
+    app.include_router(patent_mechanism_router)
 
 
 _orchestrator: Optional[XAISessionOrchestrator] = None
