@@ -65,3 +65,8 @@ Keep the working tree and local stash intact until their changes are safely reco
 ## Validation status after these changes
 
 The files are committed to the remote branch, but full Windows/Node test execution is not available in this editing session. Run tests/test_epcrp.py, tests/test_counterfactual_screening.py, the complete backend suite, frontend build/lint, and both research benchmarks against the current checkout. Do not label this production-ready until those results are reviewed. The synthetic benchmark is not real-market evidence or a patentability conclusion.
+
+
+## Opt-in research API
+
+Added app/patent_mechanism_api.py with EPCRP and bounded-DAG feasibility-screen endpoints and added endpoint tests to CI. app/main.py mounts this router only when FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS is explicitly enabled. The handlers use caller-supplied models and are not connected to bank execution or production authorization. Test execution on the final branch remains pending because the current hosted Actions runs fail before exposing any job steps.
