@@ -278,8 +278,9 @@ class FinAIHybridEngine:
         needs_generation = (
             bool(generate_response)
             and stage in {"finance_engine", "rag", "financial_knowledge"}
-            and status != "MISSING_PARAMETERS"
-            and (bool(generation) or status in {"VERIFICATION_FAILED", "INCOMPLETE_GENERATION"})
+            and status not in {
+                "MISSING_PARAMETERS", "RAG_ERROR", "NO_EVIDENCE",
+            }
         )
         plan = build_execution_plan(
             request_id=request_id,
