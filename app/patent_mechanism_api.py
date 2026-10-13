@@ -6,8 +6,10 @@ is explicitly enabled. They are not production risk or authorization endpoints.
 from __future__ import annotations
 
 from typing import Dict, List, Optional
+import hmac
+import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from finance_engine.epcrp import EvidenceEdge, EvidenceGatedRiskGraph, RiskNode
@@ -18,9 +20,35 @@ from finance_engine.counterfactual_screening import (
     LinearNode,
 )
 
+def _require_research_token(authorization: Optional[str] = Header(default=None)) -> None:
+    """Require an explicitly configured bearer token for experimental research calls."""
+    expected = os.getenv("FINAI_RESEARCH_API_TOKEN", "").strip()
+    if len(expected) < 32:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Experimental research API is locked: configure "
+                "FINAI_RESEARCH_API_TOKEN with at least 32 characters."
+            ),
+        )
+    scheme, separator, supplied = (authorization or "").partition(" ")
+    if (
+        not separator
+        or scheme.casefold() != "bearer"
+        or not supplied
+        or not hmac.compare_digest(supplied, expected)
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="A valid bearer token is required for experimental research endpoints.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
 router = APIRouter(
     prefix="/api/v1/research/patent-mechanisms",
     tags=["experimental-patent-mechanisms"],
+    dependencies=[Depends(_require_research_token)],
 )
 
 
