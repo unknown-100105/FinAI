@@ -53,3 +53,15 @@ npm run lint
 ```
 
 Keep the working tree and local stash intact until their changes are safely reconciled.
+
+
+## Additional research prototypes committed in this continuation
+
+- Added finance_engine/counterfactual_screening.py, its test suite and deterministic synthetic benchmark from the separate patent-screening work branch. The component computes conservative bounds over bounded linear DAGs and may mask only actions certified as unable to reach a target interval under supplied bounds. RETAIN is not a feasibility guarantee.
+- Added finance_engine/epcrp.py as a separate evidence-gated paired-world reference implementation, with tests and a disclosure note. It evaluates a single time-scoped static DAG snapshot; it does not model lagged time series, discover causal truth, or establish patentability.
+- Fixed request-path diagnostic planning so retrieval/model/verification steps are not listed solely because those capabilities happen to be available when the current request did not use them.
+- Added both prototype test suites to artifact-independent CI and added the screening synthetic smoke benchmark to the research benchmark job.
+
+## Validation status after these changes
+
+The files are committed to the remote branch, but full Windows/Node test execution is not available in this editing session. Run tests/test_epcrp.py, tests/test_counterfactual_screening.py, the complete backend suite, frontend build/lint, and both research benchmarks against the current checkout. Do not label this production-ready until those results are reviewed. The synthetic benchmark is not real-market evidence or a patentability conclusion.
