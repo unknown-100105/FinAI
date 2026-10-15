@@ -209,6 +209,11 @@ class FinAIHybridEngine:
                 "MISSING_PARAMETERS", "RAG_ERROR", "NO_EVIDENCE",
             }
         )
+        needs_market_data = (
+            stage == "market_data"
+            or str(legacy_plan.get("capability") or "") == "market_data"
+        )
+        needs_structured_knowledge = stage == "financial_knowledge"
 
         rag_paths = (
             ROOT / "data" / "rag" / "finai_rag.db",
@@ -260,11 +265,25 @@ class FinAIHybridEngine:
                     metadata={"source": "existing_policy_and_risk_controller"},
                 ),
                 Capability(
+                    "market_data",
+                    needs_market_data,
+                    all_modes,
+                    reason="the observed request did not enter the market-data dispatcher",
+                    metadata={"source": "market_data_dispatcher"},
+                ),
+                Capability(
                     "deterministic_finance",
                     getattr(self, "finance", None) is not None,
                     all_modes,
                     reason="deterministic finance dispatcher is not initialized",
                     metadata={"source": "finance_dispatcher"},
+                ),
+                Capability(
+                    "structured_knowledge",
+                    needs_structured_knowledge,
+                    all_modes,
+                    reason="the observed request did not use the structured finance knowledge path",
+                    metadata={"source": "financial catalog, encyclopedia, compliance and investment eligibility"},
                 ),
                 Capability(
                     "retrieval",
@@ -300,7 +319,9 @@ class FinAIHybridEngine:
                 ),
             ),
             prerequisites={
+                "market_data": ("policy",),
                 "deterministic_finance": ("policy",),
+                "structured_knowledge": ("policy",),
                 "retrieval": ("policy",),
                 "model_generation": ("policy",),
                 "claim_verification": ("model_generation",),
@@ -313,6 +334,8 @@ class FinAIHybridEngine:
             graph=graph,
             mode=mode,
             require_retrieval=needs_retrieval,
+            require_market_data=needs_market_data,
+            require_structured_knowledge=needs_structured_knowledge,
             require_model=needs_generation,
             require_claim_verification=needs_generation,
             require_response_verification=needs_generation,
@@ -388,7 +411,9 @@ class FinAIHybridEngine:
 
         observed_by_capability = {
             "policy": observed_policy,
+            "market_data": status if stage == "market_data" else "NOT_REQUIRED",
             "deterministic_finance": observed_finance,
+            "structured_knowledge": status if stage == "financial_knowledge" else "NOT_REQUIRED",
             "retrieval": observed_retrieval,
             "model_generation": observed_generation,
             "claim_verification": verification_status(claim_result),
