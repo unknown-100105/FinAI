@@ -195,6 +195,8 @@ export function MarketAnalystHub() {
         getMarketAnalyst(instrument, yearWindow.start, yearWindow.end, "1d"),
       ]);
 
+      setError("");
+      setAiExplanation("");
       setCandles(current.analysis.candles);
       setScenario(current.analysis.scenario ?? { scenarios: [], forecast_note: "" });
       setNews(current.news || []);
