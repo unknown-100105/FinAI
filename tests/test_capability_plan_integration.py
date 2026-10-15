@@ -190,3 +190,65 @@ def test_capability_plan_respects_offline_mode_without_claiming_cloud_generation
         or "model generation" in explanation.lower()
         for explanation in plan["explanations"]
     )
+
+
+def test_capability_plan_exposes_structured_knowledge_stage(monkeypatch):
+    monkeypatch.setenv("FINAI_NETWORK_MODE", "online")
+    for key in (
+        "OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY",
+        "MISTRAL_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY", "SARVAM_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    engine = _engine_with_stubbed_core()
+
+    def core(**kwargs):
+        return {
+            "stage": "financial_knowledge",
+            "status": "KNOWLEDGE_RETRIEVED",
+            "router": {"intent": "FINANCIAL_PRODUCT_KNOWLEDGE"},
+            "execution_plan": {"capability": "rag"},
+            "policy": {"status": "ALLOWED"},
+            "knowledge": {"source": "structured_financial_catalog"},
+        }
+
+    engine._process_core = core
+    result = engine.process(user_text="Explain mutual funds", generate_response=False)
+    plan = result["capability_execution_plan"]
+    steps = {step["capability"]: step for step in plan["steps"]}
+
+    assert "structured_knowledge" in steps
+    assert steps["structured_knowledge"]["kind"] == "structured_knowledge"
+    assert steps["structured_knowledge"]["observed_status"] == "KNOWLEDGE_RETRIEVED"
+    assert steps["structured_knowledge"]["depends_on"] == ["01_policy"]
+
+
+def test_capability_plan_exposes_market_data_stage(monkeypatch):
+    monkeypatch.setenv("FINAI_NETWORK_MODE", "online")
+    for key in (
+        "OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY",
+        "MISTRAL_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY", "SARVAM_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    engine = _engine_with_stubbed_core()
+
+    def core(**kwargs):
+        return {
+            "stage": "market_data",
+            "status": "MARKET_DATA_READY",
+            "router": {"intent": "MARKET_DATA_QUERY"},
+            "execution_plan": {"capability": "market_data"},
+            "policy": {"status": "ALLOWED"},
+            "market_data": {"instrument": "NIFTY 50"},
+        }
+
+    engine._process_core = core
+    result = engine.process(user_text="Show NIFTY 50", generate_response=False)
+    plan = result["capability_execution_plan"]
+    steps = {step["capability"]: step for step in plan["steps"]}
+
+    assert "market_data" in steps
+    assert steps["market_data"]["kind"] == "market_data"
+    assert steps["market_data"]["observed_status"] == "MARKET_DATA_READY"
+    assert steps["market_data"]["depends_on"] == ["01_policy"]
