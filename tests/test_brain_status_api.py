@@ -81,3 +81,18 @@ def test_brain_status_separates_offline_configuration_from_runtime_verification(
     assert offline["local_runtime_verified"] is False
     assert offline["model_weights_presence_verified"] is False
     assert offline["colibri_server_reachability_verified"] is False
+
+
+def test_google_api_key_alias_does_not_claim_gemini_provider_configured(tmp_path, monkeypatch):
+    monkeypatch.setattr(system_api, "ROOT", tmp_path)
+    for key in (
+        "OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY",
+        "MISTRAL_API_KEY", "GEMINI_API_KEY", "SARVAM_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("GOOGLE_API_KEY", "not-used-by-the-configured-gemini-adapter")
+
+    response = client.get("/api/v1/system/brain-status")
+    assert response.status_code == 200
+    layers = {item["id"]: item for item in response.json()["layers"]}
+    assert layers["model_generation"]["configured_provider_names"] == []
