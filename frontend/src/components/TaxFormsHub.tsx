@@ -26,6 +26,7 @@ export function TaxFormsHub() {
   const [gain, setGain] = useState<number | null>(null);
   const [calcBusy, setCalcBusy] = useState(false);
 
+  // oxlint-disable-next-line react/set-state-in-effect -- Loads the external compliance catalogue when the selected category changes.
   useEffect(() => {
     void getComplianceCatalog(category === "All" ? undefined : category)
       .then((data) => { setItems(data.items); setMeta(data.meta); })
