@@ -38,7 +38,7 @@ The capability execution plan currently records request-path diagnostics; it is 
 3. Run scripts/finai_preflight.py and confirm which router/RAG/model artifacts are missing.
 4. Run frontend npm ci, npm run build, and npm run lint.
 5. Start the API and frontend; run the Trade View manual checklist in docs/TRADE_VIEW_TOOLS.md. The `scripts/verify-finai.ps1` live checks exercise a safe chat request through the authentication boundary and validate the XAI trace response shape; separately test multilingual assistant requests, actual model generation/provider fallback, RAG evidence quality, and research endpoints.
-6. Run scripts/run_patent_mechanism_benchmark.py and benchmarks/counterfactual_screening_benchmark.py.
+6. Run scripts/run_patent_mechanism_benchmark.py and benchmarks/counterfactual_screening_benchmark.py. Run `scripts/smoke_llm_providers.py` for a no-network configuration report; only set `FINAI_RUN_LIVE_PROVIDER_SMOKE=1` when you deliberately want real provider calls that may incur charges.
 7. Review all warnings, failures, missing credentials, stale-data conditions, and security assumptions. Do not merge to main until these are resolved or explicitly accepted.
 
 ## Non-goals of this branch
