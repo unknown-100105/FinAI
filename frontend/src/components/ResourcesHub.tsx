@@ -52,7 +52,7 @@ export function ResourcesHub({ defaultCategory = "All" }: { defaultCategory?: st
     const raw = localStorage.getItem("finai-form-" + selected.resource_id);
     setValues(raw ? JSON.parse(raw) : Object.fromEntries(selected.form_fields.map((field) => [field, ""])));
     setSaved(false);
-  }, [selected?.resource_id]);
+  }, [selected]);
 
   const saveDraft = () => {
     if (!selected) return;
