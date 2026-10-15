@@ -72,6 +72,8 @@ def brain_status() -> dict[str, Any]:
     research_enabled = os.getenv(
         "FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS", ""
     ).strip().casefold() in {"1", "true", "yes", "on"}
+    network_mode = os.getenv("FINAI_NETWORK_MODE", "online").strip().lower()
+    colibri_configured = bool(os.getenv("FINAI_COLIBRI_BASE_URL", "").strip())
 
     return {
         "schema_version": "1.0",
@@ -137,6 +139,22 @@ def brain_status() -> dict[str, Any]:
                     "llm/resource_orchestrator.py",
                 ],
                 "execution_plan_is_diagnostic": True,
+            },
+            {
+                "id": "offline_inference",
+                "status": (
+                    "offline_mode_requested"
+                    if network_mode == "offline"
+                    else "local_adapters_present_runtime_unverified"
+                ) if _present(
+                    "llm/rllm_finqa_adapter.py",
+                    "llm/colibri_adapter.py",
+                ) else "missing_local_adapter_code",
+                "network_mode": network_mode,
+                "colibri_configured": colibri_configured,
+                "local_runtime_verified": False,
+                "model_weights_presence_verified": False,
+                "colibri_server_reachability_verified": False,
             },
             {
                 "id": "causal_risk_research",
