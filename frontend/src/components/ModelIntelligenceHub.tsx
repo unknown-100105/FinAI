@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Cloud, Cpu, Gauge, RefreshCw, Route, ShieldCheck } from "lucide-react";
 import {
   getFinAIModels,
@@ -88,7 +88,7 @@ export default function ModelIntelligenceHub() {
   const enabledModels = models.filter((model) => model.enabled && model.configured);
   const activeCandidates = models.filter((model) => capability === "all" || model.capabilities.includes(capability));
 
-  const runRoutePreview = async () => {
+  const runRoutePreview = useCallback(async () => {
     setRouteLoading(true);
     setError("");
     try {
@@ -98,9 +98,9 @@ export default function ModelIntelligenceHub() {
     } finally {
       setRouteLoading(false);
     }
-  };
+  }, [capability, risk, language, networkMode, dataSensitivity]);
 
-  useEffect(() => { void runRoutePreview(); }, [capability, risk, language, networkMode, dataSensitivity]);
+  useEffect(() => { void runRoutePreview(); }, [runRoutePreview]);
 
   return (
     <section className="module-page model-intelligence-page">
