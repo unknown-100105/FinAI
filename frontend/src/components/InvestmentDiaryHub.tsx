@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BookMarked, ExternalLink, LineChart, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { getMarketHistory, getMarketNews, getMarketQuote, type MarketBar } from "../api/market";
 import { CandleChart } from "./CandleChart";
@@ -40,7 +40,7 @@ export function InvestmentDiaryHub(){
   },[]);
   const snapshot=useMemo(()=>summarize(bars),[bars]);
 
-  const refresh=async()=>{
+  const refresh = useCallback(async () => {
     setBusy(true);
     try{
       const end=new Date(),start=new Date();
@@ -52,9 +52,9 @@ export function InvestmentDiaryHub(){
       ]);
       setQuote(q.quote);setPrice(String(q.quote.price??""));setBars(h.bars);setNews(n.articles);
     } finally { setBusy(false); }
-  };
-  useEffect(()=>{ void refresh().catch(()=>setBars([])); },[asset]);
-  const refreshWatchlist = async () => {
+  }, [asset]);
+  useEffect(() => { void refresh().catch(() => setBars([])); }, [refresh]);
+  const refreshWatchlist = useCallback(async () => {
     if (!watchlist.length) return;
     setWatchBusy(true);
     const end = new Date();
@@ -81,8 +81,8 @@ export function InvestmentDiaryHub(){
     results.forEach((result) => { if (result.status === "fulfilled") next[result.value[0]] = result.value[1]; });
     setWatchData(next);
     setWatchBusy(false);
-  };
-  useEffect(()=>{ void refreshWatchlist().catch(()=>undefined); },[watchlist]);
+  }, [watchlist]);
+  useEffect(() => { void refreshWatchlist().catch(() => undefined); }, [refreshWatchlist]);
 
 
   const save=()=>{
