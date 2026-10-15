@@ -218,3 +218,7 @@ Run the complete backend suite, frontend build/lint, research tests/benchmarks, 
 
 - Brain readiness diagnostics now include offline-mode/Colibrì configuration, while explicitly marking local runtime, model-weight presence, and server reachability as unverified.
 - Capability-plan steps now include observed outcomes and the top-level request outcome/stage; these remain retrospective diagnostics rather than a graph-driven tool executor.
+
+- The capability planner now reflects `FINAI_NETWORK_MODE` (online/degraded/offline) rather than hardcoding online mode; cloud-only generation is not reported as available in offline mode unless a successful generation result was actually observed.
+- Fixed an API-discovery bug where the XAI endpoint was advertised as a module name instead of `/api/v1/xai`; the API test and PowerShell verification script now check both XAI and Brain-status discovery.
+- Trade View now validates persisted watchlist/alert data and no longer overwrites a manually entered position entry price on every quote refresh.
