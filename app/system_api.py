@@ -159,6 +159,18 @@ def brain_status() -> dict[str, Any]:
                 "evidence": ["xai/claim_verifier.py", "rag/evidence_verifier.py", "xai/trace.py"],
             },
             {
+                "id": "resource_planning",
+                "status": "code_present" if _present(
+                    "llm/resource_orchestrator.py",
+                    "llm/model_router.py",
+                ) else "missing_code",
+                "evidence": [
+                    "llm/resource_orchestrator.py",
+                    "llm/model_router.py",
+                ],
+                "runtime_model_selection_verified": False,
+            },
+            {
                 "id": "adaptive_orchestration",
                 "status": "code_present" if _present(
                     "orchestrator/execution_plan.py",
