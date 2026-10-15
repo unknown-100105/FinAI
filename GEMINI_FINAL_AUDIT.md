@@ -84,6 +84,9 @@ Audit the complete repository after the implementation phase. Do not assume that
 - Expensive-computation controls.
 - Endpoint consistency.
 - Research-only boundaries.
+- Bearer middleware fail-closed behavior and the explicit limits of shared-token auth.
+- Provider smoke script: no outbound calls without `--live`; no credentials or generated response text in output; offline/restricted/allow-list gates.
+- Live verification script: model registry contract, safe chat authentication boundary, XAI trace response shape, and bearer-token header behavior.
 
 ### 10. Frontend
 - API contract compatibility.
