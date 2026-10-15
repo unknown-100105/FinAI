@@ -52,6 +52,31 @@ CI command. Local and hosted test runs must be repeated against the current bran
 
 
 
+
+## API bearer guard (15 October 2026)
+
+`app/api_security.py` provides a configurable shared-token boundary, registered in
+`app/main.py`. Development mode remains open for local UI work. When
+`FINAI_API_AUTH_MODE=bearer`, requests other than `/health` and CORS OPTIONS
+preflight require `Authorization: Bearer ...`. When `FINAI_ENV=production`, the
+guard fails closed unless `FINAI_API_BEARER_TOKEN` is configured with at least
+32 characters, even if the mode was mistakenly left at development. Invalid mode
+configuration also returns a service-unavailable response.
+
+This is not full production identity: there are no per-user identities, roles,
+tenant isolation, session ownership, refresh/revocation, MFA, or rate limiting in
+this middleware. Do not embed a shared token in a browser bundle. Use a private
+network and an identity-aware reverse proxy/OIDC gateway for browser deployments.
+Regression coverage is in `tests/test_api_security.py`; the artifact-independent
+CI test list includes it and `tests/test_finite_api_inputs.py`.
+
+`scripts/verify-finai.ps1` now prefers the repository virtualenv interpreter,
+runs the full Python suite, performs `npm ci`, frontend build and lint, checks
+the local API when `FINAI_SKIP_LIVE` is not set, and runs both deterministic
+research benchmark scripts. Review every output and warning; the script is not
+evidence that external provider credentials, real market-data reachability, or
+bank/DLT integrations work.
+
 ## Fresh Windows checkout
 
 Run in PowerShell from the repository root:
