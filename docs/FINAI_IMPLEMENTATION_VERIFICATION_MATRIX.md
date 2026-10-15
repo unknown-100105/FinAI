@@ -63,3 +63,6 @@ No live brokerage/order execution, bank settlement, production user identity/RBA
 - The diagnostic graph now has explicit request stages for market-data dispatch and structured financial knowledge (catalogue, encyclopedia, regulatory, compliance, and investment-eligibility sources), in addition to policy, deterministic finance, hybrid retrieval, generation, and verification.
 - The plan's mode now follows the validated `FINAI_NETWORK_MODE` setting (`online`, `degraded`, or `offline`). In offline mode, cloud-only generation is not treated as available unless a successful generation result was observed for that request.
 - Trade planner persistence is schema-checked before use, and manually entered position entries are preserved during periodic quote refreshes. Changing instruments clears the previous quote so it is not displayed as the new instrument's price.
+
+- The request-path plan now includes market-data and structured-knowledge stages plus adaptive resource planning before generation. Unit/integration coverage is added for market data, structured knowledge, observed resource selection, and offline-mode blocking.
+- The completion manifest and read-only Gemini audit contract now target `ai/finai-completion`; they no longer direct the final verification workflow to the older feature branch.
