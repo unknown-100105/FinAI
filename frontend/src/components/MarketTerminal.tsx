@@ -171,8 +171,8 @@ export function MarketTerminal() {
     }
   }, [instrument]);
 
-  // oxlint-disable-next-line react/set-state-in-effect -- Polls quote/history/analytics APIs for the selected instrument.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Polls quote/history/analytics APIs for the selected instrument.
     void load();
     const timer = window.setInterval(
       () => { void load(); },
