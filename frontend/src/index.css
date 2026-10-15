@@ -994,3 +994,10 @@ button {
 .brain-plan-step small{color:#7387a0;font-size:8px;line-height:1.4;overflow-wrap:anywhere}
 .brain-plan-explanations{display:grid;gap:5px;margin:10px 0 0;padding-left:16px;color:#d4b78d;font-size:8px;line-height:1.5}
 .brain-plan-footnote{display:block;margin-top:10px;color:#687d95;font-size:8px;line-height:1.5}
+
+.brain-layer-list{display:grid;gap:7px}
+.brain-layer-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);align-items:start;gap:8px;padding:7px 0;border-bottom:1px solid rgba(146,174,208,.07)}
+.brain-layer-row span{color:#8da0b8;font-size:8px;line-height:1.4}
+.brain-layer-row strong{font-size:8px;line-height:1.4;text-align:right;overflow-wrap:anywhere}
+.brain-layer-row .layer-present{color:#9bcdb7}
+.brain-layer-row .needs-attention{color:#e3bd83}
