@@ -16,12 +16,11 @@ export function NewsHub() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const load = async (nextQuery = query) => {
-    setLoading(true);
-    setError("");
+  const fetchNews = async (nextQuery: string) => {
     try {
       const result = await getMarketNews(nextQuery, 16);
       setArticles(result.articles);
+      setError("");
     } catch (requestError) {
       setArticles([]);
       setError(requestError instanceof Error ? requestError.message : "News is unavailable.");
@@ -30,7 +29,13 @@ export function NewsHub() {
     }
   };
 
-  useEffect(() => { void load(); }, []);
+  const load = async (nextQuery = query) => {
+    setLoading(true);
+    setError("");
+    await fetchNews(nextQuery);
+  };
+
+  useEffect(() => { void fetchNews("Indian stock market"); }, []);
 
   return (
     <section className="module-page">
