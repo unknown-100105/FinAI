@@ -36,6 +36,13 @@ const ranges = [
 ];
 
 const intervals = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"] as const;
+
+function intervalsForRange(range: string): Set<string> {
+  if (range === "1D") return new Set(["1m", "5m", "15m", "30m", "1h"]);
+  if (range === "5D") return new Set(["1m", "5m", "15m", "30m", "1h", "4h"]);
+  if (range === "1M") return new Set(["5m", "15m", "30m", "1h", "4h", "1d"]);
+  return new Set(["1h", "4h", "1d"]);
+}
 type Tab = "overview" | "chart" | "forecast" | "insights" | "technicals" | "patterns" | "scans" | "price-volume" | "seasonality";
 
 const tabs: Array<[Tab, string]> = [
@@ -167,7 +174,7 @@ export function MarketAnalystHub() {
   const [dailyBars, setDailyBars] = useState<MarketBar[]>([]);
   const [news, setNews] = useState<any[]>([]);
   const [selected, setSelected] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [playing, setPlaying] = useState(false);
   const [scenario, setScenario] = useState<any>({ scenarios: [], forecast_note: "" });
@@ -177,18 +184,9 @@ export function MarketAnalystHub() {
   const [modelAnalysis, setModelAnalysis] = useState<any>(null);
 
   const rangeConfig = useMemo(() => ranges.find((item) => item.id === range) ?? ranges[0], [range]);
-  const allowedIntervals = useMemo(() => {
-    if (range === "1D") return new Set(["1m", "5m", "15m", "30m", "1h"]);
-    if (range === "5D") return new Set(["1m", "5m", "15m", "30m", "1h", "4h"]);
-    if (range === "1M") return new Set(["5m", "15m", "30m", "1h", "4h", "1d"]);
-    return new Set(["1h", "4h", "1d"]);
-  }, [range]);
+  const allowedIntervals = useMemo(() => intervalsForRange(range), [range]);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    setAiExplanation("");
-
     try {
       const window = datesFor(rangeConfig.days);
       const yearWindow = datesFor(365);
@@ -226,11 +224,7 @@ export function MarketAnalystHub() {
     }
   }, [instrument, interval, range, rangeConfig]);
 
-  useEffect(() => {
-    const next = rangeConfig.defaultInterval;
-    setInterval((current) => allowedIntervals.has(current) ? current : next);
-  }, [rangeConfig.defaultInterval, allowedIntervals]);
-
+  // oxlint-disable-next-line react/set-state-in-effect -- Loads time-series and model data for the currently selected research parameters.
   useEffect(() => { void load(); }, [load]);
 
   useEffect(() => {
@@ -308,13 +302,13 @@ export function MarketAnalystHub() {
           <h1>Analyze the stock before you interpret the story.</h1>
           <p>Live/provider market data, technical analysis, historical model evidence, chart-pattern detection and investor research views — all tied to the same selected instrument.</p>
         </div>
-        <button className="market-refresh" type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={14} /> {loading ? "Loading…" : "Refresh"}</button>
+        <button className="market-refresh" type="button" onClick={() => { setLoading(true); setError(""); setAiExplanation(""); void load(); }} disabled={loading}><RefreshCw size={14} /> {loading ? "Loading…" : "Refresh"}</button>
       </div>
 
       {error && <div className="module-error">{error}</div>}
 
       <section className="analyst-stock-head workspace-panel">
-        <div className="analyst-stock-search"><MarketSearchBox value={instrument} onSelect={setInstrument}/><div className="analyst-watchlist"><button type="button" className="active">NSE</button><span>{instrument}</span><small>FinAI research view</small></div></div>
+        <div className="analyst-stock-search"><MarketSearchBox value={instrument} onSelect={(nextInstrument) => { setLoading(true); setError(""); setAiExplanation(""); setInstrument(nextInstrument); }}/><div className="analyst-watchlist"><button type="button" className="active">NSE</button><span>{instrument}</span><small>FinAI research view</small></div></div>
         <div className="analyst-stock-price">
           <span>Latest session</span>
           <strong>{latestDaily ? num(latestDaily.close) : "—"}</strong>
@@ -334,8 +328,8 @@ export function MarketAnalystHub() {
       </section>
 
       <section className="workspace-panel analyst-toolbar analyst-toolbar-pro">
-        <div className="market-search-stack"><span className="toolbar-label">Historical window</span><div className="range-tabs">{ranges.map((item) => <button key={item.id} className={range === item.id ? "active" : ""} type="button" onClick={() => setRange(item.id)}>{item.id}</button>)}</div></div>
-        <div><span className="toolbar-label">Interval</span><div className="range-tabs">{intervals.map((value) => <button key={value} className={interval === value ? "active" : ""} type="button" disabled={!allowedIntervals.has(value)} onClick={() => setInterval(value)}>{value}</button>)}</div></div>
+        <div className="market-search-stack"><span className="toolbar-label">Historical window</span><div className="range-tabs">{ranges.map((item) => <button key={item.id} className={range === item.id ? "active" : ""} type="button" onClick={() => { setRange(item.id); setInterval((current) => intervalsForRange(item.id).has(current) ? current : item.defaultInterval); setLoading(true); }}>{item.id}</button>)}</div></div>
+        <div><span className="toolbar-label">Interval</span><div className="range-tabs">{intervals.map((value) => <button key={value} className={interval === value ? "active" : ""} type="button" disabled={!allowedIntervals.has(value)} onClick={() => { setInterval(value); setLoading(true); }}>{value}</button>)}</div></div>
         <button type="button" className="secondary-module-button" onClick={() => setPlaying((value) => !value)}>{playing ? <Pause size={13}/> : <Play size={13}/>} {playing ? "Pause replay" : "Replay candles"}</button>
       </section>
 
