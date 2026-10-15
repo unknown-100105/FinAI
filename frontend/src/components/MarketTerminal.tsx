@@ -10,6 +10,7 @@ import {
 } from "../api/market";
 import { MarketSearchBox } from "./MarketSearchBox";
 import { CandleChart } from "./CandleChart";
+import { TradeToolsPanel } from "./TradeToolsPanel";
 import "./MarketTerminal.css";
 
 const ranges = [
@@ -181,6 +182,19 @@ export function MarketTerminal() {
 
   useEffect(() => { void loadSide(); }, [loadSide]);
 
+  useEffect(() => {
+    const handleSymbol = (event: Event) => {
+      const custom = event as CustomEvent<string>;
+      if (typeof custom.detail === "string" && custom.detail.trim()) {
+        setInstrument(custom.detail.trim().toUpperCase());
+        setLoading(true);
+        setSideLoading(true);
+      }
+    };
+    window.addEventListener("finai:market-symbol", handleSymbol);
+    return () => window.removeEventListener("finai:market-symbol", handleSymbol);
+  }, []);
+
   const firstClose = bars.length ? bars[0].close : null;
   const lastClose = bars.length ? bars[bars.length - 1].close : null;
   const periodChange = firstClose ? (lastClose ?? firstClose) / firstClose - 1 : null;
@@ -262,6 +276,8 @@ export function MarketTerminal() {
               <span>{bars.at(-1)?.timestamp ? new Date(bars.at(-1)!.timestamp).toLocaleString() : "—"}</span>
             </div>
           </div>
+
+          <TradeToolsPanel symbol={instrument} price={finite(quote?.price)} currency={currency} />
 
           <div className="analytics-grid">
             {[
