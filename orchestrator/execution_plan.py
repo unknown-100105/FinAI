@@ -24,6 +24,7 @@ class StepKind(str, Enum):
     DETERMINISTIC_TOOL = "deterministic_tool"
     STRUCTURED_KNOWLEDGE = "structured_knowledge"
     RETRIEVAL = "retrieval"
+    RESOURCE_PLANNING = "resource_planning"
     MODEL_GENERATION = "model_generation"
     CLAIM_VERIFICATION = "claim_verification"
     RESPONSE_VERIFICATION = "response_verification"
@@ -170,6 +171,7 @@ def build_execution_plan(
     require_retrieval: bool = True,
     require_market_data: bool = False,
     require_structured_knowledge: bool = False,
+    require_resource_planning: bool = False,
     require_model: bool = True,
     require_claim_verification: bool = True,
     require_response_verification: bool = True,
@@ -191,8 +193,10 @@ def build_execution_plan(
     requested.append(("deterministic_finance", StepKind.DETERMINISTIC_TOOL, False))
     if require_structured_knowledge:
         requested.append(("structured_knowledge", StepKind.STRUCTURED_KNOWLEDGE, True))
+    requested.append(("retrieval", StepKind.RETRIEVAL, require_retrieval))
+    if require_resource_planning:
+        requested.append(("resource_planning", StepKind.RESOURCE_PLANNING, True))
     requested.extend([
-        ("retrieval", StepKind.RETRIEVAL, require_retrieval),
         ("model_generation", StepKind.MODEL_GENERATION, require_model),
         ("claim_verification", StepKind.CLAIM_VERIFICATION, require_claim_verification),
         ("response_verification", StepKind.RESPONSE_VERIFICATION, require_response_verification),
