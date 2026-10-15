@@ -39,7 +39,7 @@ export function InvestmentDiaryHub(){
   const [news,setNews]=useState<any[]>([]);
   const [quote,setQuote]=useState<any>(null);
   const [busy,setBusy]=useState(true);
-  const [watchlist,setWatchlist]=useState<string[]>(() => {
+  const [watchlist]=useState<string[]>(() => {
     try {
       const stored: unknown = JSON.parse(localStorage.getItem("finai.watchlist") || "[]");
       return Array.isArray(stored) ? [...new Set(stored.filter((item): item is string => typeof item === "string").map((item) => item.trim().toUpperCase()).filter(Boolean))] : [];
