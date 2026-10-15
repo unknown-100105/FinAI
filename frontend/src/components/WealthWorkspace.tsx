@@ -85,7 +85,11 @@ export function WealthWorkspace() {
   );
 
   const refreshQuotes = useCallback(async () => {
-    if (!trackedSymbols.length) return;
+    if (!trackedSymbols.length) {
+      setQuotes({});
+      setLoading(false);
+      return;
+    }
 
     try {
       const entries = await Promise.all(
@@ -130,10 +134,14 @@ export function WealthWorkspace() {
     const symbol = newSymbol.trim().toUpperCase();
     if (!symbol || watchlist.includes(symbol)) return;
 
+    setLoading(true);
+    setError("");
     setWatchlist((current) => [...current, symbol]);
   };
 
   const removeWatchlist = (symbol: string) => {
+    setLoading(true);
+    setError("");
     setWatchlist((current) => current.filter((item) => item !== symbol));
   };
 
@@ -154,6 +162,7 @@ export function WealthWorkspace() {
     }
 
     setError("");
+    setLoading(true);
     setHoldings((current) => [
       ...current,
       {
@@ -167,6 +176,8 @@ export function WealthWorkspace() {
   };
 
   const removeHolding = (id: string) => {
+    setLoading(true);
+    setError("");
     setHoldings((current) => current.filter((item) => item.id !== id));
   };
 
