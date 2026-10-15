@@ -1001,3 +1001,5 @@ button {
 .brain-layer-row strong{font-size:8px;line-height:1.4;text-align:right;overflow-wrap:anywhere}
 .brain-layer-row .layer-present{color:#9bcdb7}
 .brain-layer-row .needs-attention{color:#e3bd83}
+
+.brain-plan-step .brain-step-status{color:#9ab7d8;font-weight:750}
