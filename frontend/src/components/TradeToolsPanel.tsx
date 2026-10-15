@@ -60,6 +60,7 @@ export function TradeToolsPanel({ symbol, price, currency = "INR" }: { symbol: s
   const [alertTarget, setAlertTarget] = useState("");
   const [alertDirection, setAlertDirection] = useState<"above" | "below">("above");
   const [riskBudget, setRiskBudget] = useState("1000");
+  const [side, setSide] = useState<"long" | "short">("long");
   const [entry, setEntry] = useState(price === null ? "" : String(price));
   const [stop, setStop] = useState("");
   const [target, setTarget] = useState("");
@@ -94,16 +95,19 @@ export function TradeToolsPanel({ symbol, price, currency = "INR" }: { symbol: s
   const stopValue = numeric(stop);
   const targetValue = numeric(target);
   const budgetValue = numeric(riskBudget);
-  const riskPerUnit = entryValue !== null && stopValue !== null ? Math.abs(entryValue - stopValue) : null;
+  const riskPerUnit = entryValue !== null && stopValue !== null
+    ? (side === "long" ? entryValue - stopValue : stopValue - entryValue)
+    : null;
+  const rewardPerUnit = entryValue !== null && targetValue !== null
+    ? (side === "long" ? targetValue - entryValue : entryValue - targetValue)
+    : null;
   const quantity = riskPerUnit !== null && riskPerUnit > 0 && budgetValue !== null && budgetValue > 0
     ? Math.floor(budgetValue / riskPerUnit)
     : null;
   const rewardRisk = useMemo(() => {
-    if (entryValue === null || stopValue === null || targetValue === null) return null;
-    const risk = Math.abs(entryValue - stopValue);
-    if (risk <= 0) return null;
-    return Math.abs(targetValue - entryValue) / risk;
-  }, [entryValue, stopValue, targetValue]);
+    if (riskPerUnit === null || rewardPerUnit === null || riskPerUnit <= 0 || rewardPerUnit <= 0) return null;
+    return rewardPerUnit / riskPerUnit;
+  }, [riskPerUnit, rewardPerUnit]);
 
   const addWatch = () => {
     const next = watchInput.trim().toUpperCase();
@@ -167,6 +171,7 @@ export function TradeToolsPanel({ symbol, price, currency = "INR" }: { symbol: s
           <div className="trade-tool-title"><Calculator size={15} /><strong>Position sizing</strong></div>
           <p className="trade-tool-hint">Estimate units from a fixed risk budget and stop distance.</p>
           <div className="trade-calculator-fields">
+            <label>Position side<select value={side} onChange={(event) => setSide(event.target.value as "long" | "short")}><option value="long">Long (buy)</option><option value="short">Short (sell)</option></select></label>
             <label>Entry price<input type="number" min="0" step="any" value={entry} onChange={(event) => setEntry(event.target.value)} placeholder="Entry" /></label>
             <label>Stop price<input type="number" min="0" step="any" value={stop} onChange={(event) => setStop(event.target.value)} placeholder="Stop" /></label>
             <label>Target price<input type="number" min="0" step="any" value={target} onChange={(event) => setTarget(event.target.value)} placeholder="Target (optional)" /></label>
