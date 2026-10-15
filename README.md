@@ -220,6 +220,7 @@ The registry includes major markets across North America, Europe, Asia-Pacific, 
 Investment knowledge API endpoints:
 - `/api/v1/investments/scope`
 - `/api/v1/investments/global-markets`
+- `/api/v1/system/brain-status` — local layer/artifact readiness diagnostics; does not contact providers or claim live inference.
 
 
 ## Experimental causal-risk research prototypes
