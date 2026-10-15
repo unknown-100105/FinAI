@@ -12,8 +12,9 @@ production security controls work in a live deployment.
 - `CapabilityStateGraph` records capability availability, supported execution modes,
   prerequisite relationships, metadata, and reasons for unavailability.
 - `FinAIExecutionPlan` serializes an ordered set of stages with explicit dependencies.
-- `build_execution_plan` produces a conservative plan for policy, deterministic
-  finance, retrieval, model generation, claim verification, and response verification.
+- `build_execution_plan` produces a conservative plan for policy, market-data dispatch,
+  deterministic finance, structured financial knowledge, hybrid retrieval, adaptive
+  resource planning, model generation, claim verification, and response verification.
 - Prerequisite cycles are rejected. Missing required capabilities block the plan.
 - `FinAIHybridEngine.process` now attaches a `capability_execution_plan`
   diagnostic to each returned result. This is separate from the legacy `execution_plan`
@@ -23,8 +24,10 @@ production security controls work in a live deployment.
 - This is request-path observability, **not an authorization or execution gate**. The
   existing router, policy, authority, and risk-control layers remain authoritative.
   The capability graph object is still in-memory; only the resulting diagnostic is
-  recorded with the existing XAI trace. Full policy-gated execution-plan dispatch,
-  durable graph-state storage, and enforced offline/degraded mode remain incomplete.
+  recorded with the existing XAI trace. Full policy-gated dispatch driven by this new
+  graph, durable graph-state storage, and process/OS-level network isolation remain
+  incomplete. Existing legacy policy/controller decisions and explicit provider/network
+  guards remain the enforcement paths; the diagnostic plan is not a substitute.
 
 Regression coverage lives in `tests/test_execution_plan.py` and
 `tests/test_capability_plan_integration.py`; both are listed in the artifact-independent
