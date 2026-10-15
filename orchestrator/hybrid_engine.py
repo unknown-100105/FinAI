@@ -23,6 +23,8 @@ from orchestrator.execution_plan import (
 import os
 from uuid import uuid4
 
+from policy.network_mode import get_network_mode
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -241,6 +243,14 @@ class FinAIHybridEngine:
 
         all_modes = tuple(ExecutionMode)
         online_only = (ExecutionMode.ONLINE, ExecutionMode.DEGRADED)
+        mode = ExecutionMode(get_network_mode())
+        # A successful observed generation is evidence that the selected local
+        # or remote path ran. Mere credentials/configuration never prove that.
+        model_modes = (
+            all_modes
+            if generation and not generation_failed
+            else online_only
+        )
         graph = CapabilityStateGraph(
             capabilities=(
                 Capability(
@@ -270,7 +280,7 @@ class FinAIHybridEngine:
                 Capability(
                     "model_generation",
                     model_available,
-                    online_only,
+                    model_modes,
                     reason="no usable response generation result or provider configuration was observed",
                     metadata={"source": "injected response service or server-side provider configuration"},
                 ),
@@ -301,7 +311,7 @@ class FinAIHybridEngine:
             request_id=request_id,
             intent=intent,
             graph=graph,
-            mode=ExecutionMode.ONLINE,
+            mode=mode,
             require_retrieval=needs_retrieval,
             require_model=needs_generation,
             require_claim_verification=needs_generation,
