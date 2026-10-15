@@ -11,8 +11,7 @@ export function XAIExplorerHub(){
   const [busy,setBusy]=useState(true);
   const [error,setError]=useState("");
 
-  const load=async()=>{
-    setBusy(true); setError("");
+  const fetchTraces=async()=>{
     try{
       const result=await listXAITraces();
       const available = result.traces || [];
@@ -30,7 +29,9 @@ export function XAIExplorerHub(){
     finally{setBusy(false);}
   };
 
-  useEffect(()=>{void load();},[]);
+  const load = () => { setBusy(true); setError(""); void fetchTraces(); };
+
+  useEffect(()=>{void fetchTraces();},[]);
 
   return <section className="module-page">
     <div className="module-hero">
