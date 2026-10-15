@@ -171,6 +171,7 @@ export function MarketTerminal() {
     }
   }, [instrument]);
 
+  // oxlint-disable-next-line react/set-state-in-effect -- Polls quote/history/analytics APIs for the selected instrument.
   useEffect(() => {
     void load();
     const timer = window.setInterval(
@@ -180,6 +181,7 @@ export function MarketTerminal() {
     return () => window.clearInterval(timer);
   }, [load, interval]);
 
+  // oxlint-disable-next-line react/set-state-in-effect -- Fetches market overview and news from external APIs.
   useEffect(() => { void loadSide(); }, [loadSide]);
 
   useEffect(() => {
