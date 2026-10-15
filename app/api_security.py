@@ -9,8 +9,7 @@ from __future__ import annotations
 import hmac
 import os
 
-from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse
 
 
 class FinAIAPIAuthMiddleware:
