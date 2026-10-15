@@ -148,6 +148,8 @@ jobs:
         run: python scripts/run_patent_mechanism_benchmark.py --output patent-benchmark.json
       - name: Run counterfactual feasibility screening smoke benchmark
         run: python benchmarks/counterfactual_screening_benchmark.py
+      - name: Run seeded known-feasible stress benchmark
+        run: python benchmarks/counterfactual_stress_benchmark.py --output counterfactual-stress-benchmark.json --cases 500
 
       - name: Upload benchmark artifact
         uses: actions/upload-artifact@v4
@@ -156,6 +158,7 @@ jobs:
           path: |
             patent-benchmark.json
             benchmarks/counterfactual_screening_benchmark.json
+            counterfactual-stress-benchmark.json
 
   frontend:
     name: Frontend build
