@@ -54,3 +54,5 @@ No live brokerage/order execution, bank settlement, production user identity/RBA
 
 
 - The capability plan now attaches observed outcomes per planned step (policy, finance, retrieval, generation, and verification) plus the top-level observed request outcome/stage. These fields are retrospective diagnostics; they do not cause the planner to dispatch or authorize tools.
+
+- The readiness endpoint also distinguishes offline-mode configuration and Colibrì adapter configuration from actual local model-weight presence, server reachability, and successful inference; those runtime checks remain explicitly unverified.
