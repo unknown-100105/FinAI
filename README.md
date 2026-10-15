@@ -153,7 +153,7 @@ Before production deployment, replace the demo/session authentication flow with 
 
 ## Professional market intelligence
 
-The market workspace now includes an interactive candlestick terminal with wheel zoom, drag-to-pan, crosshair/inspection, reset and fullscreen controls. The Market Analyst adds a chronological model arena with Logistic Regression, Random Forest, Extra Trees, Gradient Boosting, HistGradientBoosting and MLP, plus ensemble probability, validation metrics and feature attribution.
+The market workspace now includes an interactive candlestick terminal with wheel zoom, drag-to-pan, crosshair/inspection, reset and fullscreen controls. The Market Analyst adds a chronological model arena with Logistic Regression, Random Forest, Extra Trees, Gradient Boosting, HistGradientBoosting and MLP, plus ensemble probability, validation metrics and feature attribution. The terminal also includes browser-local watchlists, above/below quote alert conditions, and a position-sizing/reward-risk calculator. These are planning tools only: alerts are not push notifications, and the UI does not place broker orders. See docs/TRADE_VIEW_TOOLS.md.
 
 The Global Markets workspace provides a research registry across major regions and asset classes including equities, ETFs, government bonds, corporate bonds, deposits/FDs, funds, REITs, commodities and currencies. For an Indian resident, the eligibility workflow explicitly checks the areas that must be verified: FEMA/LRS, local foreign-investor rules, KYC, currency/repatriation, withholding and Indian tax/reporting.
 
