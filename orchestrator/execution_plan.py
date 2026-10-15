@@ -178,9 +178,11 @@ def build_execution_plan(
 ) -> FinAIExecutionPlan:
     """Build a conservative plan from current capability state.
 
-    Policy check is always first. Deterministic finance execution is only included
-    when its capability is registered and available. Missing required stages block
-    the plan; optional unavailable stages are omitted with an explanation.
+    Policy check is always first. Market-data, structured-knowledge, and resource
+    planning stages are added only when the caller reports that they are relevant to
+    the observed request. Deterministic finance is intent-dependent. Missing required
+    capabilities block the diagnostic plan; optional unavailable stages are omitted
+    with an explanation. This function does not dispatch or authorize those stages.
     """
     if not request_id.strip():
         raise ValueError("request_id must not be empty")
