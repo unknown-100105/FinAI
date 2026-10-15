@@ -187,6 +187,7 @@ export function MarketTerminal() {
       const custom = event as CustomEvent<string>;
       if (typeof custom.detail === "string" && custom.detail.trim()) {
         setInstrument(custom.detail.trim().toUpperCase());
+        setQuote(null);
         setLoading(true);
         setSideLoading(true);
       }
@@ -220,10 +221,10 @@ export function MarketTerminal() {
         <div className="market-main">
           <div className="instrument-toolbar market-toolbar-enhanced">
             <div className="market-search-stack">
-              <MarketSearchBox value={instrument} onSelect={(symbol) => { setInstrument(symbol); setLoading(true); setSideLoading(true); }} />
+              <MarketSearchBox value={instrument} onSelect={(symbol) => { setInstrument(symbol); setQuote(null); setLoading(true); setSideLoading(true); }} />
               <div className="market-quick-list">
                 {quickSymbols.map((symbol) => (
-                  <button key={symbol} type="button" className={instrument === symbol ? "active" : ""} onClick={() => { setInstrument(symbol); setLoading(true); setSideLoading(true); }}>
+                  <button key={symbol} type="button" className={instrument === symbol ? "active" : ""} onClick={() => { setInstrument(symbol); setQuote(null); setLoading(true); setSideLoading(true); }}>
                     {symbol}
                   </button>
                 ))}
