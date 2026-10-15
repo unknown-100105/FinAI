@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BellRing, Bookmark, Calculator, Plus, Trash2, TriangleAlert } from "lucide-react";
 
 type PriceAlert = { id: string; symbol: string; target: number; direction: "above" | "below" };
@@ -54,22 +54,37 @@ function format(value: number, currency: string) {
 }
 
 export function TradeToolsPanel({ symbol, price, currency = "INR" }: { symbol: string; price: number | null; currency?: string }) {
-  const [watchlist, setWatchlist] = useState<string[]>([]);
-  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
+  const [watchlist, setWatchlist] = useState<string[]>(() => readWatchlist());
+  const [alerts, setAlerts] = useState<PriceAlert[]>(() => readAlerts());
   const [watchInput, setWatchInput] = useState("");
   const [alertTarget, setAlertTarget] = useState("");
   const [alertDirection, setAlertDirection] = useState<"above" | "below">("above");
   const [riskBudget, setRiskBudget] = useState("1000");
   const [side, setSide] = useState<"long" | "short">("long");
-  const [entry, setEntry] = useState(price === null ? "" : String(price));
-  const [stop, setStop] = useState("");
-  const [target, setTarget] = useState("");
-  const entryInitializedSymbol = useRef<string | null>(null);
-
-  useEffect(() => {
-    setWatchlist(readWatchlist());
-    setAlerts(readAlerts());
-  }, []);
+  const [positionDraft, setPositionDraft] = useState<{
+    symbol: string;
+    entry: string;
+    entrySource: "quote" | "manual";
+    stop: string;
+    target: string;
+  }>(() => ({
+    symbol,
+    entry: price === null ? "" : String(price),
+    entrySource: "quote",
+    stop: "",
+    target: "",
+  }));
+  const position = positionDraft.symbol === symbol
+    ? positionDraft
+    : { symbol, entry: price === null ? "" : String(price), entrySource: "quote" as const, stop: "", target: "" };
+  const entry = position.entrySource === "manual"
+    ? position.entry
+    : price === null ? position.entry : String(price);
+  const stop = position.stop;
+  const target = position.target;
+  const updatePosition = (patch: Partial<typeof position>) => {
+    setPositionDraft({ ...position, ...patch, symbol });
+  };
 
   useEffect(() => {
     try { window.localStorage.setItem(WATCHLIST_KEY, JSON.stringify(watchlist)); } catch { /* Storage may be disabled. */ }
@@ -172,9 +187,9 @@ export function TradeToolsPanel({ symbol, price, currency = "INR" }: { symbol: s
           <p className="trade-tool-hint">Estimate units from a fixed risk budget and stop distance.</p>
           <div className="trade-calculator-fields">
             <label>Position side<select value={side} onChange={(event) => setSide(event.target.value as "long" | "short")}><option value="long">Long (buy)</option><option value="short">Short (sell)</option></select></label>
-            <label>Entry price<input type="number" min="0" step="any" value={entry} onChange={(event) => setEntry(event.target.value)} placeholder="Entry" /></label>
-            <label>Stop price<input type="number" min="0" step="any" value={stop} onChange={(event) => setStop(event.target.value)} placeholder="Stop" /></label>
-            <label>Target price<input type="number" min="0" step="any" value={target} onChange={(event) => setTarget(event.target.value)} placeholder="Target (optional)" /></label>
+            <label>Entry price<input type="number" min="0" step="any" value={entry} onChange={(event) => updatePosition({ entry: event.target.value, entrySource: "manual" })} placeholder="Entry" /></label>
+            <label>Stop price<input type="number" min="0" step="any" value={stop} onChange={(event) => updatePosition({ stop: event.target.value })} placeholder="Stop" /></label>
+            <label>Target price<input type="number" min="0" step="any" value={target} onChange={(event) => updatePosition({ target: event.target.value })} placeholder="Target (optional)" /></label>
             <label>Max risk<input type="number" min="0" step="any" value={riskBudget} onChange={(event) => setRiskBudget(event.target.value)} placeholder="Risk budget" /></label>
           </div>
           <div className="trade-position-result">
