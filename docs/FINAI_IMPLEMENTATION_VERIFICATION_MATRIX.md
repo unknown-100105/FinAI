@@ -44,3 +44,10 @@ The capability execution plan currently records request-path diagnostics; it is 
 ## Non-goals of this branch
 
 No live brokerage/order execution, bank settlement, production user identity/RBAC, tenant isolation, OS-level outbound network sandbox, bundled local model weights, or filing-grade patent opinion is claimed.
+
+
+## Additional Brain integration
+
+- `GET /api/v1/system/brain-status` exposes a secret-safe local readiness view for routing, policy/authority, deterministic finance, retrieval assets, model credential presence, verification/XAI, adaptive orchestration, and experimental causal research.
+- The Assistant UI fetches this endpoint and replaces hard-coded positive RAG/evidence indicators with status labels derived from the API response.
+- Each assistant request can also display its backend-generated `capability_execution_plan`, including planned stages, dependencies, and explanations. The plan remains diagnostic and does not authorize tools or guarantee stage success.
