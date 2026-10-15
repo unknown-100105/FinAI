@@ -14,7 +14,7 @@ The human repository owner and ChatGPT are the change authorities.
 
 ## Audit target
 
-Branch: `feature/professional-token-lab-ui`
+Branch: `ai/finai-completion`
 
 Audit the complete repository after the implementation phase. Do not assume that passing tests prove statistical correctness.
 
