@@ -31,7 +31,8 @@ export function XAIExplorerHub(){
 
   const load = () => { setBusy(true); setError(""); void fetchTraces(); };
 
-  useEffect(()=>{void fetchTraces();},[]);
+  // oxlint-disable-next-line react/set-state-in-effect -- Fetches persisted trace data asynchronously.
+    useEffect(()=>{void fetchTraces();},[]);
 
   return <section className="module-page">
     <div className="module-hero">
