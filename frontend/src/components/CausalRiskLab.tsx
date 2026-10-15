@@ -140,7 +140,7 @@ export default function CausalRiskLab() {
     gold: 10,
     cash: 5,
   });
-  const [savedHoldingsCount, setSavedHoldingsCount] = useState(0);
+  const [savedHoldingsCount] = useState(() => readSavedHoldingCount());
   const [graph, setGraph] = useState<CausalGraph>(fallbackGraph);
   const [architecture, setArchitecture] = useState<Record<string, unknown> | null>(null);
   const [result, setResult] = useState<CounterfactualResult | null>(null);
@@ -148,7 +148,6 @@ export default function CausalRiskLab() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setSavedHoldingsCount(readSavedHoldingCount());
     void Promise.all([getCausalGraph(), getCausalArchitecture()])
       .then(([nextGraph, nextArchitecture]) => {
         setGraph(nextGraph);
