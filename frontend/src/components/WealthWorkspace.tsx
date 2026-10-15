@@ -87,9 +87,6 @@ export function WealthWorkspace() {
   const refreshQuotes = useCallback(async () => {
     if (!trackedSymbols.length) return;
 
-    setLoading(true);
-    setError("");
-
     try {
       const entries = await Promise.all(
         trackedSymbols.map(async (symbol) => {
@@ -124,6 +121,7 @@ export function WealthWorkspace() {
     );
   }, [holdings]);
 
+  // oxlint-disable-next-line react/set-state-in-effect -- This effect refreshes quote data when the tracked-symbol set changes.
   useEffect(() => {
     void refreshQuotes();
   }, [refreshQuotes]);
@@ -222,7 +220,7 @@ export function WealthWorkspace() {
         <button
           type="button"
           className="wealth-refresh"
-          onClick={() => void refreshQuotes()}
+          onClick={() => { setLoading(true); setError(""); void refreshQuotes(); }}
           disabled={loading}
         >
           <RefreshCw size={14} />
