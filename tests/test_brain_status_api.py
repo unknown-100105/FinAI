@@ -36,6 +36,11 @@ def test_brain_status_reports_missing_assets_without_network_calls(tmp_path, mon
 
 def test_brain_status_never_exposes_provider_secrets_and_detects_local_assets(tmp_path, monkeypatch):
     monkeypatch.setattr(system_api, "ROOT", tmp_path)
+    for key in (
+        "OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY",
+        "MISTRAL_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "SARVAM_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
     secret = "test-provider-secret-never-serialize"
     monkeypatch.setenv("OPENROUTER_API_KEY", secret)
 
