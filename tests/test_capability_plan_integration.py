@@ -220,7 +220,7 @@ def test_capability_plan_exposes_structured_knowledge_stage(monkeypatch):
     assert "structured_knowledge" in steps
     assert steps["structured_knowledge"]["kind"] == "structured_knowledge"
     assert steps["structured_knowledge"]["observed_status"] == "KNOWLEDGE_RETRIEVED"
-    assert steps["structured_knowledge"]["depends_on"] == ["01_policy"]
+    assert steps["structured_knowledge"]["depends_on"] == ("01_policy",)
 
 
 def test_capability_plan_exposes_market_data_stage(monkeypatch):
@@ -251,4 +251,4 @@ def test_capability_plan_exposes_market_data_stage(monkeypatch):
     assert "market_data" in steps
     assert steps["market_data"]["kind"] == "market_data"
     assert steps["market_data"]["observed_status"] == "MARKET_DATA_READY"
-    assert steps["market_data"]["depends_on"] == ["01_policy"]
+    assert steps["market_data"]["depends_on"] == ("01_policy",)
