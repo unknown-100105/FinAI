@@ -30,8 +30,8 @@ export function ResourcesHub({ defaultCategory = "All" }: { defaultCategory?: st
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<OfficialResource[]>([]);
   const [selectedId, setSelectedId] = useState("ppf");
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [saved, setSaved] = useState(false);
+  const [draftOverrides, setDraftOverrides] = useState<Record<string, Record<string, string>>>({});
+  const [savedResourceId, setSavedResourceId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -47,17 +47,42 @@ export function ResourcesHub({ defaultCategory = "All" }: { defaultCategory?: st
 
   const selected = filtered.find((item) => item.resource_id === selectedId) ?? items.find((item) => item.resource_id === selectedId) ?? filtered[0];
 
-  useEffect(() => {
-    if (!selected) return;
-    const raw = localStorage.getItem("finai-form-" + selected.resource_id);
-    setValues(raw ? JSON.parse(raw) : Object.fromEntries(selected.form_fields.map((field) => [field, ""])));
-    setSaved(false);
+  const storedValues = useMemo<Record<string, string>>(() => {
+    if (!selected) return {};
+    const defaults = Object.fromEntries(selected.form_fields.map((field) => [field, ""]));
+    try {
+      const raw = localStorage.getItem("finai-form-" + selected.resource_id);
+      if (!raw) return defaults;
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return defaults;
+      const record = parsed as Record<string, unknown>;
+      return Object.fromEntries(selected.form_fields.map((field) => [
+        field,
+        typeof record[field] === "string" ? record[field] as string : "",
+      ]));
+    } catch {
+      return defaults;
+    }
   }, [selected]);
+  const values = selected ? draftOverrides[selected.resource_id] ?? storedValues : {};
+  const saved = savedResourceId === selected?.resource_id;
+
+  const updateField = (field: string, value: string) => {
+    if (!selected) return;
+    setDraftOverrides((current) => ({
+      ...current,
+      [selected.resource_id]: {
+        ...(current[selected.resource_id] ?? storedValues),
+        [field]: value,
+      },
+    }));
+    setSavedResourceId(null);
+  };
 
   const saveDraft = () => {
     if (!selected) return;
     localStorage.setItem("finai-form-" + selected.resource_id, JSON.stringify(values));
-    setSaved(true);
+    setSavedResourceId(selected.resource_id);
   };
 
   const exportDraft = () => {
@@ -152,7 +177,7 @@ export function ResourcesHub({ defaultCategory = "All" }: { defaultCategory?: st
                 <div className="advanced-calc-grid two">
                   {selected.form_fields.map((field) => (
                     <label key={field}>{titleForField(field)}
-                      <input value={values[field] ?? ""} onChange={(e) => setValues((current) => ({ ...current, [field]: e.target.value }))} placeholder={"Enter " + titleForField(field).toLowerCase()} />
+                      <input value={values[field] ?? ""} onChange={(e) => updateField(field, e.target.value)} placeholder={"Enter " + titleForField(field).toLowerCase()} />
                     </label>
                   ))}
                 </div>
