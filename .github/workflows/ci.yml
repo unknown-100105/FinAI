@@ -54,8 +54,8 @@ jobs:
             tests/test_patent_mechanism_api.py \
             tests/test_resilient_pay_ledger.py \
             tests/test_counterfactual_screening.py \
-             tests/test_counterfactual_stability.py \
-             tests/test_counterfactual_stability_api.py \
+            tests/test_counterfactual_stability.py \
+            tests/test_counterfactual_stability_api.py \
             tests/test_capability_plan_integration.py \
             tests/test_finai_preflight.py \
             tests/test_rllm_offline_loading.py \
