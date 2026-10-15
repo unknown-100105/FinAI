@@ -112,7 +112,7 @@ cd ..
 .\.venv\Scripts\python.exe benchmarks\counterfactual_screening_benchmark.py
 ```
 
-For live API checks, start the backend and rerun `scripts/verify-finai.ps1` without setting `FINAI_SKIP_LIVE`.
+For live API checks, start the backend and run `$env:FINAI_SKIP_LIVE = $null` before rerunning `scripts/verify-finai.ps1`.
 
 Then start the backend and smoke-test:
 
