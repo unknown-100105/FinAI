@@ -55,6 +55,11 @@ def test_hybrid_request_result_contains_serializable_capability_plan(monkeypatch
         "deterministic_finance",
     ]
     assert plan["request_id"]
+    assert plan["request_outcome"] == "CALCULATED"
+    assert plan["request_outcome_stage"] == "finance_engine"
+    assert [step["observed_status"] for step in plan["steps"]] == [
+        "ALLOWED", "CALCULATED",
+    ]
 
 
 def test_requested_generation_without_observed_provider_blocks_diagnostic_plan(monkeypatch):
@@ -112,3 +117,48 @@ def test_missing_rag_assets_fail_before_embedding_model_load(monkeypatch, tmp_pa
 
     with pytest.raises(FileNotFoundError, match="RAG assets are incomplete"):
         engine._get_rag_retriever()
+
+
+def test_capability_plan_records_generation_and_verification_outcomes(monkeypatch):
+    for key in (
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "MISTRAL_API_KEY",
+        "GOOGLE_API_KEY",
+        "GEMINI_API_KEY",
+        "SARVAM_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    engine = _engine_with_stubbed_core()
+
+    def core(**kwargs):
+        return {
+            "stage": "financial_knowledge",
+            "status": "KNOWLEDGE_RETRIEVED",
+            "router": {"intent": "FINANCIAL_PRODUCT_KNOWLEDGE"},
+            "execution_plan": {"capability": "financial_knowledge"},
+            "policy": {"status": "ALLOWED"},
+            "response_generation": {
+                "status": "GENERATED_VERIFIED",
+                "verification": {"applicable": True, "passed": True},
+                "claim_verification": {"applicable": True, "passed": True},
+            },
+        }
+
+    engine._process_core = core
+    result = engine.process(
+        user_text="Explain mutual funds",
+        generate_response=True,
+    )
+
+    plan = result["capability_execution_plan"]
+    observed = {
+        step["capability"]: step["observed_status"]
+        for step in plan["steps"]
+    }
+    assert plan["request_outcome"] == "KNOWLEDGE_RETRIEVED"
+    assert observed["model_generation"] == "GENERATED_VERIFIED"
+    assert observed["claim_verification"] == "PASSED"
+    assert observed["response_verification"] == "PASSED"
