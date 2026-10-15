@@ -65,7 +65,8 @@ export function InvestmentDiaryHub(){
   // oxlint-disable-next-line react/set-state-in-effect -- Fetches the selected asset's market snapshot whenever the asset changes.
   useEffect(() => { void refresh().catch(() => setBars([])); }, [refresh]);
   const refreshWatchlist = useCallback(async () => {
-    if (!watchlist.length) { setWatchData({}); return; }
+    if (!watchlist.length) { setWatchData({}); setWatchBusy(false); return; }
+    setWatchBusy(true);
 
     const end = new Date();
     const start = new Date();
