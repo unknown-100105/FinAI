@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -184,7 +184,7 @@ export function MarketAnalystHub() {
     return new Set(["1h", "4h", "1d"]);
   }, [range]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     setAiExplanation("");
@@ -224,14 +224,14 @@ export function MarketAnalystHub() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [instrument, interval, range, rangeConfig]);
 
   useEffect(() => {
     const next = rangeConfig.defaultInterval;
     setInterval((current) => allowedIntervals.has(current) ? current : next);
   }, [rangeConfig.defaultInterval, allowedIntervals]);
 
-  useEffect(() => { void load(); }, [instrument, range, interval]);
+  useEffect(() => { void load(); }, [load]);
 
   useEffect(() => {
     if (!playing || !candles.length) return;
