@@ -228,21 +228,21 @@ The research branch includes two explicitly experimental mechanisms:
 
 - **Evidence-Gated Paired-World Causal Risk Propagation (EPCRP):** finance_engine/epcrp.py compares baseline and intervention worlds and records edge acceptance/rejection plus evidence lineage. See docs/EPCRP_EVIDENCE_GATED_CAUSAL_RISK.md.
 - **Intervention feasibility screening:** finance_engine/counterfactual_screening.py screens bounded linear-DAG interventions using conservative interval bounds. RETAIN means only that infeasibility was not proven.
+- **Counterfactual directional stability gate:** finance_engine/counterfactual_stability.py compares repeated, approved estimates across model versions, graph/evidence fingerprints and regimes. It flags intervals crossing zero or directional disagreement and emits a deterministic replay digest. It is a robustness diagnostic, not causal identification or a forecast guarantee.
 
-Run python -m pytest -q tests/test_epcrp.py tests/test_counterfactual_screening.py and python benchmarks/counterfactual_screening_benchmark.py from the repository root. These are research prototypes and synthetic benchmarks, not real-market validation, causal discovery, or proof of patentability. They are not enabled as production decision paths by default.
+Run python -m pytest -q tests/test_epcrp.py tests/test_counterfactual_screening.py tests/test_counterfactual_stability.py tests/test_counterfactual_stability_api.py and python benchmarks/counterfactual_screening_benchmark.py from the repository root. These are research prototypes and synthetic benchmarks, not real-market validation, causal discovery, or proof of patentability. They are not enabled as production decision paths by default.
 
 
 ### Running the experimental research endpoints (local only)
 
-The EPCRP and feasibility-screen HTTP routes are disabled by default. To mount them in a local development server, set the environment variable before starting the API process:
+The EPCRP, feasibility-screen, and counterfactual-stability HTTP routes are disabled by default. To mount them in a local development server, set the environment variables before starting the API process:
 
 PowerShell:
 
     $env:FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS = "true"
+    $env:FINAI_RESEARCH_API_TOKEN = "<unique-random-secret-at-least-32-characters>"
 
-Then start FinAI using the normal API command for this checkout. Restart the process after changing the variable. Do not expose these research-only endpoints to public clients; they currently have no dedicated authentication or rate limiting.
-
-Set `FINAI_RESEARCH_API_TOKEN` to a unique random secret of at least 32 characters before using these local-only research routes. The placeholder in `.env.example` is intentionally empty; do not commit actual credentials.
+Then start FinAI using the normal API command for this checkout. Restart the process after changing the variable. The router requires this bearer token on every research request. Do not expose these research-only endpoints to public clients without a separately reviewed deployment boundary, rate limiting, and monitoring. The API token is not user identity or tenant isolation. Never commit actual credentials.
 
 
 ## ResilientPay bridge status
