@@ -35,6 +35,7 @@ export function NewsHub() {
     await fetchNews(nextQuery);
   };
 
+  // oxlint-disable-next-line react/set-state-in-effect -- Loads news from an external API; state updates follow the request.
   useEffect(() => { void fetchNews("Indian stock market"); }, []);
 
   return (
