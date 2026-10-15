@@ -198,7 +198,7 @@ def api_info() -> Dict[str, Any]:
         "endpoints": {
             "health": "/health",
             "chat": "/api/v1/chat",
-            "xai": "app.xai_api",
+            "xai": "/api/v1/xai",
             "brain_status": "/api/v1/system/brain-status",
         },
     }
