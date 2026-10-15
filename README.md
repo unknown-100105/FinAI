@@ -145,6 +145,8 @@ See `docs/multi-cloud-model-routing.md` for the provider matrix and environment 
 
 Financial calculations and tool results are treated as system-owned authoritative results. The language model is used as an explanation layer and is subject to the response/claim verification paths that are applicable to the intent.
 
+The local FinAI Brain readiness endpoint is `GET /api/v1/system/brain-status`. It reports file/configuration evidence only; it does not contact providers or claim successful live inference.
+
 ## Development notes
 
 Large model weights, generated datasets, RAG indexes, caches, and XAI trace outputs are excluded from normal source control. For reproducible deployment, keep the source-code commit and the separately versioned model/data artifacts together.
@@ -220,7 +222,6 @@ The registry includes major markets across North America, Europe, Asia-Pacific, 
 Investment knowledge API endpoints:
 - `/api/v1/investments/scope`
 - `/api/v1/investments/global-markets`
-- `/api/v1/system/brain-status` — local layer/artifact readiness diagnostics; does not contact providers or claim live inference.
 
 
 ## Experimental causal-risk research prototypes
