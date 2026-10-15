@@ -34,6 +34,7 @@ export function ResourcesHub({ defaultCategory = "All" }: { defaultCategory?: st
   const [savedResourceId, setSavedResourceId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
+  // oxlint-disable-next-line react/set-state-in-effect -- Fetches resource records from the backend when the category changes.
   useEffect(() => {
     void getOfficialResources(category === "All" ? undefined : category)
       .then((data) => setItems(data.items))
