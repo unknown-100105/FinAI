@@ -85,6 +85,17 @@ const navigation = [
 
 type Section = (typeof navigation)[number]["id"];
 
+const brainLayerIds = new Set<string>([
+  "routing",
+  "policy_authority",
+  "deterministic_finance",
+  "retrieval",
+  "model_generation",
+  "verification_xai",
+  "adaptive_orchestration",
+  "causal_risk_research",
+]);
+
 type Message = {
   role: "user" | "assistant";
   content: string;
@@ -646,11 +657,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
           <p className="brain-plan-note">Local readiness only. Green/ready means file or configuration evidence, not a live quality guarantee.</p>
           {brainStatus ? (
             <div className="brain-layer-list">
-              {brainStatus.layers.filter((layer) => [
-                "routing", "policy_authority", "deterministic_finance", "retrieval",
-                "model_generation", "verification_xai", "adaptive_orchestration",
-                "causal_risk_research",
-              ].includes(layer.id)).map((layer) => (
+              {brainStatus.layers.filter((layer) => brainLayerIds.has(layer.id)).map((layer) => (
                 <div className="brain-layer-row" key={layer.id}>
                   <span>{traceValue(layer.id)}</span>
                   <strong className={/missing|no_cloud_credentials|assets_missing|incomplete/i.test(layer.status) ? "needs-attention" : "layer-present"}>
