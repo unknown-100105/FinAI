@@ -577,7 +577,11 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
         <section className="glass-panel side-card">
           <div className="side-title"><Languages size={15} /> Preferences</div>
           <label>Language<select value={language} onChange={(event) => setLanguage(event.target.value)} disabled={loading}>{languages.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label>Persona<select value={persona} onChange={(event) => setPersona(event.target.value)} disabled={loading}>{personas.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>\n          <label>Reasoning model<select value={modelId} onChange={(event) => setModelId(event.target.value)} disabled={loading}>\n            <option value="">Automatic</option>\n            {models.map((model) => <option key={model.model_id} value={model.model_id}>{model.model_name}</option>)}\n          </select></label>
+          <label>Persona<select value={persona} onChange={(event) => setPersona(event.target.value)} disabled={loading}>{personas.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label>Reasoning model<select value={modelId} onChange={(event) => setModelId(event.target.value)} disabled={loading}>
+            <option value="">Automatic</option>
+            {models.map((model) => <option key={model.model_id} value={model.model_id}>{model.model_name}</option>)}
+          </select></label>
         </section>
 
         <section className="glass-panel side-card">
