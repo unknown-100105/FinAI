@@ -214,7 +214,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
     void getFinAIModels("financial_qa").then((data) => {
       const enabled = data.models.filter((model) => model.enabled);
       setModels(enabled);
-      if (!modelId && enabled.length) setModelId(enabled[0].model_id);
+      setModelId((current) => current || enabled[0]?.model_id || current);
     }).catch(() => setModels([]));
   }, []);
 
