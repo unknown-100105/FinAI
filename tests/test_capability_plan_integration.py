@@ -142,6 +142,7 @@ def test_capability_plan_records_generation_and_verification_outcomes(monkeypatc
             "policy": {"status": "ALLOWED"},
             "response_generation": {
                 "status": "GENERATED_VERIFIED",
+                "selection": {"model_id": "rllm-finqa-4b", "actual_model_id": "rllm-finqa-4b"},
                 "verification": {"applicable": True, "passed": True},
                 "claim_verification": {"applicable": True, "passed": True},
             },
@@ -159,6 +160,7 @@ def test_capability_plan_records_generation_and_verification_outcomes(monkeypatc
         for step in plan["steps"]
     }
     assert plan["request_outcome"] == "KNOWLEDGE_RETRIEVED"
+    assert observed["resource_planning"] == "OBSERVED"
     assert observed["model_generation"] == "GENERATED_VERIFIED"
     assert observed["claim_verification"] == "PASSED"
     assert observed["response_verification"] == "PASSED"
