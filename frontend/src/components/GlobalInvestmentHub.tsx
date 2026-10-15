@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Database, Globe2, Landmark, RefreshCw, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { getEligibility, getGlobalCatalog, getPrediction, type Eligibility, type GlobalCountry, type GlobalAssetClass, type Prediction } from "../api/intelligence";
 import { MarketSearchBox } from "./MarketSearchBox";
@@ -10,7 +10,7 @@ const features=(x:unknown)=>Array.isArray(x)?x.map((v,i)=>Number.isFinite(Number
 
 export default function GlobalInvestmentHub(){
  const[countries,setCountries]=useState<GlobalCountry[]>([]),[assets,setAssets]=useState<GlobalAssetClass[]>([]),[region,setRegion]=useState("All"),[query,setQuery]=useState(""),[country,setCountry]=useState("US"),[asset,setAsset]=useState("government_bond"),[eligibility,setEligibility]=useState<Eligibility|null>(null),[prediction,setPrediction]=useState<Prediction|null>(null),[instrument,setInstrument]=useState("NIFTY 50"),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState("");
- const load = async () => {
+ const load = useCallback(async () => {
    try {
      const x = await getGlobalCatalog();
      setCountries(x.countries);
@@ -21,9 +21,10 @@ export default function GlobalInvestmentHub(){
    } finally {
      setLoading(false);
    }
- };
+ }, []);
  // oxlint-disable-next-line react/set-state-in-effect -- Fetches global-market catalogue data from the backend.
- useEffect(() => { void load(); }, []);
+ useEffect(() => { void load(); }, [load]);
+ // oxlint-disable-next-line react/set-state-in-effect -- Eligibility is fetched asynchronously for the selected market and instrument.
  useEffect(()=>{if(country&&asset)getEligibility(country,asset).then(setEligibility).catch(()=>setEligibility(null))},[country,asset]);
  const selected=countries.find(x=>x.country_code===country);
  const filtered=useMemo(()=>countries.filter(x=>(region==="All"||x.region===region)&&(x.country+" "+x.country_code+" "+x.primary_market).toLowerCase().includes(query.toLowerCase())),[countries,region,query]);
