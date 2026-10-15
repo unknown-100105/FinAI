@@ -56,6 +56,7 @@ def status(request: Request) -> dict[str, Any]:
             "/api/v1/knowledge",
             "/api/v1/resources",
             "/api/v1/models",
+            "/api/v1/system",
         ],
     }
 
