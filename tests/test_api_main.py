@@ -26,6 +26,7 @@ def test_api_info():
 
     assert data["service"] == "FinAI"
     assert data["endpoints"]["chat"] == "/api/v1/chat"
+    assert data["endpoints"]["brain_status"] == "/api/v1/system/brain-status"
 
 
 def test_chat_authentication_flow():
