@@ -52,19 +52,20 @@ export default function ModelIntelligenceHub() {
   const [routeLoading, setRouteLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadModels = async () => {
+  const loadModels = useCallback(async () => {
     try {
       const data = await getFinAIModels();
       setModels(data.models);
+      setError("");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Model registry unavailable.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // oxlint-disable-next-line react/set-state-in-effect -- This effect loads external model metadata asynchronously; state updates follow the request.
-  useEffect(() => { void loadModels(); }, []);
+  useEffect(() => { void loadModels(); }, [loadModels]);
 
   // oxlint-disable-next-line react/set-state-in-effect -- Hardware metadata is fetched asynchronously and then rendered.
   useEffect(() => {
