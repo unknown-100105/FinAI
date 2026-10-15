@@ -197,3 +197,42 @@ def screen_counterfactual_feasibility(request: ScreeningRequest):
         }
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+from finance_engine.counterfactual_stability import (
+    CounterfactualRun,
+    assess_counterfactual_stability,
+)
+
+
+class CounterfactualStabilityRunInput(FiniteInputModel):
+    run_id: str
+    intervention_key: str
+    metric: str
+    model_version: str
+    graph_digest: str
+    evidence_digest: str
+    regime: str
+    delta_low: float
+    delta_high: float
+    approved: bool = True
+
+
+class CounterfactualStabilityRequest(FiniteInputModel):
+    runs: List[CounterfactualStabilityRunInput] = Field(min_length=1)
+    min_approved_runs: int = Field(default=3, ge=2, le=1000)
+    min_directional_agreement: float = Field(default=1.0, gt=0.0, le=1.0)
+
+
+@router.post("/counterfactual-stability")
+def assess_counterfactual_stability_api(request: CounterfactualStabilityRequest):
+    """Assess directional stability across versioned research counterfactual runs."""
+    try:
+        result = assess_counterfactual_stability(
+            [CounterfactualRun(**item.model_dump()) for item in request.runs],
+            min_approved_runs=request.min_approved_runs,
+            min_directional_agreement=request.min_directional_agreement,
+        )
+        return result
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
