@@ -417,6 +417,8 @@ class FinAIHybridEngine:
         response_verification_result = generation.get("verification")
         if not generate_response:
             observed_generation = "NOT_REQUESTED"
+        elif mode == ExecutionMode.OFFLINE and generation and not offline_generation_observed:
+            observed_generation = "OFFLINE_MODEL_NOT_VERIFIED_LOCAL"
         elif generation_status in {"PROVIDER_UNAVAILABLE", "MODEL_UNAVAILABLE", "GENERATION_ERROR"}:
             observed_generation = "FAILED"
         elif generation:
