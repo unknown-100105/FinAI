@@ -9,8 +9,17 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from pathlib import Path
+import sys
 import time
 from typing import Any, Callable
+
+# When executed as `python scripts/smoke_llm_providers.py`, Python puts the
+# scripts directory (not the repository root) on sys.path. Add the root so
+# repository packages such as `llm` and `policy` can be imported reliably.
+_REPOSITORY_ROOT = str(Path(__file__).resolve().parents[1])
+if _REPOSITORY_ROOT not in sys.path:
+    sys.path.insert(0, _REPOSITORY_ROOT)
 
 
 PROVIDER_ENV = {
