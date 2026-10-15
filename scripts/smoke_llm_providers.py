@@ -1,0 +1,143 @@
+"""Opt-in live connectivity smoke test for configured FinAI cloud LLM providers.
+
+This script sends a synthetic, non-personal prompt to configured providers and may
+incur API charges. No network request is made unless --live is supplied. Output
+never includes API keys or generated response text.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import time
+from typing import Any, Callable
+
+
+PROVIDER_ENV = {
+    "openai": "OPENAI_API_KEY",
+    "gemini": "GEMINI_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "mistral": "MISTRAL_API_KEY",
+}
+
+
+def _provider_factories() -> dict[str, tuple[str, Callable[[], Any]]]:
+    # Import lazily so --list works without constructing clients or requiring keys.
+    from llm.cloud.anthropic import AnthropicProvider
+    from llm.cloud.gemini import GeminiProvider
+    from llm.cloud.mistral import MistralProvider
+    from llm.cloud.openai_provider import OpenAIProvider
+    from llm.cloud.openrouter import OpenRouterProvider
+
+    return {
+        "openai": ("OPENAI_API_KEY", OpenAIProvider),
+        "gemini": ("GEMINI_API_KEY", GeminiProvider),
+        "openrouter": ("OPENROUTER_API_KEY", OpenRouterProvider),
+        "anthropic": ("ANTHROPIC_API_KEY", AnthropicProvider),
+        "mistral": ("MISTRAL_API_KEY", MistralProvider),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Actually call configured providers; requests may incur charges.",
+    )
+    parser.add_argument(
+        "--provider",
+        choices=("all", *PROVIDER_ENV.keys()),
+        default="all",
+        help="Provider to inspect or smoke-test (default: all).",
+    )
+    args = parser.parse_args()
+
+    network_mode = os.getenv("FINAI_NETWORK_MODE", "online").strip().lower()
+    sensitivity = os.getenv("FINAI_DATA_SENSITIVITY", "standard").strip().lower()
+    allowlist = {
+        item.strip().lower()
+        for item in os.getenv("FINAI_ALLOWED_PROVIDERS", "").split(",")
+        if item.strip()
+    }
+
+    factories = _provider_factories()
+    names = list(factories) if args.provider == "all" else [args.provider]
+    results: list[dict[str, Any]] = []
+    failures = 0
+    attempted = 0
+
+    for name in names:
+        env_name, factory = factories[name]
+        if not os.getenv(env_name, "").strip():
+            results.append({"provider": name, "status": "skipped_no_credentials"})
+            continue
+        if not args.live:
+            results.append({"provider": name, "status": "configured_not_called"})
+            continue
+        if network_mode == "offline":
+            results.append({"provider": name, "status": "blocked_offline_mode"})
+            continue
+        if sensitivity == "restricted":
+            results.append({"provider": name, "status": "blocked_restricted_data_mode"})
+            continue
+        if allowlist and name not in allowlist:
+            results.append({"provider": name, "status": "blocked_provider_allowlist"})
+            continue
+
+        attempted += 1
+        started = time.perf_counter()
+        try:
+            provider = factory()
+            result = provider.generate(
+                user_text=(
+                    "Connectivity check only. Reply with a short acknowledgement; "
+                    "do not provide financial advice."
+                ),
+                intent="GENERAL_FINANCE",
+                verified_result={"smoke_test": True, "synthetic": True},
+                source="synthetic_provider_smoke_test",
+                language="English",
+                persona="neutral",
+                max_new_tokens=48,
+            )
+            response_text = str(result.get("response", "")).strip()
+            if result.get("status") != "GENERATED" or not response_text:
+                raise RuntimeError("Provider returned no completed text.")
+            results.append(
+                {
+                    "provider": name,
+                    "status": "passed",
+                    "model": str(result.get("model_name", "unknown")),
+                    "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+                    "response_characters": len(response_text),
+                }
+            )
+        except Exception as exc:  # Report only type, not provider body or secrets.
+            failures += 1
+            results.append(
+                {
+                    "provider": name,
+                    "status": "failed",
+                    "error_type": type(exc).__name__,
+                    "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+                }
+            )
+
+    print(json.dumps({
+        "mode": "live" if args.live else "configuration_only",
+        "network_mode": network_mode,
+        "data_sensitivity": sensitivity,
+        "attempted_live_requests": attempted,
+        "results": results,
+        "note": (
+            "Live requests use a synthetic prompt and may incur charges. "
+            "Response text and credential values are never printed."
+        ),
+    }, indent=2))
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
