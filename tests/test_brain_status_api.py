@@ -25,6 +25,9 @@ def test_brain_status_reports_missing_assets_without_network_calls(tmp_path, mon
     payload = response.json()
     layers = {item["id"]: item for item in payload["layers"]}
 
+    assert "market_data" in layers
+    assert "structured_knowledge" in layers
+    assert layers["market_data"]["provider_reachability_verified"] is False
     assert payload["schema_version"] == "1.0"
     assert payload["status"] == "diagnostic"
     assert payload["live_checks_performed"] is False
