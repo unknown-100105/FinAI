@@ -74,3 +74,27 @@ export async function logoutSession(session_id: string) {
 
   return response.json();
 }
+
+
+export type BrainLayerStatus = {
+  id: string;
+  status: string;
+  [key: string]: unknown;
+};
+
+export type BrainStatus = {
+  schema_version: string;
+  status: string;
+  planner_role: string;
+  live_checks_performed: boolean;
+  layers: BrainLayerStatus[];
+  limitations: string[];
+};
+
+export async function getBrainStatus(): Promise<BrainStatus> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/system/brain-status`);
+  if (!response.ok) {
+    throw new Error(`FinAI Brain status error ${response.status}: ${await response.text()}`);
+  }
+  return response.json() as Promise<BrainStatus>;
+}
