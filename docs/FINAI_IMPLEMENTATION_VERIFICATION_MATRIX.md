@@ -56,3 +56,10 @@ No live brokerage/order execution, bank settlement, production user identity/RBA
 - The capability plan now attaches observed outcomes per planned step (policy, finance, retrieval, generation, and verification) plus the top-level observed request outcome/stage. These fields are retrospective diagnostics; they do not cause the planner to dispatch or authorize tools.
 
 - The readiness endpoint also distinguishes offline-mode configuration and Colibrì adapter configuration from actual local model-weight presence, server reachability, and successful inference; those runtime checks remain explicitly unverified.
+
+
+## Expanded capability-plan coverage
+
+- The diagnostic graph now has explicit request stages for market-data dispatch and structured financial knowledge (catalogue, encyclopedia, regulatory, compliance, and investment-eligibility sources), in addition to policy, deterministic finance, hybrid retrieval, generation, and verification.
+- The plan's mode now follows the validated `FINAI_NETWORK_MODE` setting (`online`, `degraded`, or `offline`). In offline mode, cloud-only generation is not treated as available unless a successful generation result was observed for that request.
+- Trade planner persistence is schema-checked before use, and manually entered position entries are preserved during periodic quote refreshes. Changing instruments clears the previous quote so it is not displayed as the new instrument's price.
