@@ -13,6 +13,7 @@ export function KnowledgeHub() {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
 
+  // oxlint-disable-next-line react/set-state-in-effect -- Searches the backend when the query/category changes; results update asynchronously.
   useEffect(() => {
     const request = query.trim()
       ? searchKnowledge(query)
