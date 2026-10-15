@@ -254,3 +254,62 @@ def test_capability_plan_exposes_market_data_stage(monkeypatch):
     assert steps["market_data"]["kind"] == "market_data"
     assert steps["market_data"]["observed_status"] == "MARKET_DATA_READY"
     assert steps["market_data"]["depends_on"] == ("01_policy",)
+
+
+def _offline_generation_result(model_id):
+    return {
+        "stage": "financial_knowledge",
+        "status": "KNOWLEDGE_RETRIEVED",
+        "router": {"intent": "FINANCIAL_PRODUCT_KNOWLEDGE"},
+        "execution_plan": {"capability": "rag"},
+        "policy": {"status": "ALLOWED"},
+        "response_generation": {
+            "status": "GENERATED_VERIFIED",
+            "model_id": model_id,
+            "selection": {"model_id": model_id, "actual_model_id": model_id},
+            "verification": {"applicable": True, "passed": True},
+            "claim_verification": {"applicable": True, "passed": True},
+        },
+    }
+
+
+def test_offline_plan_accepts_observed_local_generation(monkeypatch):
+    monkeypatch.setenv("FINAI_NETWORK_MODE", "offline")
+    for key in (
+        "OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY",
+        "MISTRAL_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    engine = _engine_with_stubbed_core()
+    engine._process_core = lambda **kwargs: _offline_generation_result("rllm-finqa-4b")
+    result = engine.process(user_text="Explain mutual funds", generate_response=True)
+    plan = result["capability_execution_plan"]
+    observed = {step["capability"]: step["observed_status"] for step in plan["steps"]}
+
+    assert plan["mode"] == "offline"
+    assert plan["blocked"] is False
+    assert observed["resource_planning"] == "OBSERVED"
+    assert observed["model_generation"] == "GENERATED_VERIFIED"
+
+
+def test_offline_plan_rejects_observed_cloud_generation(monkeypatch):
+    monkeypatch.setenv("FINAI_NETWORK_MODE", "offline")
+    for key in (
+        "OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY",
+        "MISTRAL_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    engine = _engine_with_stubbed_core()
+    engine._process_core = lambda **kwargs: _offline_generation_result("gemini-cloud")
+    result = engine.process(user_text="Explain mutual funds", generate_response=True)
+    plan = result["capability_execution_plan"]
+
+    assert plan["mode"] == "offline"
+    assert plan["blocked"] is True
+    assert not any(step["capability"] == "model_generation" for step in plan["steps"])
+    assert any(
+        "offline" in explanation.lower()
+        for explanation in plan["explanations"]
+    )
