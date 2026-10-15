@@ -23,7 +23,7 @@ PROVIDER_ENV = {
 
 
 def _provider_factories() -> dict[str, tuple[str, Callable[[], Any]]]:
-    # Import lazily so --list works without constructing clients or requiring keys.
+    # Import provider classes without constructing clients or requiring keys.
     from llm.cloud.anthropic import AnthropicProvider
     from llm.cloud.gemini import GeminiProvider
     from llm.cloud.mistral import MistralProvider
