@@ -125,8 +125,8 @@ export function WealthWorkspace() {
     );
   }, [holdings]);
 
-  // oxlint-disable-next-line react/set-state-in-effect -- This effect refreshes quote data when the tracked-symbol set changes.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Refreshes quote data when the tracked-symbol set changes.
     void refreshQuotes();
   }, [refreshQuotes]);
 
