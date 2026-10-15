@@ -307,6 +307,90 @@ class FinAIHybridEngine:
             require_claim_verification=needs_generation,
             require_response_verification=needs_generation,
         ).to_dict()
+
+        # Keep the planner separate from enforcement, but annotate the plan with
+        # what this request actually exposed so the UI cannot imply that a
+        # planned stage necessarily executed successfully.
+        policy_result = result.get("policy") or {}
+        policy_status = str(policy_result.get("status") or "")
+        if stage == "policy" or status in {
+            "AUTH_REQUIRED", "CONFIRMATION_REQUIRED", "SECURITY_REVIEW_REQUIRED",
+        }:
+            observed_policy = status or policy_status or "BLOCKED_OR_PENDING"
+        elif policy_status:
+            observed_policy = policy_status
+        else:
+            observed_policy = "NOT_OBSERVED"
+
+        finance_result = result.get("finance") or {}
+        if stage == "finance_engine":
+            observed_finance = str(finance_result.get("status") or status or "OBSERVED")
+        elif not any(
+            token in intent.lower()
+            for token in (
+                "calculate", "calculation", "emi", "loan", "budget",
+                "portfolio", "payment", "interest", "tax", "sip",
+                "compound", "fixed_deposit", "recurring_deposit",
+                "finance_engine", "financial_calculation",
+            )
+        ):
+            observed_finance = "NOT_REQUIRED"
+        else:
+            observed_finance = "NOT_OBSERVED"
+
+        rag_result = result.get("rag") or {}
+        if status == "RAG_ERROR":
+            observed_retrieval = "FAILED"
+        elif status == "NO_EVIDENCE":
+            observed_retrieval = "NO_EVIDENCE"
+        elif stage == "rag":
+            observed_retrieval = (
+                "EVIDENCE_FOUND"
+                if rag_result.get("documents")
+                else "OBSERVED"
+            )
+        elif not needs_retrieval:
+            observed_retrieval = "NOT_REQUIRED"
+        else:
+            observed_retrieval = "NOT_OBSERVED"
+
+        claim_result = generation.get("claim_verification")
+        response_verification_result = generation.get("verification")
+        if not generate_response:
+            observed_generation = "NOT_REQUESTED"
+        elif generation_status in {"PROVIDER_UNAVAILABLE", "MODEL_UNAVAILABLE", "GENERATION_ERROR"}:
+            observed_generation = "FAILED"
+        elif generation:
+            observed_generation = generation_status or "OBSERVED"
+        elif status in {"MISSING_PARAMETERS", "RAG_ERROR", "NO_EVIDENCE"}:
+            observed_generation = "NOT_REACHED"
+        else:
+            observed_generation = "NOT_OBSERVED"
+
+        def verification_status(value):
+            if not isinstance(value, dict):
+                return "NOT_OBSERVED"
+            if value.get("applicable") is False:
+                return "NOT_APPLICABLE"
+            if isinstance(value.get("passed"), bool):
+                return "PASSED" if value["passed"] else "FAILED"
+            return "NOT_OBSERVED"
+
+        observed_by_capability = {
+            "policy": observed_policy,
+            "deterministic_finance": observed_finance,
+            "retrieval": observed_retrieval,
+            "model_generation": observed_generation,
+            "claim_verification": verification_status(claim_result),
+            "response_verification": verification_status(response_verification_result),
+        }
+        for step in plan.get("steps", []):
+            step["observed_status"] = observed_by_capability.get(
+                step.get("capability"), "NOT_OBSERVED"
+            )
+
+        plan["request_outcome"] = status or "UNKNOWN"
+        plan["request_outcome_stage"] = stage or "UNKNOWN"
         plan["planner_role"] = "request_path_diagnostic"
         plan["enforcement"] = (
             "Existing routing, policy, authority, and risk-control layers remain authoritative."
