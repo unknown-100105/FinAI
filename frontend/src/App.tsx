@@ -621,6 +621,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
                     <div>
                       <strong>{traceValue(String(step.capability ?? step.kind ?? "Unknown stage"))}</strong>
                       <small>{traceValue(String(step.kind ?? "stage"))}{step.required ? " · required" : " · optional"}</small>
+                      <small className="brain-step-status">Observed: {traceValue(String(step.observed_status ?? "NOT_OBSERVED"))}</small>
                       {Array.isArray(step.depends_on) && step.depends_on.length > 0 && (
                         <small>After: {step.depends_on.map((value: unknown) => String(value)).join(", ")}</small>
                       )}
