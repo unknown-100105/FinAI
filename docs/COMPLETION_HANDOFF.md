@@ -75,8 +75,12 @@ CI test list includes it and `tests/test_finite_api_inputs.py`.
 
 `scripts/verify-finai.ps1` now prefers the repository virtualenv interpreter,
 runs the full Python suite, performs `npm ci`, frontend build and lint, checks
-the local API when `FINAI_SKIP_LIVE` is not set, and runs both deterministic
-research benchmark scripts. Review every output and warning; the script is not
+the local API when `FINAI_SKIP_LIVE` is not set (including a safe account-balance
+request that must stop at `AUTH_REQUIRED`, trace-ID presence, and XAI trace response
+shape), runs local preflight, and runs both deterministic research benchmark scripts.
+If the server uses bearer mode, set `FINAI_API_BEARER_TOKEN` in the verification
+shell so the smoke requests can authenticate. The script does not send a real
+provider-generation request or incur model API charges. Review every output and warning; the script is not
 evidence that external provider credentials, real market-data reachability, or
 bank/DLT integrations work.
 
