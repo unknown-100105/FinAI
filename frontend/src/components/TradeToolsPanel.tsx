@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BellRing, Bookmark, Calculator, Plus, Trash2, TriangleAlert } from "lucide-react";
 
 type PriceAlert = { id: string; symbol: string; target: number; direction: "above" | "below" };
@@ -12,6 +12,31 @@ function readStored<T>(key: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function readWatchlist(): string[] {
+  const stored = readStored<unknown>(WATCHLIST_KEY, []);
+  if (!Array.isArray(stored)) return [];
+  return [...new Set(stored
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim().toUpperCase())
+    .filter(Boolean))].slice(-30);
+}
+
+function readAlerts(): PriceAlert[] {
+  const stored = readStored<unknown>(ALERTS_KEY, []);
+  if (!Array.isArray(stored)) return [];
+  return stored.filter((value): value is PriceAlert => {
+    if (!value || typeof value !== "object") return false;
+    const item = value as Record<string, unknown>;
+    return typeof item.id === "string"
+      && typeof item.symbol === "string"
+      && item.symbol.trim().length > 0
+      && typeof item.target === "number"
+      && Number.isFinite(item.target)
+      && item.target > 0
+      && (item.direction === "above" || item.direction === "below");
+  }).slice(-50);
 }
 
 function numeric(value: string): number | null {
@@ -38,10 +63,11 @@ export function TradeToolsPanel({ symbol, price, currency = "INR" }: { symbol: s
   const [entry, setEntry] = useState(price === null ? "" : String(price));
   const [stop, setStop] = useState("");
   const [target, setTarget] = useState("");
+  const entryInitializedSymbol = useRef<string | null>(null);
 
   useEffect(() => {
-    setWatchlist(readStored<string[]>(WATCHLIST_KEY, []));
-    setAlerts(readStored<PriceAlert[]>(ALERTS_KEY, []));
+    setWatchlist(readWatchlist());
+    setAlerts(readAlerts());
   }, []);
 
   useEffect(() => {
@@ -53,7 +79,15 @@ export function TradeToolsPanel({ symbol, price, currency = "INR" }: { symbol: s
   }, [alerts]);
 
   useEffect(() => {
-    if (price !== null && Number.isFinite(price)) setEntry(String(price));
+    if (entryInitializedSymbol.current === symbol) return;
+    setStop("");
+    setTarget("");
+    if (price !== null && Number.isFinite(price)) {
+      setEntry(String(price));
+      entryInitializedSymbol.current = symbol;
+    } else {
+      setEntry("");
+    }
   }, [symbol, price]);
 
   const entryValue = numeric(entry);
