@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { BellRing, Bookmark, Calculator, Plus, Trash2, TriangleAlert } from "lucide-react";
 
 type PriceAlert = { id: string; symbol: string; target: number; direction: "above" | "below" };
+type PositionDraft = {
+  symbol: string;
+  entry: string;
+  entrySource: "quote" | "manual";
+  stop: string;
+  target: string;
+};
 const WATCHLIST_KEY = "finai.trade.watchlist.v1";
 const ALERTS_KEY = "finai.trade.alerts.v1";
 
@@ -61,13 +68,7 @@ export function TradeToolsPanel({ symbol, price, currency = "INR" }: { symbol: s
   const [alertDirection, setAlertDirection] = useState<"above" | "below">("above");
   const [riskBudget, setRiskBudget] = useState("1000");
   const [side, setSide] = useState<"long" | "short">("long");
-  const [positionDraft, setPositionDraft] = useState<{
-    symbol: string;
-    entry: string;
-    entrySource: "quote" | "manual";
-    stop: string;
-    target: string;
-  }>(() => ({
+  const [positionDraft, setPositionDraft] = useState<PositionDraft>(() => ({
     symbol,
     entry: price === null ? "" : String(price),
     entrySource: "quote",
@@ -82,7 +83,7 @@ export function TradeToolsPanel({ symbol, price, currency = "INR" }: { symbol: s
     : price === null ? position.entry : String(price);
   const stop = position.stop;
   const target = position.target;
-  const updatePosition = (patch: Partial<typeof position>) => {
+  const updatePosition = (patch: Partial<PositionDraft>) => {
     setPositionDraft({ ...position, ...patch, symbol });
   };
 
@@ -93,18 +94,6 @@ export function TradeToolsPanel({ symbol, price, currency = "INR" }: { symbol: s
   useEffect(() => {
     try { window.localStorage.setItem(ALERTS_KEY, JSON.stringify(alerts)); } catch { /* Storage may be disabled. */ }
   }, [alerts]);
-
-  useEffect(() => {
-    if (entryInitializedSymbol.current === symbol) return;
-    setStop("");
-    setTarget("");
-    if (price !== null && Number.isFinite(price)) {
-      setEntry(String(price));
-      entryInitializedSymbol.current = symbol;
-    } else {
-      setEntry("");
-    }
-  }, [symbol, price]);
 
   const entryValue = numeric(entry);
   const stopValue = numeric(stop);
