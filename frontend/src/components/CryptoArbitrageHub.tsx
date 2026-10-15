@@ -158,8 +158,8 @@ export function CryptoArbitrageHub() {
     return () => window.clearInterval(timer);
   }, [loadChart]);
 
-  // oxlint-disable-next-line react/set-state-in-effect -- Polling asynchronous exchange tickers is an external-system synchronization effect.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Polls asynchronous exchange tickers.
     void loadTickers();
     const timer = window.setInterval(() => { void loadTickers(); }, 15000);
     return () => window.clearInterval(timer);
