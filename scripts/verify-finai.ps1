@@ -65,6 +65,18 @@ try {
                 throw "FinAI API info has an invalid XAI endpoint"
             }
 
+            $models = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/models" -Method Get -Headers $apiHeaders
+            if ($null -eq $models.models -or $models.models.Count -lt 1) {
+                throw "Model registry endpoint returned no model definitions"
+            }
+            foreach ($model in $models.models) {
+                if ([string]::IsNullOrWhiteSpace([string]$model.model_id) -or
+                    [string]::IsNullOrWhiteSpace([string]$model.provider) -or
+                    $null -eq $model.enabled -or $null -eq $model.configured) {
+                    throw "Model registry contains an incomplete model definition"
+                }
+            }
+
             $brain = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/system/brain-status" -Method Get -Headers $apiHeaders
             if ($brain.status -ne "diagnostic") {
                 throw "FinAI Brain status endpoint returned an unexpected status"
