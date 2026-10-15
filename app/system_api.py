@@ -105,6 +105,37 @@ def brain_status() -> dict[str, Any]:
                 "evidence": ["orchestrator/finance_dispatcher.py"],
             },
             {
+                "id": "market_data",
+                "status": "code_present" if _present(
+                    "orchestrator/market_data_dispatcher.py",
+                    "app/market_api.py",
+                    "market_data/service.py",
+                ) else "missing_code",
+                "evidence": [
+                    "orchestrator/market_data_dispatcher.py",
+                    "app/market_api.py",
+                    "market_data/service.py",
+                ],
+                "provider_reachability_verified": False,
+            },
+            {
+                "id": "structured_knowledge",
+                "status": "code_present" if _present(
+                    "knowledge/financial_catalog.py",
+                    "knowledge/finance_encyclopedia.py",
+                    "knowledge/india_finance_regulation.py",
+                    "knowledge/investment_eligibility.py",
+                    "compliance_catalog.py",
+                ) else "missing_code",
+                "evidence": [
+                    "knowledge/financial_catalog.py",
+                    "knowledge/finance_encyclopedia.py",
+                    "knowledge/india_finance_regulation.py",
+                    "knowledge/investment_eligibility.py",
+                    "compliance_catalog.py",
+                ],
+            },
+            {
                 "id": "retrieval",
                 "status": "ready_local_assets" if not missing_rag_assets else "assets_missing",
                 "required_assets": list(RAG_ASSETS),
