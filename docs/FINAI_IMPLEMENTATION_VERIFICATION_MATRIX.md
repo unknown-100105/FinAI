@@ -51,3 +51,6 @@ No live brokerage/order execution, bank settlement, production user identity/RBA
 - `GET /api/v1/system/brain-status` exposes a secret-safe local readiness view for routing, policy/authority, deterministic finance, retrieval assets, model credential presence, verification/XAI, adaptive orchestration, and experimental causal research.
 - The Assistant UI fetches this endpoint and replaces hard-coded positive RAG/evidence indicators with status labels derived from the API response.
 - Each assistant request can also display its backend-generated `capability_execution_plan`, including planned stages, dependencies, and explanations. The plan remains diagnostic and does not authorize tools or guarantee stage success.
+
+
+- The capability plan now attaches observed outcomes per planned step (policy, finance, retrieval, generation, and verification) plus the top-level observed request outcome/stage. These fields are retrospective diagnostics; they do not cause the planner to dispatch or authorize tools.
