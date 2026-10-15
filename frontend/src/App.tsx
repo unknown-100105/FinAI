@@ -89,6 +89,8 @@ const brainLayerIds = new Set<string>([
   "routing",
   "policy_authority",
   "deterministic_finance",
+  "market_data",
+  "structured_knowledge",
   "retrieval",
   "model_generation",
   "offline_inference",
