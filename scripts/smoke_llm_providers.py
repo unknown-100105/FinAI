@@ -88,6 +88,7 @@ def main() -> int:
 
         attempted += 1
         started = time.perf_counter()
+        provider = None
         try:
             provider = factory()
             result = provider.generate(
@@ -114,13 +115,23 @@ def main() -> int:
                     "response_characters": len(response_text),
                 }
             )
-        except Exception as exc:  # Report only type, not provider body or secrets.
+        except Exception as exc:  # Report only safe metadata, not provider body or secrets.
             failures += 1
+            status_code = getattr(exc, "status_code", None)
+            response = getattr(exc, "response", None)
+            if status_code is None and response is not None:
+                status_code = getattr(response, "status_code", None)
+            configured_model = (
+                getattr(provider, "model_name", None)
+                or getattr(provider, "model", None)
+            )
             results.append(
                 {
                     "provider": name,
                     "status": "failed",
+                    "model": str(configured_model) if configured_model else "unknown",
                     "error_type": type(exc).__name__,
+                    "error_status_code": status_code,
                     "latency_ms": round((time.perf_counter() - started) * 1000, 1),
                 }
             )
