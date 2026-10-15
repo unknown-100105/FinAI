@@ -4,7 +4,7 @@ This manifest describes the repository state intended for the final local pull-a
 
 ## Primary branch
 
-`feature/professional-token-lab-ui`
+`ai/finai-completion`
 
 ## Implemented research stack
 
@@ -68,8 +68,16 @@ This manifest describes the repository state intended for the final local pull-a
 - `POST /api/v1/causal-risk/multimodal/encode`
 - `POST /api/v1/causal-risk/regime-benchmark`
 - `GET /api/v1/causal-risk/research-status`
+- `GET /api/v1/system/brain-status` (secret-safe local readiness diagnostics)
 - `POST /api/v1/causal-risk/research-counterfactual`
 - Advanced tail-dependence options on the causal-risk tail/counterfactual APIs
+
+## FinAI Brain and user-facing tools
+
+- The Assistant workspace displays the request's capability-plan diagnostics and local Brain readiness indicators.
+- The plan models policy, market-data dispatch, deterministic finance, structured knowledge, hybrid retrieval, resource planning, generation, and verification; it remains diagnostic and does not replace existing authorization or dispatch paths.
+- Trade View includes browser-local watchlists, quote-threshold alert conditions, and long/short-aware position sizing/reward-risk estimates. It does not submit broker orders or send push notifications.
+- The local inference adapters and model artifacts must be provisioned separately. A configured endpoint or credential is not evidence of successful live inference.
 
 ## Research honesty rules
 
@@ -85,17 +93,26 @@ The repository must never claim that:
 Run from the repository root:
 
 ```powershell
-git pull origin feature/professional-token-lab-ui
+git pull origin ai/finai-completion
 pytest -q
 ```
 
-Then rebuild the frontend:
+Then verify backend, frontend, and deterministic research benchmarks:
 
 ```powershell
+$env:FINAI_SKIP_LIVE = "1"
+.\.venv\Scripts\python.exe -m pytest -q
 cd frontend
+npm ci
 npm run build
+npm run lint
 cd ..
+.\.venv\Scripts\python.exe scripts\finai_preflight.py
+.\.venv\Scripts\python.exe scripts\run_patent_mechanism_benchmark.py --output patent-benchmark.json
+.\.venv\Scripts\python.exe benchmarks\counterfactual_screening_benchmark.py
 ```
+
+For live API checks, start the backend and rerun `scripts/verify-finai.ps1` without setting `FINAI_SKIP_LIVE`.
 
 Then start the backend and smoke-test:
 
