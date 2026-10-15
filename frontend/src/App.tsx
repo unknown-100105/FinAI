@@ -661,7 +661,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
               {brainStatus.layers.filter((layer) => brainLayerIds.has(layer.id)).map((layer) => (
                 <div className="brain-layer-row" key={layer.id}>
                   <span>{traceValue(layer.id)}</span>
-                  <strong className={/missing|no_cloud_credentials|assets_missing|incomplete/i.test(layer.status) ? "needs-attention" : "layer-present"}>
+                  <strong className={/missing|no_cloud_credentials|assets_missing|incomplete|offline_mode_requested|runtime_unverified/i.test(layer.status) ? "needs-attention" : "layer-present"}>
                     {traceValue(layer.status)}
                   </strong>
                 </div>
