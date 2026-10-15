@@ -185,3 +185,24 @@ Both are opt-in research components. Neither is a causal discovery engine or a v
 ## ResilientPay settlement seam
 
 The completion branch includes the experimental local-first payment journal in resilient_pay/ledger.py. It deliberately stops at a payment-intent/adapter contract and a simulation-only adapter. It must not be represented as live banking or Fabric settlement. The external gateway, channel/chaincode, credentials/identities, reconciliation protocol, and independent security review remain deployment-specific.
+
+
+## Updates added after the 15 October handoff
+
+### Trade View planning workspace
+
+- Added `frontend/src/components/TradeToolsPanel.tsx` to the market terminal with a browser-local watchlist, above/below price-alert conditions, and a position-sizing / reward-risk calculator.
+- Added responsive styling in `frontend/src/components/MarketTerminal.css` and a manual smoke checklist in `docs/TRADE_VIEW_TOOLS.md`.
+- Watchlist selection dispatches a local browser event consumed by MarketTerminal.
+- These tools do not place orders, provide broker connectivity, or deliver background/push alerts. The browser checklist still needs to be run.
+
+### Counterfactual directional stability
+
+- Added `finance_engine/counterfactual_stability.py`, unit/API tests, and a protected opt-in endpoint at `/api/v1/research/patent-mechanisms/counterfactual-stability`.
+- The endpoint is included in the existing research router, which is mounted only when `FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS=true`; the router requires `FINAI_RESEARCH_API_TOKEN` with at least 32 characters.
+- The endpoint compares repeated approved runs and produces a replay digest. It is a research robustness gate, not causal proof, a production investment decision, or evidence of patentability.
+- Added the focused tests to artifact-independent CI. The latest commits still need local/hosted execution; no passing status is claimed.
+
+### Current review requirement
+
+Run the complete backend suite, frontend build/lint, research tests/benchmarks, and browser smoke checklist from a fresh checkout of `ai/finai-completion`. Verify the CI runner issue separately. Do not merge to `main` or describe this branch as production-ready until those checks are reviewed.
