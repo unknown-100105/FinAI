@@ -251,9 +251,22 @@ class FinAIHybridEngine:
         mode = ExecutionMode(get_network_mode())
         # A successful observed generation is evidence that the selected local
         # or remote path ran. Mere credentials/configuration never prove that.
+        selected_generation_model = str(
+            generation.get("model_id")
+            or (generation.get("selection") or {}).get("actual_model_id")
+            or (generation.get("selection") or {}).get("model_id")
+            or ""
+        ).strip().lower()
+        offline_generation_observed = (
+            bool(generation)
+            and not generation_failed
+            and selected_generation_model in {"rllm-finqa-4b", "colibri-local"}
+        )
         model_modes = (
             all_modes
-            if generation and not generation_failed
+            if generation
+            and not generation_failed
+            and (mode != ExecutionMode.OFFLINE or offline_generation_observed)
             else online_only
         )
         resource_planning_available = (
