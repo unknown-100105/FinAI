@@ -95,6 +95,7 @@ const brainLayerIds = new Set<string>([
   "model_generation",
   "offline_inference",
   "verification_xai",
+  "resource_planning",
   "adaptive_orchestration",
   "causal_risk_research",
 ]);
