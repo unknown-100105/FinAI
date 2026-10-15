@@ -59,6 +59,7 @@ jobs:
             tests/test_counterfactual_stability_api.py \
             tests/test_capability_plan_integration.py \
             tests/test_finai_preflight.py \
+            tests/test_provider_smoke_script.py \
             tests/test_rllm_offline_loading.py \
             tests/test_sarvam_offline_loading.py \
             tests/test_colibri_adapter.py \
