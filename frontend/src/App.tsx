@@ -190,6 +190,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
     model: "Gemini",
     verification: "Ready",
   });
+  const [capabilityPlan, setCapabilityPlan] = useState<any>(null);
 
   useEffect(() => {
     void getFinAIModels("financial_qa").then((data) => {
@@ -232,6 +233,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
 
   const applyResult = (result: any, addAssistantMessage = true) => {
     if (result?.session_id) setSessionId(result.session_id);
+    setCapabilityPlan(rootOf(result)?.capability_execution_plan ?? null);
 
     const session = result?.session ?? {};
     setAuthenticated(session.authenticated === true);
@@ -282,6 +284,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
     if (!text || loading) return;
 
     setError("");
+    setCapabilityPlan(null);
     setMessages((current) => [...current, { role: "user", content: text }]);
     setMessage("");
     setLoading(true);
@@ -585,6 +588,48 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
             >
               <FileSearch size={12} /> Open this conversation's trace
             </button>
+          )}
+        </section>
+
+        <section className="glass-panel side-card brain-plan-card">
+          <div className="side-title"><BrainCircuit size={15} /> FinAI Brain plan</div>
+          <p className="brain-plan-note">Request-path diagnostic from the backend. Planned stages are not proof that every capability executed successfully.</p>
+          {capabilityPlan ? (
+            <>
+              <div className={capabilityPlan.blocked ? "brain-plan-status blocked" : "brain-plan-status"}>
+                <span>{capabilityPlan.blocked ? "Plan blocked" : "Plan generated"}</span>
+                <small>{String(capabilityPlan.mode ?? "online").toUpperCase()} · {capabilityPlan.steps?.length ?? 0} stage(s)</small>
+              </div>
+              {capabilityPlan.observed_stage && (
+                <div className="brain-observed-stage">
+                  <span>Observed backend stage</span>
+                  <strong>{traceValue(String(capabilityPlan.observed_stage))}</strong>
+                  {capabilityPlan.observed_status && <small>{traceValue(String(capabilityPlan.observed_status))}</small>}
+                </div>
+              )}
+              <div className="brain-plan-steps">
+                {(Array.isArray(capabilityPlan.steps) ? capabilityPlan.steps : []).map((step: any, index: number) => (
+                  <div className="brain-plan-step" key={step.step_id ?? step.capability ?? index}>
+                    <span className="brain-step-index">{String(index + 1).padStart(2, "0")}</span>
+                    <div>
+                      <strong>{traceValue(String(step.capability ?? step.kind ?? "Unknown stage"))}</strong>
+                      <small>{traceValue(String(step.kind ?? "stage"))}{step.required ? " · required" : " · optional"}</small>
+                      {Array.isArray(step.depends_on) && step.depends_on.length > 0 && (
+                        <small>After: {step.depends_on.map((value: unknown) => String(value)).join(", ")}</small>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {Array.isArray(capabilityPlan.explanations) && capabilityPlan.explanations.length > 0 && (
+                <ul className="brain-plan-explanations">
+                  {capabilityPlan.explanations.map((item: unknown, index: number) => <li key={index}>{String(item)}</li>)}
+                </ul>
+              )}
+              <small className="brain-plan-footnote">Planner role: {traceValue(String(capabilityPlan.planner_role ?? "diagnostic"))}. Existing policy, authority and risk-control layers remain authoritative.</small>
+            </>
+          ) : (
+            <p className="brain-plan-empty">Send a request to inspect the stages FinAI reports for that request.</p>
           )}
         </section>
 
