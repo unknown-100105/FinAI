@@ -151,8 +151,8 @@ export function CryptoArbitrageHub() {
     }
   }, [tickerExchange, tickerQuote, tickerSearch]);
 
-  // oxlint-disable-next-line react/set-state-in-effect -- Polling asynchronous market data is an external-system synchronization effect.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Polls asynchronous market data.
     void loadChart();
     const timer = window.setInterval(() => { void loadChart(); }, 10000);
     return () => window.clearInterval(timer);
