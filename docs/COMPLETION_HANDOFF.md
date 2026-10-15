@@ -206,3 +206,12 @@ The completion branch includes the experimental local-first payment journal in r
 ### Current review requirement
 
 Run the complete backend suite, frontend build/lint, research tests/benchmarks, and browser smoke checklist from a fresh checkout of `ai/finai-completion`. Verify the CI runner issue separately. Do not merge to `main` or describe this branch as production-ready until those checks are reviewed.
+
+
+## FinAI Brain integration pass
+
+- The assistant UI now renders the backend's per-request `capability_execution_plan` as a diagnostic stage list, including required/optional stages, dependencies, observed backend stage/status, and block explanations. It is explicitly labeled as a plan, not proof that every stage ran successfully.
+- Added `GET /api/v1/system/brain-status` and tests. The endpoint reports source/artifact presence and provider credential *names* only; it does not contact providers, expose secrets, prove model inference, or validate causal claims.
+- The Assistant workspace now loads and can refresh the Brain layer readiness diagnostics instead of showing hard-coded green checks for retrieval and evidence grounding.
+- Added `tests/test_brain_status_api.py` to artifact-independent CI.
+- Still required: run backend tests, frontend build/lint, browser smoke tests, and verify that the latest hosted Actions runner executes job steps. This change set has not yet been runtime-validated.
