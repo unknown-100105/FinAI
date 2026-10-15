@@ -97,10 +97,9 @@ git pull origin ai/finai-completion
 pytest -q
 ```
 
-Then verify backend, frontend, and deterministic research benchmarks:
+Then verify backend, frontend, live API contracts, provider configuration, and deterministic research benchmarks:
 
 ```powershell
-$env:FINAI_SKIP_LIVE = "1"
 .\.venv\Scripts\python.exe -m pytest -q
 cd frontend
 npm ci
@@ -108,9 +107,20 @@ npm run build
 npm run lint
 cd ..
 .\.venv\Scripts\python.exe scripts\finai_preflight.py
+.\.venv\Scripts\python.exe scripts\smoke_llm_providers.py
 .\.venv\Scripts\python.exe scripts\run_patent_mechanism_benchmark.py --output patent-benchmark.json
 .\.venv\Scripts\python.exe benchmarks\counterfactual_screening_benchmark.py
 ```
+
+For the expanded live API checks, start the API first and run:
+
+```powershell
+.\scripts\verify-finai.ps1
+```
+
+Provider smoke calls are not sent by default. To deliberately test configured cloud
+providers with a synthetic prompt (may incur charges), set
+`$env:FINAI_RUN_LIVE_PROVIDER_SMOKE = "1"` before running the verification script.
 
 For live API checks, start the backend and run `$env:FINAI_SKIP_LIVE = $null` before rerunning `scripts/verify-finai.ps1`.
 
