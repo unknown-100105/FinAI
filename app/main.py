@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from app.api_security import FinAIAPIAuthMiddleware
 from pydantic import BaseModel, Field
 
 from orchestrator.session_xai import XAISessionOrchestrator
@@ -51,6 +52,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Optional shared-token guard; production fails closed without a strong server token.
+app.add_middleware(FinAIAPIAuthMiddleware)
 
 
 app.include_router(market_router)
