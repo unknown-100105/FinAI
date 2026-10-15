@@ -129,11 +129,11 @@ def brain_status() -> dict[str, Any]:
                 "id": "adaptive_orchestration",
                 "status": "code_present" if _present(
                     "orchestrator/execution_plan.py",
-                    "orchestrator/resource_orchestrator.py",
+                    "llm/resource_orchestrator.py",
                 ) else "missing_code",
                 "evidence": [
                     "orchestrator/execution_plan.py",
-                    "orchestrator/resource_orchestrator.py",
+                    "llm/resource_orchestrator.py",
                 ],
                 "execution_plan_is_diagnostic": True,
             },
