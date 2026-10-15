@@ -162,3 +162,31 @@ def test_capability_plan_records_generation_and_verification_outcomes(monkeypatc
     assert observed["model_generation"] == "GENERATED_VERIFIED"
     assert observed["claim_verification"] == "PASSED"
     assert observed["response_verification"] == "PASSED"
+
+
+def test_capability_plan_respects_offline_mode_without_claiming_cloud_generation(monkeypatch):
+    monkeypatch.setenv("FINAI_NETWORK_MODE", "offline")
+    for key in (
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "MISTRAL_API_KEY",
+        "GOOGLE_API_KEY",
+        "GEMINI_API_KEY",
+        "SARVAM_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    result = _engine_with_stubbed_core().process(
+        user_text="Calculate EMI",
+        generate_response=True,
+    )
+    plan = result["capability_execution_plan"]
+
+    assert plan["mode"] == "offline"
+    assert plan["blocked"] is True
+    assert any(
+        "model_generation" in explanation.lower()
+        or "model generation" in explanation.lower()
+        for explanation in plan["explanations"]
+    )
