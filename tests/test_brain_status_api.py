@@ -58,3 +58,26 @@ def test_brain_status_never_exposes_provider_secrets_and_detects_local_assets(tm
     assert layers["model_generation"]["configured_provider_names"] == ["openrouter"]
     assert layers["model_generation"]["model_inference_verified"] is False
     assert secret not in json.dumps(payload)
+
+
+def test_brain_status_separates_offline_configuration_from_runtime_verification(tmp_path, monkeypatch):
+    monkeypatch.setattr(system_api, "ROOT", tmp_path)
+    monkeypatch.setenv("FINAI_NETWORK_MODE", "offline")
+    monkeypatch.setenv("FINAI_COLIBRI_BASE_URL", "http://127.0.0.1:8000/v1")
+
+    for relative in ("llm/rllm_finqa_adapter.py", "llm/colibri_adapter.py"):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# test placeholder", encoding="utf-8")
+
+    response = client.get("/api/v1/system/brain-status")
+    assert response.status_code == 200
+    layers = {item["id"]: item for item in response.json()["layers"]}
+    offline = layers["offline_inference"]
+
+    assert offline["status"] == "offline_mode_requested"
+    assert offline["network_mode"] == "offline"
+    assert offline["colibri_configured"] is True
+    assert offline["local_runtime_verified"] is False
+    assert offline["model_weights_presence_verified"] is False
+    assert offline["colibri_server_reachability_verified"] is False
