@@ -20,7 +20,9 @@ class ExecutionMode(str, Enum):
 
 class StepKind(str, Enum):
     POLICY_CHECK = "policy_check"
+    MARKET_DATA = "market_data"
     DETERMINISTIC_TOOL = "deterministic_tool"
+    STRUCTURED_KNOWLEDGE = "structured_knowledge"
     RETRIEVAL = "retrieval"
     MODEL_GENERATION = "model_generation"
     CLAIM_VERIFICATION = "claim_verification"
@@ -166,6 +168,8 @@ def build_execution_plan(
     graph: CapabilityStateGraph,
     mode: ExecutionMode = ExecutionMode.ONLINE,
     require_retrieval: bool = True,
+    require_market_data: bool = False,
+    require_structured_knowledge: bool = False,
     require_model: bool = True,
     require_claim_verification: bool = True,
     require_response_verification: bool = True,
@@ -181,14 +185,18 @@ def build_execution_plan(
     if not intent.strip():
         raise ValueError("intent must not be empty")
 
-    requested = [
-        ("policy", StepKind.POLICY_CHECK, True),
-        ("deterministic_finance", StepKind.DETERMINISTIC_TOOL, False),
+    requested = [("policy", StepKind.POLICY_CHECK, True)]
+    if require_market_data:
+        requested.append(("market_data", StepKind.MARKET_DATA, True))
+    requested.append(("deterministic_finance", StepKind.DETERMINISTIC_TOOL, False))
+    if require_structured_knowledge:
+        requested.append(("structured_knowledge", StepKind.STRUCTURED_KNOWLEDGE, True))
+    requested.extend([
         ("retrieval", StepKind.RETRIEVAL, require_retrieval),
         ("model_generation", StepKind.MODEL_GENERATION, require_model),
         ("claim_verification", StepKind.CLAIM_VERIFICATION, require_claim_verification),
         ("response_verification", StepKind.RESPONSE_VERIFICATION, require_response_verification),
-    ]
+    ])
     steps: list[PlanStep] = []
     explanations: list[str] = []
     blocked = False
