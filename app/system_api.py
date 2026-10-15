@@ -26,7 +26,6 @@ PROVIDER_ENV = {
     "anthropic": ("ANTHROPIC_API_KEY",),
     "mistral": ("MISTRAL_API_KEY",),
     "gemini": ("GEMINI_API_KEY",),
-    "sarvam": ("SARVAM_API_KEY",),
 }
 
 
