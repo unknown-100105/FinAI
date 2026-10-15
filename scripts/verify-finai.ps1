@@ -53,6 +53,25 @@ try {
                 throw "FinAI /health did not return status=ok"
             }
 
+            $apiInfo = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1" -Method Get
+            if ($apiInfo.endpoints.brain_status -ne "/api/v1/system/brain-status") {
+                throw "FinAI API info does not advertise the Brain status endpoint"
+            }
+            if ($apiInfo.endpoints.xai -ne "/api/v1/xai") {
+                throw "FinAI API info has an invalid XAI endpoint"
+            }
+
+            $brain = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/system/brain-status" -Method Get
+            if ($brain.status -ne "diagnostic") {
+                throw "FinAI Brain status endpoint returned an unexpected status"
+            }
+            if ($brain.live_checks_performed -ne $false) {
+                throw "Brain diagnostics must explicitly report that live checks were not performed"
+            }
+            if ($brain.security.shared_token_value_exposed -ne $false) {
+                throw "Brain diagnostics must never expose the API bearer token"
+            }
+
             $research = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/causal-risk/research-status" -Method Get
             if ($research.status -ne "FINAI_RESEARCH_STACK") {
                 throw "Research status endpoint returned an unexpected status"
