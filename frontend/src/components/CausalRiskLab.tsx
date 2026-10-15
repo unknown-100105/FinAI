@@ -147,6 +147,7 @@ export default function CausalRiskLab() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
 
+  // oxlint-disable-next-line react/set-state-in-effect -- Loads the remote graph and architecture asynchronously; local storage is initialized separately.
   useEffect(() => {
     void Promise.all([getCausalGraph(), getCausalArchitecture()])
       .then(([nextGraph, nextArchitecture]) => {
