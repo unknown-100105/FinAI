@@ -30,8 +30,10 @@ import {
 } from "lucide-react";
 import {
   authenticateSession,
+  getBrainStatus,
   logoutSession,
   sendChat,
+  type BrainStatus,
 } from "./api/finai";
 import { getFinAIModels, type FinAIModel } from "./api/models";
 import { MarketTerminal } from "./components/MarketTerminal";
@@ -191,6 +193,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
     verification: "Ready",
   });
   const [capabilityPlan, setCapabilityPlan] = useState<any>(null);
+  const [brainStatus, setBrainStatus] = useState<BrainStatus | null>(null);
 
   useEffect(() => {
     void getFinAIModels("financial_qa").then((data) => {
@@ -198,6 +201,10 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
       setModels(enabled);
       if (!modelId && enabled.length) setModelId(enabled[0].model_id);
     }).catch(() => setModels([]));
+  }, []);
+
+  useEffect(() => {
+    void getBrainStatus().then(setBrainStatus).catch(() => setBrainStatus(null));
   }, []);
 
   const [messages, setMessages] = useState<Message[]>([
@@ -634,9 +641,29 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
         </section>
 
         <section className="glass-panel side-card evidence-mini">
-          <div className="side-title"><FileSearch size={15} /> Knowledge layer</div>
-          <div className="mini-status"><CheckCircle2 size={14} /> Hybrid RAG</div>
-          <div className="mini-status"><CheckCircle2 size={14} /> Evidence grounding</div>
+          <div className="side-title"><FileSearch size={15} /> Brain layer status</div>
+          <p className="brain-plan-note">Local readiness only. Green/ready means file or configuration evidence, not a live quality guarantee.</p>
+          {brainStatus ? (
+            <div className="brain-layer-list">
+              {brainStatus.layers.filter((layer) => [
+                "routing", "policy_authority", "deterministic_finance", "retrieval",
+                "model_generation", "verification_xai", "adaptive_orchestration",
+                "causal_risk_research",
+              ].includes(layer.id)).map((layer) => (
+                <div className="brain-layer-row" key={layer.id}>
+                  <span>{traceValue(layer.id)}</span>
+                  <strong className={/missing|no_cloud_credentials|assets_missing|incomplete/i.test(layer.status) ? "needs-attention" : "layer-present"}>
+                    {traceValue(layer.status)}
+                  </strong>
+                </div>
+              ))}
+              <button type="button" className="xai-open-button" onClick={() => void getBrainStatus().then(setBrainStatus).catch(() => setBrainStatus(null))}>
+                Refresh local diagnostics
+              </button>
+            </div>
+          ) : (
+            <p className="brain-plan-empty">Diagnostics unavailable. Check the API connection and reload.</p>
+          )}
         </section>
       </aside>
     </section>
