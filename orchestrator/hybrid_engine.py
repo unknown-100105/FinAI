@@ -256,6 +256,10 @@ class FinAIHybridEngine:
             if generation and not generation_failed
             else online_only
         )
+        resource_planning_available = (
+            (ROOT / "llm" / "resource_orchestrator.py").is_file()
+            and (ROOT / "llm" / "model_router.py").is_file()
+        )
         graph = CapabilityStateGraph(
             capabilities=(
                 Capability(
@@ -297,6 +301,13 @@ class FinAIHybridEngine:
                     metadata={"source": "hybrid_rrf", "requested_for_path": needs_retrieval},
                 ),
                 Capability(
+                    "resource_planning",
+                    resource_planning_available,
+                    all_modes,
+                    reason="hardware-aware model/resource planner is not available",
+                    metadata={"source": "llm.resource_orchestrator and llm.model_router"},
+                ),
+                Capability(
                     "model_generation",
                     model_available,
                     model_modes,
@@ -323,7 +334,8 @@ class FinAIHybridEngine:
                 "deterministic_finance": ("policy",),
                 "structured_knowledge": ("policy",),
                 "retrieval": ("policy",),
-                "model_generation": ("policy",),
+                "resource_planning": ("policy",),
+                "model_generation": ("policy", "resource_planning"),
                 "claim_verification": ("model_generation",),
                 "response_verification": ("claim_verification",),
             },
@@ -336,6 +348,7 @@ class FinAIHybridEngine:
             require_retrieval=needs_retrieval,
             require_market_data=needs_market_data,
             require_structured_knowledge=needs_structured_knowledge,
+            require_resource_planning=needs_generation,
             require_model=needs_generation,
             require_claim_verification=needs_generation,
             require_response_verification=needs_generation,
@@ -415,6 +428,11 @@ class FinAIHybridEngine:
             "deterministic_finance": observed_finance,
             "structured_knowledge": status if stage == "financial_knowledge" else "NOT_REQUIRED",
             "retrieval": observed_retrieval,
+            "resource_planning": (
+                "OBSERVED"
+                if isinstance(generation.get("selection"), dict)
+                else "NOT_OBSERVED"
+            ),
             "model_generation": observed_generation,
             "claim_verification": verification_status(claim_result),
             "response_verification": verification_status(response_verification_result),
