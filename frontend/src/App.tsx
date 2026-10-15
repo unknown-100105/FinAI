@@ -91,6 +91,7 @@ const brainLayerIds = new Set<string>([
   "deterministic_finance",
   "retrieval",
   "model_generation",
+  "offline_inference",
   "verification_xai",
   "adaptive_orchestration",
   "causal_risk_research",
