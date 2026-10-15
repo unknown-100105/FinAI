@@ -133,6 +133,23 @@ try {
         throw "FinAI preflight failed."
     }
 
+    Write-Host "Checking provider configuration without network calls..." -ForegroundColor Yellow
+    & $python scripts/smoke_llm_providers.py
+    if ($LASTEXITCODE -ne 0) {
+        throw "Provider configuration check failed."
+    }
+
+    if ($env:FINAI_RUN_LIVE_PROVIDER_SMOKE -in @("1", "true", "yes", "on")) {
+        Write-Host "Running opt-in live provider smoke tests (may incur API charges)..." -ForegroundColor Yellow
+        & $python scripts/smoke_llm_providers.py --live
+        if ($LASTEXITCODE -ne 0) {
+            throw "One or more configured live LLM provider smoke tests failed."
+        }
+    }
+    else {
+        Write-Host "Live LLM provider calls skipped. Set FINAI_RUN_LIVE_PROVIDER_SMOKE=1 to opt in." -ForegroundColor DarkYellow
+    }
+
     Write-Host "Running patent mechanism benchmark..."
     & $python scripts/run_patent_mechanism_benchmark.py --output patent-benchmark.json
     if ($LASTEXITCODE -ne 0) {
