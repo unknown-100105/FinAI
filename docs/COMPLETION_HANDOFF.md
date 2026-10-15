@@ -79,8 +79,11 @@ the local API when `FINAI_SKIP_LIVE` is not set (including a safe account-balanc
 request that must stop at `AUTH_REQUIRED`, trace-ID presence, and XAI trace response
 shape), runs local preflight, and runs both deterministic research benchmark scripts.
 If the server uses bearer mode, set `FINAI_API_BEARER_TOKEN` in the verification
-shell so the smoke requests can authenticate. The script does not send a real
-provider-generation request or incur model API charges. Review every output and warning; the script is not
+shell so the smoke requests can authenticate. Provider configuration is inspected
+without outbound calls by default. Set `FINAI_RUN_LIVE_PROVIDER_SMOKE=1` to opt in to
+synthetic cloud-provider requests; these may incur charges and should be run only
+when live validation is intended. The script respects offline/restricted modes and
+the configured provider allow-list. Review every output and warning; the script is not
 evidence that external provider credentials, real market-data reachability, or
 bank/DLT integrations work.
 
