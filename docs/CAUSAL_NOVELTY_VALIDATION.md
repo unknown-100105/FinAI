@@ -121,3 +121,23 @@ Maintain a claim chart with columns for: proposed claim element, exact implement
 ## Current evidence boundary
 
 The repository's research runbook already describes empirical SCM channel calibration, temporal GNN training, causal empirical GFlowNet training, chronological holdouts, and saved diagnostics. These are research workflows, not proof that the hypotheses above pass. The full protocol remains open until fresh experiments, source-to-test mapping, and prior-art review are recorded.
+
+
+## Initial source inspection (2026-10-19)
+
+A limited source inspection of the base branch confirmed these components exist:
+
+- `finance_engine/epcrp.py` describes EPCRP as a static, caller-supplied DAG reference implementation. Its own module documentation says it does **not** discover causal relationships, simulate lagged time-series transitions, or validate finance.
+- `causal_risk/feasibility_pruning.py` implements interval-based prefix feasibility screening for a bounded linear DAG. Its certificate is explicitly scoped to that model class.
+- `causal_risk/constrained_gfnets.py` couples the GFlowNet-style generator to prefix feasibility checks and action masking; its docstring says heuristic adaptive pruning must be evaluated against an unpruned baseline.
+- Tests exist for evidence-gated paired-world deltas, excluding unvalidated/missing-evidence edges, feasibility certificates, constrained action masking, and protected research API routes.
+
+This is evidence of an implemented research prototype and test coverage for selected contracts. It is **not** evidence that causal discovery, empirical financial validity, tail-risk calibration, a full multimodal graph, or patentability has been established. The source inspection was limited to the files listed above; it is not a full repository audit.
+
+### Immediate next experiments
+
+1. Run the current test suite and patent-mechanism benchmark from a clean local checkout, save full stdout/stderr, and record commit + environment.
+2. Build the baseline/ablation matrix in this protocol. In particular, compare the constrained generator to the same generator without feasibility masks.
+3. Evaluate on chronological financial data with provenance and a final untouched holdout; synthetic unit tests alone are insufficient.
+4. Audit each evidence edge's provenance, support score, temporal validity, and sensitivity to removing or perturbing edges.
+5. Verify that every reported portfolio outcome is computed by the deterministic risk engine and that the explanation trace is reproducible from saved inputs.
