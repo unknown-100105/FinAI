@@ -127,7 +127,7 @@ export function CandleChart({
           viewBox={"0 0 " + geometry.chartWidth + " 340"}
           width={geometry.chartWidth}
           height="340"
-          role="img"
+          role="group"
           aria-label="OHLC candlestick chart. Select a candle to see its individual explanation."
         >
           <g className="candle-grid">
