@@ -28,3 +28,29 @@ The Market & Crypto Terminal now includes a local-first trade planning panel ben
 8. Disconnect or block the market API and verify the existing error/partial-feed messaging remains visible.
 
 These checks still need to be run in a browser against the current checkout. Adding the component is not evidence that browser QA has passed.
+
+
+## Individual candle explanations
+
+The candlestick chart now presents a deterministic explanation for the selected candle. Click or keyboard-select a candle to inspect:
+
+- timestamp and position in the returned series;
+- OHLC values, real-body size, high-low range, upper wick and lower wick;
+- body-to-range percentage and close-to-previous-close percentage when available;
+- volume and volume relative to up to 20 preceding candles when those observations are available;
+- descriptive candidates for very small bodies/doji-like candles, long-wick candles and engulfing bodies.
+
+Pattern labels are descriptive candidates only. They are not trade signals, forecasts, causal explanations, or evidence of profitability. Interpretation depends on instrument, interval, trend and data quality. The component does not claim that a candle predicts the next price move.
+
+### Candle explanation manual QA
+
+1. Load an instrument with at least 25 OHLC bars and confirm the latest candle is explained by default.
+2. Select early, middle and latest candles; confirm the timestamp, ordinal and OHLC values correspond to the selected candle.
+3. Check the body and wick calculations against the OHLC values.
+4. Confirm change versus previous close is unavailable for the first candle and calculated for subsequent candles.
+5. Confirm volume comparison uses only prior bars, excludes the selected bar, and reports unavailable when prior average volume is zero or unavailable.
+6. Use keyboard Enter/Space on a focused candle and verify selection updates.
+7. Test narrow mobile width, long symbol names, missing volume and partial market-data responses.
+8. Verify the explanation does not generate an order, recommend a trade, or describe a pattern as a guaranteed reversal.
+
+These checks must be run against the current checkout; adding the panel is not evidence that browser QA has passed.
