@@ -737,6 +737,15 @@ class ResponseService:
             verify=verify_candidate,
             max_attempts=self.max_verifier_escalations,
         )
+        escalation_metadata = result.get("verification_escalation", {})
+        for trace_item in escalation_metadata.get("trace", []):
+            try:
+                model_spec = get_model_spec(trace_item.get("model_id", ""))
+                trace_item["registry_quality_tier"] = int(model_spec.quality_tier)
+                trace_item["registry_cost_tier"] = int(model_spec.cost_tier)
+                trace_item["registry_latency_tier"] = int(model_spec.latency_tier)
+            except (KeyError, ValueError, TypeError):
+                continue
         if result.get("status") != "GENERATED_VERIFIED_ESCALATED":
             metadata = result.get("verification_escalation", {})
             metadata["evidence_retrieval_attempted"] = retrieval_attempted
@@ -957,8 +966,14 @@ class ResponseService:
                     "status": "VERIFICATION_FAILED",
                     "model_id": actual_model_id,
                     "response": (
-                        "I couldn't verify the generated explanation "
-                        "against the retrieved evidence."
+                        "I couldn't verify the generated explanation against the available "
+                        "evidence. Please clarify the relevant jurisdiction, institution, "
+                        "or time period, or provide the authoritative source you want used."
+                    ),
+                    "recommended_next_action": "clarify_or_provide_source",
+                    "clarification_prompt": (
+                        "Which jurisdiction, institution, and effective date should I use, "
+                        "or can you provide the source document?"
                     ),
                     "original_response": response,
                     "verification": verification,
@@ -993,6 +1008,33 @@ class ResponseService:
                 source=source,
                 persona=persona,
             )
+
+            fallback_passed = self._verification_passed(
+                fallback["verification"],
+                fallback["claim_verification"],
+            )
+            if not fallback_passed:
+                return {
+                    "status": "CLARIFICATION_REQUIRED",
+                    "model_id": selected_model,
+                    "source": source,
+                    "language": language,
+                    "persona": persona,
+                    "response": (
+                        "I couldn't verify the answer against the available financial data. "
+                        "Please confirm the missing inputs or provide an authoritative source."
+                    ),
+                    "recommended_next_action": "clarify_or_provide_source",
+                    "verification": verification,
+                    "claim_verification": claim_verification,
+                    "fallback_verification": fallback["verification"],
+                    "fallback_claim_verification": fallback["claim_verification"],
+                    "original_response": response,
+                    "task_routing": task_route.to_dict(),
+                    "verification_escalation": (
+                        escalation.get("verification_escalation") if escalation else None
+                    ),
+                }
 
             return {
                 "status": "FALLBACK_VERIFIED",
