@@ -212,3 +212,44 @@ def test_response_service_retrieves_better_evidence_before_escalating():
     assert result["status"] == "GENERATED_VERIFIED_AFTER_RETRIEVAL"
     assert result["verification"]["passed"] is True
     assert result["verification_escalation"]["action"] == "retrieve_more_evidence"
+
+
+def test_unverified_deterministic_fallback_requests_clarification():
+    from llm.model_gateway import ModelGateway
+    from llm.response_service import ResponseService
+
+    class BadAdapter:
+        def generate(self, **kwargs):
+            return {
+                "response": "Monthly EMI: ₹9,000.00. Total interest: ₹1,082,775.76.",
+                "metrics": {},
+            }
+
+    gateway = ModelGateway(default_model="gemini-cloud")
+    gateway.register(
+        "gemini-cloud",
+        BadAdapter(),
+        capabilities=["response_generation", "financial_qa"],
+    )
+    service = ResponseService(gateway=gateway)
+    service._build_verified_fallback = lambda **_kwargs: {
+        "response": "Unverified amount: ₹9,000.00.",
+        "verification": {"applicable": True, "passed": False},
+        "claim_verification": {"applicable": True, "passed": False},
+    }
+
+    result = service.generate(
+        user_text="Calculate EMI",
+        intent="EMI_QUERY",
+        verified_result={
+            "principal": 1_000_000,
+            "annual_rate": 8.5,
+            "tenure_months": 240,
+            "monthly_emi": 8678.23,
+            "total_payment": 2082775.76,
+            "total_interest": 1082775.76,
+        },
+        source="deterministic_finance_engine",
+    )
+    assert result["status"] == "CLARIFICATION_REQUIRED"
+    assert result["recommended_next_action"] == "clarify_or_provide_source"
