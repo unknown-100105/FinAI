@@ -152,10 +152,17 @@ class TaskAwareModelRouter:
             base_capability=base_capability,
         )
         capabilities = [preferred]
-        # If automatic selection has no eligible specialist, fall back only to
-        # capabilities that are relevant to response generation. Explicit
-        # model requests remain strict and never silently downgrade.
-        if explicit_model is None:
+        # Critical/high-risk reasoning must not silently downgrade to a less
+        # specialized capability. Fail closed if no eligible reasoning model
+        # satisfies the policy constraints.
+        fail_closed_reasoning = (
+            task_type == "complex_financial_reasoning"
+            and str(risk_level).strip().lower() in {"high", "critical"}
+        )
+        # For ordinary automatic requests, fall back only to relevant response
+        # capabilities and record any downgrade. Explicit model requests remain
+        # strict and never silently downgrade.
+        if explicit_model is None and not fail_closed_reasoning:
             for capability in (
                 "financial_qa",
                 "tool_assisted_qa",
