@@ -25,6 +25,7 @@ from app.market_intelligence_api import router as market_intelligence_router
 from app.investment_knowledge_api import router as investment_knowledge_router
 from app.causal_risk_api import router as causal_risk_router
 from app.advanced_causal_api import router as advanced_causal_router
+from app.retrieval_lab_api import router as retrieval_lab_router
 
 
 APP_VERSION = "0.1.0"
@@ -72,6 +73,7 @@ app.include_router(market_intelligence_router)
 app.include_router(investment_knowledge_router)
 app.include_router(causal_risk_router)
 app.include_router(advanced_causal_router)
+app.include_router(retrieval_lab_router)
 
 # Experimental patent-mechanism endpoints remain disabled unless explicitly opted in.
 if os.getenv("FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS", "").strip().casefold() in {
