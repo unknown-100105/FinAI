@@ -203,6 +203,13 @@ class ResponseService:
         )
         return task_route.route.selected_model
 
+    def _available_gateway_models(self) -> set[str]:
+        """Read registered model IDs while tolerating lightweight test gateways."""
+        try:
+            return {str(item).strip().lower() for item in self.gateway.available_models()}
+        except Exception:
+            return set()
+
     def _get_fallback_adapter(
         self,
         model_id: str,
@@ -214,7 +221,7 @@ class ResponseService:
         if model_id in self._fallback_adapters:
             return self._fallback_adapters[model_id]
 
-        if model_id in self.gateway.available_models():
+        if model_id in self._available_gateway_models():
             adapter = self.gateway.get_adapter(model_id)
         else:
             adapter_class = self.ADAPTERS.get(model_id)
@@ -719,6 +726,7 @@ class ResponseService:
             }
 
         candidates = []
+        gateway_models = self._available_gateway_models()
         allowed = set(route.allowed_providers)
         try:
             selected_quality = int(getattr(get_model_spec(selected_model), "quality_tier", 0))
@@ -748,12 +756,12 @@ class ResponseService:
             # Never initialize a large local model solely for an escalation.
             if provider == "local":
                 configured = (
-                    candidate in self.gateway.available_models()
+                    candidate in gateway_models
                     or candidate in self._fallback_adapters
                 )
             else:
                 configured = (
-                    candidate in self.gateway.available_models()
+                    candidate in gateway_models
                     or candidate in self._fallback_adapters
                     or provider_configured(spec.provider)
                 )
