@@ -53,8 +53,8 @@ class EvidenceRecordInput(FiniteInputModel):
 
 
 class EvidenceGatedStressRequest(FiniteInputModel):
-    shock: Dict[str, float] = Field(min_length=1, max_length=5)
-    allocation: Dict[str, float] = Field(min_length=1, max_length=20)
+    shock: Dict[str, float]
+    allocation: Dict[str, float]
     evidence: List[EvidenceRecordInput] = Field(min_length=1, max_length=2000)
     as_of: str | None = Field(default=None, max_length=64)
     minimum_confidence: float = Field(default=0.6, ge=0.0, le=1.0)
@@ -72,6 +72,10 @@ class EvidenceGatedStressRequest(FiniteInputModel):
 def evidence_gated_stress_test(request: EvidenceGatedStressRequest):
     """Run an evidence-gated research stress test; results are not forecasts."""
     try:
+        if not 1 <= len(request.shock) <= 5:
+            raise ValueError("shock must contain between 1 and 5 factors")
+        if not 1 <= len(request.allocation) <= 20:
+            raise ValueError("allocation must contain between 1 and 20 entries")
         if request.node_bounds is not None:
             if any(len(bounds) != 2 for bounds in request.node_bounds.values()):
                 raise ValueError("each node_bounds entry must contain [lower, upper]")
@@ -95,7 +99,7 @@ def evidence_gated_stress_test(request: EvidenceGatedStressRequest):
         result["experimental"] = True
         result["production_validated"] = False
         return result
-    except (TypeError, ValueError, OverflowError) as exc:
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
