@@ -591,6 +591,19 @@ class ResponseService:
             "claim_verification": claim_verification,
         }
 
+    @staticmethod
+    def _verification_passed(
+        verification: Dict[str, Any],
+        claim_verification: Dict[str, Any],
+    ) -> bool:
+        return not (
+            (verification.get("applicable") and not verification.get("passed"))
+            or (
+                claim_verification.get("applicable")
+                and not claim_verification.get("passed")
+            )
+        )
+
     def _try_verifier_escalation(
         self,
         *,
