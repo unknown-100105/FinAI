@@ -107,6 +107,9 @@ class ResponseService:
     def __init__(
         self,
         gateway: Optional[ModelGateway] = None,
+        *,
+        evidence_retriever: Any = None,
+        max_verifier_escalations: int = 1,
     ):
         self.gateway = (
             gateway
@@ -134,7 +137,8 @@ class ResponseService:
         self._fallback_adapters: Dict[str, Any] = {}
         self.model_router = ModelRouter()
         self.task_router = TaskAwareModelRouter(self.model_router)
-        self.max_verifier_escalations = 1
+        self.evidence_retriever = evidence_retriever
+        self.max_verifier_escalations = max(0, min(int(max_verifier_escalations), 2))
 
         if gateway is None:
             self._register_enabled_models()
@@ -244,7 +248,7 @@ class ResponseService:
             result = self.gateway.generate(
                 user_text=user_text,
                 intent=intent,
-                verified_result=verified_result,
+                verified_result=working_result,
                 source=source,
                 language=language,
                 persona=persona,
@@ -601,6 +605,7 @@ class ResponseService:
         language: str,
         persona: str,
         max_new_tokens: int,
+        initial_response: str,
         verification: Dict[str, Any],
         claim_verification: Dict[str, Any],
     ) -> Optional[Dict[str, Any]]:
@@ -614,6 +619,51 @@ class ResponseService:
         )
         if not failed or explicit_model or self.max_verifier_escalations <= 0:
             return None
+
+        working_result = dict(verified_result)
+        retrieval_attempted = False
+        retrieval_error_type = None
+        if source == "retrieval_evidence" and callable(self.evidence_retriever):
+            retrieval_attempted = True
+            try:
+                documents = self.evidence_retriever(
+                    user_text, intent, list(working_result.get("documents") or [])
+                )
+                if documents is not None:
+                    working_result["documents"] = list(documents)
+                    refreshed_verification, refreshed_claims = (
+                        self._verify_response(
+                            initial_response, intent, working_result, source
+                        ),
+                        self._verify_claims(
+                            initial_response, intent, working_result, source
+                        ),
+                    )
+                    refreshed_passed = (
+                        not refreshed_verification.get("applicable")
+                        or refreshed_verification.get("passed")
+                    ) and (
+                        not refreshed_claims.get("applicable")
+                        or refreshed_claims.get("passed")
+                    )
+                    if refreshed_passed:
+                        return {
+                            "status": "GENERATED_VERIFIED_AFTER_RETRIEVAL",
+                            "model_id": selected_model,
+                            "response": initial_response,
+                            "verification": refreshed_verification,
+                            "claim_verification": refreshed_claims,
+                            "verification_escalation": {
+                                "attempted": True,
+                                "accepted": True,
+                                "action": "retrieve_more_evidence",
+                                "from_model": selected_model,
+                                "attempt_count": 0,
+                                "evidence_retrieval_attempted": True,
+                            },
+                        }
+            except Exception as exc:
+                retrieval_error_type = type(exc).__name__
 
         candidates = []
         allowed = set(route.allowed_providers)
@@ -665,10 +715,10 @@ class ResponseService:
         def verify_candidate(response_text: str):
             return (
                 self._verify_response(
-                    response_text, intent, verified_result, source
+                    response_text, intent, working_result, source
                 ),
                 self._verify_claims(
-                    response_text, intent, verified_result, source
+                    response_text, intent, working_result, source
                 ),
             )
 
@@ -679,8 +729,16 @@ class ResponseService:
             max_attempts=self.max_verifier_escalations,
         )
         if result.get("status") != "GENERATED_VERIFIED_ESCALATED":
-            return result if result.get("verification_escalation", {}).get("attempted") else None
+            metadata = result.get("verification_escalation", {})
+            metadata["evidence_retrieval_attempted"] = retrieval_attempted
+            if retrieval_error_type:
+                metadata["evidence_retrieval_error_type"] = retrieval_error_type
+            result["verification_escalation"] = metadata
+            return result if metadata.get("attempted") or retrieval_attempted else None
         result["verification_escalation"]["from_model"] = selected_model
+        result["verification_escalation"]["evidence_retrieval_attempted"] = retrieval_attempted
+        if retrieval_error_type:
+            result["verification_escalation"]["evidence_retrieval_error_type"] = retrieval_error_type
         return result
 
     def generate(
@@ -864,6 +922,7 @@ class ResponseService:
                 language=language,
                 persona=persona,
                 max_new_tokens=max_new_tokens,
+                initial_response=response,
                 verification=verification,
                 claim_verification=claim_verification,
             )
