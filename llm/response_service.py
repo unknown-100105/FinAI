@@ -18,6 +18,7 @@ from llm.cloud.anthropic_adapter import AnthropicResponseAdapter
 from llm.cloud.mistral_adapter import MistralResponseAdapter
 from llm.model_router import ModelRouter, provider_for
 from llm.task_aware_router import TaskAwareModelRouter
+from llm.verifier_gated_escalation import verifier_gated_escalate
 from llm.cloud.openai_adapter import OpenAIAstraResponseAdapter, OpenAISolResponseAdapter, OpenAIResponseAdapter
 
 
@@ -133,6 +134,7 @@ class ResponseService:
         self._fallback_adapters: Dict[str, Any] = {}
         self.model_router = ModelRouter()
         self.task_router = TaskAwareModelRouter(self.model_router)
+        self.max_verifier_escalations = 1
 
         if gateway is None:
             self._register_enabled_models()
@@ -584,6 +586,98 @@ class ResponseService:
             "verification": verification,
             "claim_verification": claim_verification,
         }
+
+    def _try_verifier_escalation(
+        self,
+        *,
+        selected_model: str,
+        explicit_model: bool,
+        route: Any,
+        capability: str,
+        user_text: str,
+        intent: str,
+        verified_result: Dict[str, Any],
+        source: str,
+        language: str,
+        persona: str,
+        max_new_tokens: int,
+        verification: Dict[str, Any],
+        claim_verification: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Retry failed answers using only policy-eligible configured models."""
+        failed = (
+            (verification.get("applicable") and not verification.get("passed"))
+            or (
+                claim_verification.get("applicable")
+                and not claim_verification.get("passed")
+            )
+        )
+        if not failed or explicit_model or self.max_verifier_escalations <= 0:
+            return None
+
+        candidates = []
+        allowed = set(route.allowed_providers)
+        for candidate in route.fallback_chain:
+            if candidate == selected_model or candidate in candidates:
+                continue
+            try:
+                spec = get_model_spec(candidate)
+                provider = provider_for(spec)
+            except (KeyError, ValueError):
+                continue
+            if capability not in spec.capabilities:
+                continue
+            if route.network_mode == "offline" and provider != "local":
+                continue
+            if route.data_sensitivity == "restricted" and provider != "local":
+                continue
+            if allowed and provider not in allowed:
+                continue
+            # Never initialize a large local model solely for an escalation.
+            if provider == "local":
+                configured = candidate in self.gateway.available_models()
+            else:
+                configured = (
+                    candidate in self.gateway.available_models()
+                    or provider_configured(spec.provider)
+                )
+            if configured:
+                candidates.append(candidate)
+
+        def generate_candidate(candidate: str) -> Dict[str, Any]:
+            adapter = self._get_fallback_adapter(candidate)
+            if adapter is None:
+                raise RuntimeError("No configured adapter for candidate")
+            return adapter.generate(
+                user_text=user_text,
+                intent=intent,
+                verified_result=verified_result,
+                source=source,
+                language=language,
+                persona=persona,
+                max_new_tokens=max_new_tokens,
+            )
+
+        def verify_candidate(response_text: str):
+            return (
+                self._verify_response(
+                    response_text, intent, verified_result, source
+                ),
+                self._verify_claims(
+                    response_text, intent, verified_result, source
+                ),
+            )
+
+        result = verifier_gated_escalate(
+            candidates=candidates,
+            generate=generate_candidate,
+            verify=verify_candidate,
+            max_attempts=self.max_verifier_escalations,
+        )
+        if result.get("status") != "GENERATED_VERIFIED_ESCALATED":
+            return result if result.get("verification_escalation", {}).get("attempted") else None
+        result["verification_escalation"]["from_model"] = selected_model
+        return result
 
     def generate(
         self,
