@@ -667,6 +667,10 @@ class ResponseService:
 
         candidates = []
         allowed = set(route.allowed_providers)
+        try:
+            selected_quality = int(getattr(get_model_spec(selected_model), "quality_tier", 0))
+        except (KeyError, ValueError):
+            selected_quality = 0
         for candidate in route.fallback_chain:
             if candidate in {selected_model, route.selected_model} or candidate in candidates:
                 continue
@@ -676,6 +680,11 @@ class ResponseService:
             except (KeyError, ValueError):
                 continue
             if capability not in spec.capabilities:
+                continue
+            # Escalation means a strictly higher registry quality tier, not
+            # merely another provider. Registry tiers are policy metadata,
+            # not an empirical quality guarantee.
+            if int(getattr(spec, "quality_tier", 0)) <= selected_quality:
                 continue
             if route.network_mode == "offline" and provider != "local":
                 continue
