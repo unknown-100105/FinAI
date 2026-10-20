@@ -158,3 +158,56 @@ def test_response_service_escalates_to_configured_model_after_claim_verification
     assert result["claim_verification"]["passed"] is True
     assert result["verification_escalation"]["from_model"] == "gemini-cloud"
     assert len(specialist.calls) == 1
+
+
+def test_response_service_retrieves_better_evidence_before_escalating():
+    from types import SimpleNamespace
+
+    from llm.model_gateway import ModelGateway
+    from llm.response_service import ResponseService
+
+    gateway = ModelGateway(default_model="gemini-cloud")
+    service = ResponseService(
+        gateway=gateway,
+        evidence_retriever=lambda _text, _intent, _previous: [
+            {"title": "Loan rate", "text": "The loan rate is 7 percent."}
+        ],
+    )
+    response = "The loan rate is 7 percent."
+    old_result = {
+        "documents": [{"title": "Unrelated", "text": "A different topic."}]
+    }
+    verification = service._verify_response(
+        response, "GENERAL_QUERY", old_result, "retrieval_evidence"
+    )
+    claims = service._verify_claims(
+        response, "GENERAL_QUERY", old_result, "retrieval_evidence"
+    )
+    route = SimpleNamespace(
+        selected_model="gemini-cloud",
+        fallback_chain=["gemini-cloud"],
+        allowed_providers=(),
+        network_mode="online",
+        data_sensitivity="standard",
+    )
+
+    result = service._try_verifier_escalation(
+        selected_model="gemini-cloud",
+        explicit_model=False,
+        route=route,
+        capability="tool_assisted_qa",
+        user_text="What is the loan rate?",
+        intent="GENERAL_QUERY",
+        verified_result=old_result,
+        source="retrieval_evidence",
+        language="English",
+        persona="neutral",
+        max_new_tokens=160,
+        initial_response=response,
+        verification=verification,
+        claim_verification=claims,
+    )
+
+    assert result["status"] == "GENERATED_VERIFIED_AFTER_RETRIEVAL"
+    assert result["verification"]["passed"] is True
+    assert result["verification_escalation"]["action"] == "retrieve_more_evidence"
