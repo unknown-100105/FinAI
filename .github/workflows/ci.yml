@@ -71,6 +71,7 @@ jobs:
             tests/test_new_api_routes.py \
             tests/test_research_upgrades.py \
             tests/test_feasibility_pruning.py \
+            tests/test_evidence_gated_stress.py \
             tests/test_constrained_gfnets.py \
             tests/test_patent_research_loop.py \
             tests/test_incremental_feasibility.py \
@@ -150,6 +151,8 @@ jobs:
         run: python benchmarks/counterfactual_screening_benchmark.py
       - name: Run seeded known-feasible stress benchmark
         run: python benchmarks/counterfactual_stress_benchmark.py --output counterfactual-stress-benchmark.json --cases 500
+      - name: Run evidence-gated stress smoke benchmark
+        run: python scripts/benchmark_evidence_gated_stress.py --draws 16 --seed 42
 
       - name: Upload benchmark artifact
         uses: actions/upload-artifact@v4
