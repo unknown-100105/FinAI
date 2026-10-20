@@ -17,6 +17,7 @@ from llm.cloud.openrouter_adapter import OpenRouterResponseAdapter
 from llm.cloud.anthropic_adapter import AnthropicResponseAdapter
 from llm.cloud.mistral_adapter import MistralResponseAdapter
 from llm.model_router import ModelRouter, provider_for
+from llm.task_aware_router import TaskAwareModelRouter
 from llm.cloud.openai_adapter import OpenAIAstraResponseAdapter, OpenAISolResponseAdapter, OpenAIResponseAdapter
 
 
@@ -104,6 +105,7 @@ class ResponseService:
         # automatic model selection.
         self._fallback_adapters: Dict[str, Any] = {}
         self.model_router = ModelRouter()
+        self.task_router = TaskAwareModelRouter(self.model_router)
 
         if gateway is None:
             self._register_enabled_models()
@@ -143,18 +145,29 @@ class ResponseService:
         risk_level: str = "low",
         language: str = "English",
         explicit_model: Optional[str] = None,
+        user_text: str = "",
+        source: str = "",
+        network_mode: str = "online",
+        data_sensitivity: str = "standard",
+        allowed_providers: Optional[list[str]] = None,
     ) -> str:
-        capability = self.CAPABILITY_BY_INTENT.get(
+        base_capability = self.CAPABILITY_BY_INTENT.get(
             intent,
             "response_generation",
         )
-        route = self.model_router.route(
-            capability=capability,
+        task_route = self.task_router.route(
+            intent=intent,
+            user_text=user_text,
+            source=source,
+            base_capability=base_capability,
             risk_level=risk_level,
             language=language,
             explicit_model=explicit_model,
+            network_mode=network_mode,
+            data_sensitivity=data_sensitivity,
+            allowed_providers=allowed_providers,
         )
-        return route.selected_model
+        return task_route.route.selected_model
 
     def _get_fallback_adapter(
         self,
@@ -581,8 +594,11 @@ class ResponseService:
                 if item.strip()
             ]
         )
-        route = self.model_router.route(
-            capability=capability,
+        task_route = self.task_router.route(
+            intent=intent,
+            user_text=user_text,
+            source=source,
+            base_capability=capability,
             risk_level=risk_level,
             language=language,
             explicit_model=model_id,
@@ -590,12 +606,9 @@ class ResponseService:
             data_sensitivity=runtime_data_sensitivity,
             allowed_providers=runtime_allowed_providers,
         )
+        route = task_route.route
+        capability = task_route.capability
         selected_model = route.selected_model
-
-        capability = self.CAPABILITY_BY_INTENT.get(
-            intent,
-            "response_generation",
-        )
 
         result = self._generate_with_provider_fallback(
             selected_model=selected_model,
@@ -655,6 +668,7 @@ class ResponseService:
                     "report": None,
                     "claims": [],
                 },
+                "task_routing": task_route.to_dict(),
                 "selection": {
                     "capability": capability,
                     "model_id": selected_model,
@@ -662,6 +676,8 @@ class ResponseService:
                     "fallback_used": bool(
                         result.get("fallback_used", False)
                     ),
+                    "task_type": task_route.task_type,
+                    "selection_reason": task_route.selection_reason,
                 },
             }
 
@@ -718,6 +734,7 @@ class ResponseService:
                     "original_response": response,
                     "verification": verification,
                     "claim_verification": claim_verification,
+                    "task_routing": task_route.to_dict(),
                     "selection": {
                         "capability": capability,
                         "model_id": selected_model,
@@ -727,6 +744,8 @@ class ResponseService:
                         "route_policy": route.policy,
                         "route_risk_level": route.risk_level,
                         "route_fallback_candidates": list(route.fallback_chain),
+                        "task_type": task_route.task_type,
+                        "selection_reason": task_route.selection_reason,
                     },
                 }
 
@@ -754,6 +773,7 @@ class ResponseService:
                     fallback["claim_verification"]
                 ),
                 "original_response": response,
+                "task_routing": task_route.to_dict(),
                 "selection": {
                     "capability": capability,
                     "model_id": selected_model,
@@ -761,6 +781,8 @@ class ResponseService:
                     "route_policy": route.policy,
                     "route_risk_level": route.risk_level,
                     "route_fallback_candidates": list(route.fallback_chain),
+                    "task_type": task_route.task_type,
+                    "selection_reason": task_route.selection_reason,
                 },
             }
 
@@ -783,6 +805,7 @@ class ResponseService:
             "model_id": actual_model_id,
             "verification": verification,
             "claim_verification": claim_verification,
+            "task_routing": task_route.to_dict(),
             "selection": {
                 "capability": capability,
                 "model_id": selected_model,
@@ -793,5 +816,7 @@ class ResponseService:
                         False,
                     )
                 ),
+                "task_type": task_route.task_type,
+                "selection_reason": task_route.selection_reason,
             },
         }
