@@ -148,3 +148,25 @@ def test_document_evidence_takes_precedence_over_generic_analysis_wording():
     )
     assert task == "evidence_grounded_document_qa"
     assert capability == "tool_assisted_qa"
+
+
+def test_high_risk_reasoning_fails_closed_when_no_specialist_is_eligible():
+    router = TaskAwareModelRouter()
+    calls = []
+
+    def fake_route(**kwargs):
+        calls.append(kwargs["capability"])
+        raise RuntimeError("No eligible specialist")
+
+    router.model_router.route = fake_route
+    try:
+        router.route(
+            intent="PORTFOLIO_RISK",
+            risk_level="critical",
+            base_capability="response_generation",
+        )
+    except RuntimeError as exc:
+        assert "No eligible model" in str(exc)
+    else:
+        raise AssertionError("High-risk reasoning silently downgraded.")
+    assert calls == ["financial_reasoning"]
