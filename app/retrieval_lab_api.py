@@ -114,10 +114,15 @@ def retrieval_search(request: RetrievalSearchRequest) -> Dict[str, Any]:
     for mode in modes:
         try:
             response["results_by_mode"][mode] = _run_mode(query, request.top_k, mode)
-        except FileNotFoundError as exc:
+        except FileNotFoundError:
+            reason = (
+                "Vectorless RAG database is unavailable; build data/rag/finai_rag.db first."
+                if mode == "vectorless"
+                else "Hybrid RAG assets are unavailable; build the SQLite database and FAISS index first."
+            )
             response["results_by_mode"][mode] = {
                 "mode": mode, "status": "unavailable", "results": [],
-                "result_count": 0, "latency_ms": None, "reason": str(exc),
+                "result_count": 0, "latency_ms": None, "reason": reason,
             }
         except (RuntimeError, ValueError) as exc:
             response["results_by_mode"][mode] = {
