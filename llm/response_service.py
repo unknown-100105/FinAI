@@ -66,6 +66,22 @@ class ResponseService:
             "rllm-finqa-4b",
             "colibri-local",
         ),
+        # These task profiles use the same eligible provider fallback family;
+        # the selected capability is still enforced by the primary ModelRouter.
+        "tool_assisted_qa": (
+            "gemini-cloud",
+            "openrouter-cloud",
+            "anthropic-claude",
+            "mistral-large",
+            "colibri-local",
+        ),
+        "financial_explanation": (
+            "gemini-cloud",
+            "openrouter-cloud",
+            "anthropic-claude",
+            "mistral-large",
+            "colibri-local",
+        ),
     }
 
     REQUIRED_CLAIM_FIELDS = {
