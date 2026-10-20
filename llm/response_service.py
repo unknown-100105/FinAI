@@ -848,6 +848,34 @@ class ResponseService:
 
         if response_failed or claims_failed:
 
+            escalation = self._try_verifier_escalation(
+                selected_model=actual_model_id,
+                explicit_model=model_id is not None,
+                route=route,
+                capability=capability,
+                user_text=user_text,
+                intent=intent,
+                verified_result=verified_result,
+                source=source,
+                language=language,
+                persona=persona,
+                max_new_tokens=max_new_tokens,
+                verification=verification,
+                claim_verification=claim_verification,
+            )
+            if escalation and escalation.get("status") == "GENERATED_VERIFIED_ESCALATED":
+                escalation["task_routing"] = task_route.to_dict()
+                escalation["selection"] = {
+                    "capability": capability,
+                    "model_id": selected_model,
+                    "actual_model_id": escalation.get("model_id", selected_model),
+                    "fallback_used": True,
+                    "task_type": task_route.task_type,
+                    "selection_reason": task_route.selection_reason,
+                    "verification_escalation": True,
+                }
+                return escalation
+
             if source == "retrieval_evidence":
                 return {
                     **result,
@@ -860,6 +888,14 @@ class ResponseService:
                     "original_response": response,
                     "verification": verification,
                     "claim_verification": claim_verification,
+                    "verification_escalation": (
+                        escalation.get("verification_escalation")
+                        if escalation else {
+                            "attempted": False,
+                            "accepted": False,
+                            "reason": "no eligible configured candidate",
+                        }
+                    ),
                     "task_routing": task_route.to_dict(),
                     "selection": {
                         "capability": capability,
@@ -899,6 +935,14 @@ class ResponseService:
                     fallback["claim_verification"]
                 ),
                 "original_response": response,
+                "verification_escalation": (
+                    escalation.get("verification_escalation")
+                    if escalation else {
+                        "attempted": False,
+                        "accepted": False,
+                        "reason": "no eligible configured candidate",
+                    }
+                ),
                 "task_routing": task_route.to_dict(),
                 "selection": {
                     "capability": capability,
