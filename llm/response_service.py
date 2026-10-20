@@ -1,4 +1,5 @@
 from typing import Any, Dict, Optional
+import time
 
 from llm.model_gateway import ModelGateway
 from llm.model_registry import enabled_models, provider_configured, get_model_spec
@@ -636,8 +637,10 @@ class ResponseService:
         working_result = dict(verified_result)
         retrieval_attempted = False
         retrieval_error_type = None
+        retrieval_latency_ms = None
         if source == "retrieval_evidence" and callable(self.evidence_retriever):
             retrieval_attempted = True
+            retrieval_started = time.perf_counter()
             try:
                 documents = self.evidence_retriever(
                     user_text, intent, list(working_result.get("documents") or [])
@@ -660,6 +663,9 @@ class ResponseService:
                         or refreshed_claims.get("passed")
                     )
                     if refreshed_passed:
+                        retrieval_latency_ms = round(
+                            (time.perf_counter() - retrieval_started) * 1000.0, 3
+                        )
                         return {
                             "status": "GENERATED_VERIFIED_AFTER_RETRIEVAL",
                             "model_id": selected_model,
@@ -673,10 +679,15 @@ class ResponseService:
                                 "from_model": selected_model,
                                 "attempt_count": 0,
                                 "evidence_retrieval_attempted": True,
+                                "evidence_retrieval_latency_ms": retrieval_latency_ms,
                             },
                         }
             except Exception as exc:
                 retrieval_error_type = type(exc).__name__
+            finally:
+                retrieval_latency_ms = round(
+                    (time.perf_counter() - retrieval_started) * 1000.0, 3
+                )
 
         candidates = []
         allowed = set(route.allowed_providers)
@@ -762,12 +773,14 @@ class ResponseService:
         if result.get("status") != "GENERATED_VERIFIED_ESCALATED":
             metadata = result.get("verification_escalation", {})
             metadata["evidence_retrieval_attempted"] = retrieval_attempted
+            metadata["evidence_retrieval_latency_ms"] = retrieval_latency_ms
             if retrieval_error_type:
                 metadata["evidence_retrieval_error_type"] = retrieval_error_type
             result["verification_escalation"] = metadata
             return result if metadata.get("attempted") or retrieval_attempted else None
         result["verification_escalation"]["from_model"] = selected_model
         result["verification_escalation"]["evidence_retrieval_attempted"] = retrieval_attempted
+        result["verification_escalation"]["evidence_retrieval_latency_ms"] = retrieval_latency_ms
         if retrieval_error_type:
             result["verification_escalation"]["evidence_retrieval_error_type"] = retrieval_error_type
         return result
