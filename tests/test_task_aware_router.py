@@ -9,7 +9,7 @@ def test_reasoning_task_uses_specialist_capability():
     )
     assert task == "complex_financial_reasoning"
     assert capability == "financial_reasoning"
-    assert reason == "matched_reasoning_intent_or_query"
+    assert reason == "matched_reasoning_intent"
 
 
 def test_reasoning_text_can_upgrade_generic_intent():
@@ -137,3 +137,14 @@ def test_explicit_model_does_not_silently_downgrade_capability():
         assert "lacks requested capability" in str(exc)
         return
     raise AssertionError("Explicit model request was silently downgraded.")
+
+
+def test_document_evidence_takes_precedence_over_generic_analysis_wording():
+    task, capability, _ = classify_task(
+        intent="GENERAL_QUERY",
+        user_text="Analyze this document",
+        source="retrieval_evidence",
+        base_capability="response_generation",
+    )
+    assert task == "evidence_grounded_document_qa"
+    assert capability == "tool_assisted_qa"
