@@ -635,10 +635,14 @@ class ResponseService:
                 continue
             # Never initialize a large local model solely for an escalation.
             if provider == "local":
-                configured = candidate in self.gateway.available_models()
+                configured = (
+                    candidate in self.gateway.available_models()
+                    or candidate in self._fallback_adapters
+                )
             else:
                 configured = (
                     candidate in self.gateway.available_models()
+                    or candidate in self._fallback_adapters
                     or provider_configured(spec.provider)
                 )
             if configured:
