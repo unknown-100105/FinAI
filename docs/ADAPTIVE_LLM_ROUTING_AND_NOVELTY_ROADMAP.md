@@ -83,6 +83,7 @@ after review. Keep a deterministic fallback policy if the evaluator is down.
 - Explicit model requests either satisfy the requested capability and policy or
   fail clearly; they are never silently downgraded.
 - Every automatic downgrade records the unavailable preferred capability.
+- High/critical-risk reasoning fails closed when no eligible reasoning-capable model is available; it never silently downgrades to generic QA.
 - Tests cover deterministic task classification, no eligible model, and privacy
   and network constraints.
 - Performance claims require measured held-out results. A feature idea, code
