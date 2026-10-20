@@ -75,3 +75,86 @@ def test_escalation_records_provider_errors_without_leaking_exception_text():
         "status": "generation_failed",
         "error_type": "RuntimeError",
     }]
+
+
+def test_response_service_escalates_to_configured_model_after_claim_verification_fails():
+    from types import SimpleNamespace
+
+    from llm.model_gateway import ModelGateway
+    from llm.response_service import ResponseService
+
+    class FakeAdapter:
+        def __init__(self, response):
+            self.response = response
+            self.calls = []
+
+        def generate(self, **kwargs):
+            self.calls.append(kwargs)
+            return {"response": self.response, "metrics": {}}
+
+    good = (
+        "Monthly EMI: ₹8,678.23. "
+        "Total payment: ₹2,082,775.76. "
+        "Total interest: ₹1,082,775.76."
+    )
+    gateway = ModelGateway(default_model="gemini-cloud")
+    primary = FakeAdapter("Monthly EMI: ₹9,000.00. Total interest: ₹1,082,775.76.")
+    gateway.register(
+        "gemini-cloud",
+        primary,
+        capabilities=["response_generation", "financial_qa"],
+    )
+    service = ResponseService(gateway=gateway)
+    specialist = FakeAdapter(good)
+    service._fallback_adapters["openrouter-cloud"] = specialist
+
+    route = SimpleNamespace(
+        selected_model="gemini-cloud",
+        fallback_chain=["gemini-cloud", "openrouter-cloud"],
+        allowed_providers=(),
+        network_mode="online",
+        data_sensitivity="standard",
+    )
+    verified = {
+        "principal": 1_000_000,
+        "annual_rate": 8.5,
+        "tenure_months": 240,
+        "monthly_emi": 8678.23,
+        "total_payment": 2082775.76,
+        "total_interest": 1082775.76,
+    }
+    first_verification = service._verify_response(
+        "Monthly EMI: ₹9,000.00. Total interest: ₹1,082,775.76.",
+        "EMI_QUERY",
+        verified,
+        "deterministic_finance_engine",
+    )
+    first_claims = service._verify_claims(
+        "Monthly EMI: ₹9,000.00. Total interest: ₹1,082,775.76.",
+        "EMI_QUERY",
+        verified,
+        "deterministic_finance_engine",
+    )
+    result = service._try_verifier_escalation(
+        selected_model="gemini-cloud",
+        explicit_model=False,
+        route=route,
+        capability="financial_qa",
+        user_text="Calculate EMI",
+        intent="EMI_QUERY",
+        verified_result=verified,
+        source="deterministic_finance_engine",
+        language="English",
+        persona="neutral",
+        max_new_tokens=160,
+        initial_response="Monthly EMI: ₹9,000.00. Total interest: ₹1,082,775.76.",
+        verification=first_verification,
+        claim_verification=first_claims,
+    )
+
+    assert result["status"] == "GENERATED_VERIFIED_ESCALATED"
+    assert result["model_id"] == "openrouter-cloud"
+    assert result["verification"]["passed"] is True
+    assert result["claim_verification"]["passed"] is True
+    assert result["verification_escalation"]["from_model"] == "gemini-cloud"
+    assert len(specialist.calls) == 1
