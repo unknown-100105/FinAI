@@ -668,7 +668,7 @@ class ResponseService:
         candidates = []
         allowed = set(route.allowed_providers)
         for candidate in route.fallback_chain:
-            if candidate == selected_model or candidate in candidates:
+            if candidate in {selected_model, route.selected_model} or candidate in candidates:
                 continue
             try:
                 spec = get_model_spec(candidate)
@@ -705,7 +705,7 @@ class ResponseService:
             return adapter.generate(
                 user_text=user_text,
                 intent=intent,
-                verified_result=verified_result,
+                verified_result=working_result,
                 source=source,
                 language=language,
                 persona=persona,
@@ -926,13 +926,16 @@ class ResponseService:
                 verification=verification,
                 claim_verification=claim_verification,
             )
-            if escalation and escalation.get("status") == "GENERATED_VERIFIED_ESCALATED":
+            if escalation and escalation.get("status") in {
+                "GENERATED_VERIFIED_ESCALATED",
+                "GENERATED_VERIFIED_AFTER_RETRIEVAL",
+            }:
                 escalation["task_routing"] = task_route.to_dict()
                 escalation["selection"] = {
                     "capability": capability,
                     "model_id": selected_model,
                     "actual_model_id": escalation.get("model_id", selected_model),
-                    "fallback_used": True,
+                    "fallback_used": escalation.get("status") == "GENERATED_VERIFIED_ESCALATED",
                     "task_type": task_route.task_type,
                     "selection_reason": task_route.selection_reason,
                     "verification_escalation": True,
