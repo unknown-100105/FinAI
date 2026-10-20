@@ -118,3 +118,26 @@ def test_stress_pipeline_runs_seeded_feasible_scenarios_when_evidence_passes():
     assert first["evidence_gate"]["passed"] is True
     assert first["summary"]["accepted_scenarios"] >= 1
     assert first["summary"]["realized_tail_coverage"] is None
+
+
+
+def test_research_api_exposes_evidence_gated_stress_endpoint():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/causal-risk/stress-test/evidence-gated",
+        json={
+            "shock": SHOCK,
+            "allocation": ALLOCATION,
+            "evidence": evidence_for(),
+            "as_of": AS_OF,
+            "include_tail_scenarios": False,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "EVIDENCE_GATED_STRESS_TEST_COMPLETE"
+    assert payload["experimental"] is True
+    assert payload["production_validated"] is False
