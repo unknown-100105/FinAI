@@ -118,6 +118,7 @@ jobs:
             tests/test_response_adapter_verification.py \
             tests/test_response_engine.py \
             tests/test_response_provider_fallback.py \
+            tests/test_task_aware_router.py \
             tests/test_response_service.py \
             tests/test_response_verifier.py \
             tests/test_risk_controller.py \
