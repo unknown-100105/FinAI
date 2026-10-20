@@ -66,6 +66,17 @@ quality, verifier pass rate, cost, latency, language, and provider failures.
 Use conservative thresholds and drift checks to update routing weights only
 after review. Keep a deterministic fallback policy if the evaluator is down.
 
+## Verifier-gated escalation implementation status
+
+The `llm/verifier_gated_escalation.py` policy and `ResponseService._try_verifier_escalation` are now wired into the response path on this branch. On an applicable verification failure, the service may:
+
+1. invoke an explicitly supplied `evidence_retriever(user_text, intent, existing_documents)` callback once for retrieval-grounded responses;
+2. re-check the original answer against refreshed evidence;
+3. if still unverified, try at most the configured number (0-2; default 1) of already-configured models in the policy router's eligible fallback chain;
+4. accept an escalated answer only when applicable response and claim verifiers pass; otherwise preserve the existing safe failure/deterministic fallback behavior.
+
+Escalation candidates are checked against task capability, provider allow-list, offline mode, and restricted-data policy. Explicit model requests do not silently escalate. Local models are not newly loaded just to attempt escalation. The default service does not own a retrieval index, so additional retrieval occurs only when the application injects a retriever callback. Provider cost and latency budgets are currently bounded by attempt count, not measured dollar/token budgets; no quality improvement is claimed until benchmark results exist.
+
 ## Recommended sequence
 
 1. Merge and test the task-aware routing layer only after the existing CI failures
