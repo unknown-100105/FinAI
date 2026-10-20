@@ -106,11 +106,11 @@ def test_response_service_escalates_to_configured_model_after_claim_verification
     )
     service = ResponseService(gateway=gateway)
     specialist = FakeAdapter(good)
-    service._fallback_adapters["openrouter-cloud"] = specialist
+    service._fallback_adapters["openai-luna"] = specialist
 
     route = SimpleNamespace(
         selected_model="gemini-cloud",
-        fallback_chain=["gemini-cloud", "openrouter-cloud"],
+        fallback_chain=["gemini-cloud", "openai-luna"],
         allowed_providers=(),
         network_mode="online",
         data_sensitivity="standard",
@@ -153,7 +153,7 @@ def test_response_service_escalates_to_configured_model_after_claim_verification
     )
 
     assert result["status"] == "GENERATED_VERIFIED_ESCALATED"
-    assert result["model_id"] == "openrouter-cloud"
+    assert result["model_id"] == "openai-luna"
     assert result["verification"]["passed"] is True
     assert result["claim_verification"]["passed"] is True
     assert result["verification_escalation"]["from_model"] == "gemini-cloud"
