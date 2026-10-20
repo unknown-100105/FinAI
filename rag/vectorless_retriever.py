@@ -31,7 +31,7 @@ class VectorlessRetriever:
     @staticmethod
     def build_query(query: str) -> str:
         """Turn user text into a safe OR query of individually quoted terms."""
-        tokens = re.findall(r"\\w+", query, flags=re.UNICODE)
+        tokens = re.findall(r"\w+", query, flags=re.UNICODE)
         if not tokens:
             return ""
         return " OR ".join('"' + token.replace('"', '""') + '"' for token in tokens)
