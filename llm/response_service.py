@@ -66,6 +66,17 @@ class ResponseService:
             "rllm-finqa-4b",
             "colibri-local",
         ),
+        # Reasoning fallbacks must themselves advertise financial_reasoning.
+        # General cloud models are intentionally excluded from this profile.
+        "financial_reasoning": (
+            "gemini-pro-cloud",
+            "openai-astra",
+            "openai-sol",
+            "openai-luna",
+            "anthropic-claude",
+            "mistral-large",
+            "rllm-finqa-4b",
+        ),
         # These task profiles use the same eligible provider fallback family;
         # the selected capability is still enforced by the primary ModelRouter.
         "tool_assisted_qa": (
@@ -275,6 +286,11 @@ class ResponseService:
                     fallback_provider = provider_for(spec)
                 except (KeyError, ValueError):
                     attempted.append(fallback_id)
+                    continue
+
+                # A fallback must satisfy the requested task capability too;
+                # provider availability alone is not sufficient.
+                if capability not in spec.capabilities:
                     continue
 
                 # Offline and restricted-data policies are hard constraints:
