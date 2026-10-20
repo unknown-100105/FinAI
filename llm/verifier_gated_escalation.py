@@ -7,6 +7,7 @@ privacy/network restrictions.
 from __future__ import annotations
 
 from typing import Any, Callable, Iterable
+import time
 
 
 def verifier_gated_escalate(
@@ -24,6 +25,7 @@ def verifier_gated_escalate(
         if attempts >= limit:
             break
         attempts += 1
+        started = time.perf_counter()
         try:
             generated = generate(model_id)
             if not isinstance(generated, dict):
@@ -42,6 +44,7 @@ def verifier_gated_escalate(
                 "status": "accepted" if passed else "verification_failed",
                 "verification_passed": bool(verification.get("passed", True)),
                 "claim_verification_passed": bool(claim_verification.get("passed", True)),
+                "latency_ms": round((time.perf_counter() - started) * 1000.0, 3),
             })
             if passed:
                 generated["model_id"] = model_id
@@ -53,6 +56,9 @@ def verifier_gated_escalate(
                     "accepted": True,
                     "to_model": model_id,
                     "attempt_count": attempts,
+                    "total_latency_ms": round(
+                        sum(float(item.get("latency_ms", 0.0)) for item in trace), 3
+                    ),
                     "trace": trace,
                 }
                 return generated
@@ -61,12 +67,16 @@ def verifier_gated_escalate(
                 "model_id": model_id,
                 "status": "generation_failed",
                 "error_type": type(exc).__name__,
+                "latency_ms": round((time.perf_counter() - started) * 1000.0, 3),
             })
     return {
         "verification_escalation": {
             "attempted": attempts > 0,
             "accepted": False,
             "attempt_count": attempts,
+            "total_latency_ms": round(
+                sum(float(item.get("latency_ms", 0.0)) for item in trace), 3
+            ),
             "trace": trace,
         }
     }
