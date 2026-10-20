@@ -73,9 +73,9 @@ The `llm/verifier_gated_escalation.py` policy and `ResponseService._try_verifier
 1. invoke an explicitly supplied `evidence_retriever(user_text, intent, existing_documents)` callback once for retrieval-grounded responses;
 2. re-check the original answer against refreshed evidence;
 3. if still unverified, try at most the configured number (0-2; default 1) of already-configured models in the policy router's eligible fallback chain;
-4. accept an escalated answer only when applicable response and claim verifiers pass; otherwise preserve the existing safe failure/deterministic fallback behavior.
+4. accept an escalated answer only when applicable response and claim verifiers pass; otherwise preserve the existing safe failure/deterministic fallback behavior, and request clarification or an authoritative source when the fallback itself cannot be verified.
 
-Escalation candidates are checked against task capability, provider allow-list, offline mode, and restricted-data policy. Explicit model requests do not silently escalate. Local models are not newly loaded just to attempt escalation. The default service does not own a retrieval index, so additional retrieval occurs only when the application injects a retriever callback. Provider cost and latency budgets are currently bounded by attempt count, not measured dollar/token budgets; no quality improvement is claimed until benchmark results exist.
+Escalation candidates are checked against task capability, provider allow-list, offline mode, and restricted-data policy. Explicit model requests do not silently escalate. Local models are not newly loaded just to attempt escalation. The default service does not own a retrieval index, so additional retrieval occurs only when the application injects a retriever callback. Each attempt records latency and registry quality/cost/latency tiers for evaluation. Provider cost and latency are currently bounded by attempt count, not measured dollar/token budgets; registry tiers are metadata rather than measured quality. No quality improvement is claimed until benchmark results exist.
 
 ## Recommended sequence
 
