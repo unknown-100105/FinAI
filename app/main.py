@@ -202,6 +202,7 @@ def api_info() -> Dict[str, Any]:
             "chat": "/api/v1/chat",
             "xai": "/api/v1/xai",
             "brain_status": "/api/v1/system/brain-status",
+            "retrieval_lab": "/api/v1/retrieval-lab/search",
         },
     }
 
