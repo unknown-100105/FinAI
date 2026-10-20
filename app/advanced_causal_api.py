@@ -32,6 +32,7 @@ from causal_risk.research_evaluation import (
 )
 from causal_risk.pipeline import run_causal_research_pipeline
 from causal_risk.research_counterfactual import run_research_counterfactual
+from causal_risk.evidence_gated_stress import run_evidence_gated_stress_test
 from causal_risk.temporal_gnn import (
     TemporalSnapshot,
     build_temporal_edges,
@@ -41,6 +42,61 @@ from causal_risk.temporal_gnn import (
 router = APIRouter(prefix="/api/v1/causal-risk", tags=["causal-risk-research"])
 
 _gfn_registry: dict[str, GFlowNetTailGenerator] = {}
+
+
+class EvidenceRecordInput(FiniteInputModel):
+    evidence_id: str = Field(min_length=1, max_length=256)
+    source: str = Field(min_length=1, max_length=512)
+    observed_at: str = Field(min_length=10, max_length=64)
+    confidence: float = Field(ge=0.0, le=1.0)
+    supports: List[str] = Field(min_length=1, max_length=200)
+
+
+class EvidenceGatedStressRequest(FiniteInputModel):
+    shock: Dict[str, float] = Field(min_length=1, max_length=5)
+    allocation: Dict[str, float] = Field(min_length=1, max_length=20)
+    evidence: List[EvidenceRecordInput] = Field(min_length=1, max_length=2000)
+    as_of: str | None = Field(default=None, max_length=64)
+    minimum_confidence: float = Field(default=0.6, ge=0.0, le=1.0)
+    max_age_days: int = Field(default=180, ge=0, le=36500)
+    include_tail_scenarios: bool = True
+    tail_draws: int = Field(default=64, ge=8, le=512)
+    tail_seed: int = Field(default=42, ge=0, le=10000000)
+    tail_distribution: str = Field(default="student_t_copula", pattern="^(gaussian|student_t_copula)$")
+    tail_degrees_of_freedom: float = Field(default=5.0, gt=2.0, le=100.0)
+    node_bounds: Dict[str, List[float]] | None = None
+    target_interval: List[float] = Field(default_factory=lambda: [-100.0, 100.0,], min_length=2, max_length=2)
+
+
+@router.post("/stress-test/evidence-gated")
+def evidence_gated_stress_test(request: EvidenceGatedStressRequest):
+    """Run an evidence-gated research stress test; results are not forecasts."""
+    try:
+        if request.node_bounds is not None:
+            if any(len(bounds) != 2 for bounds in request.node_bounds.values()):
+                raise ValueError("each node_bounds entry must contain [lower, upper]")
+        if request.target_interval[0] > request.target_interval[1]:
+            raise ValueError("target_interval lower bound must not exceed upper bound")
+        result = run_evidence_gated_stress_test(
+            request.shock,
+            request.allocation,
+            [item.dict() for item in request.evidence],
+            as_of=request.as_of,
+            minimum_confidence=request.minimum_confidence,
+            max_age_days=request.max_age_days,
+            include_tail_scenarios=request.include_tail_scenarios,
+            tail_draws=request.tail_draws,
+            tail_seed=request.tail_seed,
+            tail_distribution=request.tail_distribution,
+            tail_degrees_of_freedom=request.tail_degrees_of_freedom,
+            node_bounds=request.node_bounds,
+            target_interval=request.target_interval,
+        )
+        result["experimental"] = True
+        result["production_validated"] = False
+        return result
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 class RiskCalibrationRequest(FiniteInputModel):
