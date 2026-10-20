@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
+import math
 
 import numpy as np
 
@@ -46,9 +47,17 @@ def _certify_shock(
             target_node="portfolio",
             target_interval=target_interval,
         )
+        payload = certificate.as_dict()
+        for field in ("target_interval", "reachable_interval"):
+            payload[field] = [
+                float(value) if math.isfinite(float(value)) else None
+                for value in payload[field]
+            ]
+        if not math.isfinite(float(payload["margin"])):
+            payload["margin"] = None
         return {
             "passed": not certificate.hard_infeasible and not certificate.support_infeasible,
-            "certificate": certificate.as_dict(),
+            "certificate": payload,
         }
     except (KeyError, TypeError, ValueError, OverflowError) as exc:
         return {
