@@ -248,7 +248,7 @@ class ResponseService:
             result = self.gateway.generate(
                 user_text=user_text,
                 intent=intent,
-                verified_result=working_result,
+                verified_result=verified_result,
                 source=source,
                 language=language,
                 persona=persona,
