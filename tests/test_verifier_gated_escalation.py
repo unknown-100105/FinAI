@@ -70,11 +70,12 @@ def test_escalation_records_provider_errors_without_leaking_exception_text():
         max_attempts=1,
     )
 
-    assert result["verification_escalation"]["trace"] == [{
-        "model_id": "model-a",
-        "status": "generation_failed",
-        "error_type": "RuntimeError",
-    }]
+    trace = result["verification_escalation"]["trace"]
+    assert len(trace) == 1
+    assert trace[0]["model_id"] == "model-a"
+    assert trace[0]["status"] == "generation_failed"
+    assert trace[0]["error_type"] == "RuntimeError"
+    assert trace[0]["latency_ms"] >= 0
 
 
 def test_response_service_escalates_to_configured_model_after_claim_verification_fails():
