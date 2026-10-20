@@ -680,6 +680,12 @@ class ResponseService:
                                 "attempt_count": 0,
                                 "evidence_retrieval_attempted": True,
                                 "evidence_retrieval_latency_ms": retrieval_latency_ms,
+                                "evidence_document_count": len(working_result.get("documents") or []),
+                                "evidence_document_ids": [
+                                    str(item.get("document_id"))
+                                    for item in (working_result.get("documents") or [])
+                                    if isinstance(item, dict) and item.get("document_id") is not None
+                                ],
                             },
                         }
             except Exception as exc:
@@ -781,6 +787,14 @@ class ResponseService:
         result["verification_escalation"]["from_model"] = selected_model
         result["verification_escalation"]["evidence_retrieval_attempted"] = retrieval_attempted
         result["verification_escalation"]["evidence_retrieval_latency_ms"] = retrieval_latency_ms
+        result["verification_escalation"]["evidence_document_count"] = len(
+            working_result.get("documents") or []
+        )
+        result["verification_escalation"]["evidence_document_ids"] = [
+            str(item.get("document_id"))
+            for item in (working_result.get("documents") or [])
+            if isinstance(item, dict) and item.get("document_id") is not None
+        ]
         if retrieval_error_type:
             result["verification_escalation"]["evidence_retrieval_error_type"] = retrieval_error_type
         return result
