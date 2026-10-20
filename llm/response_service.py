@@ -631,7 +631,7 @@ class ResponseService:
                 and not claim_verification.get("passed")
             )
         )
-        if not failed or explicit_model or self.max_verifier_escalations <= 0:
+        if not failed:
             return None
 
         working_result = dict(verified_result)
@@ -694,6 +694,29 @@ class ResponseService:
                 retrieval_latency_ms = round(
                     (time.perf_counter() - retrieval_started) * 1000.0, 3
                 )
+
+        if explicit_model or self.max_verifier_escalations <= 0:
+            if not retrieval_attempted:
+                return None
+            return {
+                "verification_escalation": {
+                    "attempted": True,
+                    "accepted": False,
+                    "reason": (
+                        "explicit model selection prevents model escalation"
+                        if explicit_model
+                        else "model escalation attempt budget is zero"
+                    ),
+                    "evidence_retrieval_attempted": True,
+                    "evidence_retrieval_latency_ms": retrieval_latency_ms,
+                    "evidence_document_count": len(working_result.get("documents") or []),
+                    "evidence_document_ids": [
+                        str(item.get("document_id"))
+                        for item in (working_result.get("documents") or [])
+                        if isinstance(item, dict) and item.get("document_id") is not None
+                    ],
+                }
+            }
 
         candidates = []
         allowed = set(route.allowed_providers)
