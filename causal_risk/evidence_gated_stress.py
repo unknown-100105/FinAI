@@ -50,7 +50,7 @@ def _certify_shock(
             "passed": not certificate.hard_infeasible and not certificate.support_infeasible,
             "certificate": certificate.as_dict(),
         }
-    except (TypeError, ValueError, OverflowError) as exc:
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
         return {
             "passed": False,
             "certificate": {
