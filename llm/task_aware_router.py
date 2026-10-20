@@ -77,13 +77,11 @@ def classify_task(
     text = str(user_text or "").casefold()
     normalized_source = str(source or "").strip().casefold()
 
-    if normalized_intent.startswith(_REASONING_INTENTS) or any(
-        term in text for term in _REASONING_TERMS
-    ):
+    if normalized_intent.startswith(_REASONING_INTENTS):
         return (
             "complex_financial_reasoning",
             "financial_reasoning",
-            "matched_reasoning_intent_or_query",
+            "matched_reasoning_intent",
         )
 
     if normalized_source == "retrieval_evidence" or normalized_intent.startswith(
@@ -93,6 +91,13 @@ def classify_task(
             "evidence_grounded_document_qa",
             "tool_assisted_qa",
             "retrieval_or_document_task",
+        )
+
+    if any(term in text for term in _REASONING_TERMS):
+        return (
+            "complex_financial_reasoning",
+            "financial_reasoning",
+            "matched_reasoning_query",
         )
 
     if any(term in text for term in _EXPLANATION_TERMS):
