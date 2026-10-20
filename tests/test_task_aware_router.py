@@ -60,3 +60,80 @@ def test_default_task_uses_base_capability():
     )
     assert task == "general_response"
     assert capability == "response_generation"
+
+from types import SimpleNamespace
+
+from llm.task_aware_router import TaskAwareModelRouter
+
+
+def test_task_router_delegates_constraints_to_existing_model_router():
+    router = TaskAwareModelRouter()
+    seen = {}
+
+    def fake_route(**kwargs):
+        seen.update(kwargs)
+        return SimpleNamespace(
+            selected_model="gemini-cloud",
+            to_dict=lambda: {"selected_model": "gemini-cloud"},
+        )
+
+    router.model_router.route = fake_route
+    result = router.route(
+        intent="GENERAL_QUERY",
+        user_text="Explain this statement",
+        source="retrieval_evidence",
+        base_capability="response_generation",
+        network_mode="offline",
+        data_sensitivity="restricted",
+        allowed_providers=["local"],
+        language="Tamil",
+    )
+    assert result.task_type == "evidence_grounded_document_qa"
+    assert result.capability == "tool_assisted_qa"
+    assert seen["network_mode"] == "offline"
+    assert seen["data_sensitivity"] == "restricted"
+    assert seen["allowed_providers"] == ["local"]
+    assert seen["language"] == "Tamil"
+
+
+def test_task_router_reports_capability_downgrade_when_specialist_unavailable():
+    router = TaskAwareModelRouter()
+    calls = []
+
+    def fake_route(**kwargs):
+        calls.append(kwargs["capability"])
+        if kwargs["capability"] == "financial_reasoning":
+            raise RuntimeError("No enabled specialist")
+        return SimpleNamespace(
+            selected_model="gemini-cloud",
+            to_dict=lambda: {"selected_model": "gemini-cloud"},
+        )
+
+    router.model_router.route = fake_route
+    result = router.route(
+        intent="PORTFOLIO_RISK",
+        user_text="",
+        base_capability="response_generation",
+    )
+    assert calls[:2] == ["financial_reasoning", "financial_qa"]
+    assert result.capability == "financial_qa"
+    assert "preferred capability unavailable" in result.selection_reason
+
+
+def test_explicit_model_does_not_silently_downgrade_capability():
+    router = TaskAwareModelRouter()
+
+    def fake_route(**kwargs):
+        raise RuntimeError("Explicit model lacks requested capability")
+
+    router.model_router.route = fake_route
+    try:
+        router.route(
+            intent="PORTFOLIO_RISK",
+            explicit_model="gemini-cloud",
+            base_capability="response_generation",
+        )
+    except RuntimeError as exc:
+        assert "lacks requested capability" in str(exc)
+        return
+    raise AssertionError("Explicit model request was silently downgraded.")
