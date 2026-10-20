@@ -1,4 +1,6 @@
-from llm.task_aware_router import classify_task
+from types import SimpleNamespace
+
+from llm.task_aware_router import TaskAwareModelRouter, classify_task
 
 
 def test_reasoning_task_uses_specialist_capability():
@@ -60,10 +62,6 @@ def test_default_task_uses_base_capability():
     )
     assert task == "general_response"
     assert capability == "response_generation"
-
-from types import SimpleNamespace
-
-from llm.task_aware_router import TaskAwareModelRouter
 
 
 def test_task_router_delegates_constraints_to_existing_model_router():
