@@ -1,4 +1,5 @@
 ﻿import copy
+import hashlib
 import json
 import os
 from datetime import datetime
@@ -24,12 +25,15 @@ def _env_enabled(name: str, default: bool = False) -> bool:
 class XAITrace:
 
     def __init__(self, session_id: str):
-        self.session_id = session_id
+        self.session_id = str(session_id)
         self.started_at = datetime.now().isoformat()
+        session_fingerprint = hashlib.sha256(
+            self.session_id.encode("utf-8")
+        ).hexdigest()[:16]
 
         self.data = {
             "trace_id": self._make_trace_id(),
-            "session_id": session_id,
+            "session_id": f"session-ref-{session_fingerprint}",
             "started_at": self.started_at,
             "completed_at": None,
 
