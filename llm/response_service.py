@@ -193,7 +193,7 @@ class ResponseService:
         max_new_tokens: int,
         capability: str,
         network_mode: str = "online",
-        data_sensitivity: str = "standard",
+        data_sensitivity: str = "restricted",
         allowed_providers: Optional[tuple[str, ...]] = None,
     ) -> Dict[str, Any]:
         """Generate with fallbacks constrained by the request's network policy."""
@@ -238,7 +238,7 @@ class ResponseService:
                 if str(provider).strip()
             }
             normalized_mode = str(network_mode or "online").strip().lower()
-            normalized_sensitivity = str(data_sensitivity or "standard").strip().lower()
+            normalized_sensitivity = str(data_sensitivity or "restricted").strip().lower()
             fallback_candidates = []
             for fallback_id in configured_fallback_candidates:
                 try:
@@ -566,7 +566,7 @@ class ResponseService:
         )
         runtime_data_sensitivity = (
             data_sensitivity
-            or __import__("os").getenv("FINAI_DATA_SENSITIVITY", "standard")
+            or __import__("os").getenv("FINAI_DATA_SENSITIVITY", "restricted")
         )
         configured_providers = __import__("os").getenv(
             "FINAI_ALLOWED_PROVIDERS",
