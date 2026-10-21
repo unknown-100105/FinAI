@@ -596,7 +596,8 @@ class XAITrace:
             payload["rag"]["query"] = None
             payload["rag"]["documents"] = []
             payload["claims"]["items"] = []
-            payload["claims"]["verification"]["report"] = {}
+            if isinstance(payload["claims"].get("verification"), dict):
+                payload["claims"]["verification"]["report"] = {}
             payload["verification"]["response"] = {}
             payload["verification"]["claims"] = {}
             payload["rag"]["error"] = None
