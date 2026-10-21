@@ -3,7 +3,7 @@
 from fastapi import Depends, FastAPI, HTTPException
 
 from app.api_security import FinAIAPIAuthMiddleware
-from app.trace_security import require_trace_api_enabled
+from app.trace_security import require_trace_api_enabled, require_trace_details_enabled
 from xai.trace import TRACE_DIR
 
 app = FastAPI(
@@ -74,7 +74,7 @@ def list_traces(_: None = Depends(require_trace_api_enabled)):
 
 
 @app.get("/api/v1/xai/traces/{trace_id}")
-def get_trace(trace_id: str, _: None = Depends(require_trace_api_enabled)):
+def get_trace(trace_id: str, _: None = Depends(require_trace_details_enabled)):
     if not trace_id.replace("-", "").isalnum():
         raise HTTPException(
             status_code=400,
@@ -104,7 +104,7 @@ def get_trace(trace_id: str, _: None = Depends(require_trace_api_enabled)):
 
 
 @app.delete("/api/v1/xai/traces/{trace_id}")
-def delete_trace(trace_id: str, _: None = Depends(require_trace_api_enabled)):
+def delete_trace(trace_id: str, _: None = Depends(require_trace_details_enabled)):
     if not trace_id.replace("-", "").isalnum():
         raise HTTPException(status_code=400, detail="Invalid trace ID.")
     trace_root = TRACE_DIR.resolve()
