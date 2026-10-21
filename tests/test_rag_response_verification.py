@@ -1,5 +1,11 @@
+import pytest
 from llm.model_gateway import ModelGateway
 from llm.response_service import ResponseService
+
+
+@pytest.fixture(autouse=True)
+def explicit_provider_consent_for_tests(monkeypatch):
+    monkeypatch.setenv("FINAI_DATA_SENSITIVITY", "standard")
 
 
 class FixedAdapter:
