@@ -8,7 +8,8 @@ from uuid import uuid4
 
 
 TRACE_DIR = Path(
-    os.getenv("FINAI_TRACE_DIR", str(Path(__file__).resolve().parent / "traces"))
+    os.getenv("FINAI_TRACE_DIR")
+    or str(Path(__file__).resolve().parent / "traces")
 ).expanduser().resolve()
 _DEFAULT_TRACE_RETENTION_DAYS = 7
 
@@ -607,7 +608,7 @@ class XAITrace:
             retention_days = _DEFAULT_TRACE_RETENTION_DAYS
         if retention_days > 0:
             cutoff = datetime.now().timestamp() - retention_days * 86400
-            for old_path in trace_root.glob("trace-*.json"):
+            for old_path in trace_root.glob("*.json"):
                 try:
                     if old_path.stat().st_mtime < cutoff:
                         old_path.unlink()
@@ -648,10 +649,20 @@ class XAITrace:
             return None
 
         if isinstance(value, dict):
-            return {
-                str(k): cls._clean_value(v)
-                for k, v in value.items()
-            }
+            cleaned = {}
+            sensitive_fragments = (
+                "account", "card", "phone", "email", "token",
+                "password", "secret", "authorization", "upi",
+                "ifsc", "pan", "aadhaar", "ssn", "date_of_birth",
+                "address", "customer_id", "balance",
+            )
+            for key, item in value.items():
+                key_text = str(key)
+                if any(fragment in key_text.casefold() for fragment in sensitive_fragments):
+                    cleaned[key_text] = "[REDACTED]"
+                else:
+                    cleaned[key_text] = cls._clean_value(item)
+            return cleaned
 
         if isinstance(value, (list, tuple)):
             return [
