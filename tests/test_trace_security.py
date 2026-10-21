@@ -27,6 +27,8 @@ def test_trace_id_is_independent_of_caller_session_and_path_is_contained(tmp_pat
     assert ".." not in trace.data["trace_id"]
     assert saved_path.resolve().parent == Path(tmp_path).resolve()
     persisted = json.loads(saved_path.read_text(encoding="utf-8"))
+    assert persisted["session_id"].startswith("session-ref-")
+    assert persisted["session_id"] != "../../outside"
     assert persisted["user_input"] is None
     assert persisted["tool"]["data"] == {}
     assert persisted["tool"]["message"] is None
