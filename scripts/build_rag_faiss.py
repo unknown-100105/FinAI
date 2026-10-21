@@ -56,6 +56,70 @@ def load_checkpoint() -> dict:
     )
 
 
+def validate_resume_state(
+    *,
+    vector_count: int,
+    document_ids: list[int],
+    checkpoint: dict,
+    checkpoint_exists: bool,
+) -> tuple[int, int]:
+    """Validate vector/ID/checkpoint alignment and recover a stale checkpoint."""
+    if vector_count != len(document_ids):
+        raise ValueError(
+            "FAISS vector count does not match the document ID map: "
+            f"{vector_count} vectors vs {len(document_ids)} IDs. "
+            "Back up the current artifacts and rebuild the index."
+        )
+
+    if any(left >= right for left, right in zip(document_ids, document_ids[1:])):
+        raise ValueError(
+            "Document IDs must be strictly increasing and unique; refusing to append "
+            "vectors to a potentially corrupted index."
+        )
+
+    latest_id = document_ids[-1] if document_ids else 0
+    if not checkpoint_exists:
+        if vector_count or document_ids:
+            raise ValueError(
+                "A non-empty FAISS index has no checkpoint.json, so its embedding "
+                "model and resume position cannot be verified. Back up the artifacts "
+                "before rebuilding; refusing to append duplicate or incompatible vectors."
+            )
+        return 0, 0
+
+    checkpoint_model = checkpoint.get("model_id")
+    if vector_count and not checkpoint_model:
+        raise ValueError(
+            "Checkpoint is missing model_id for a non-empty index; refusing to "
+            "resume without verifying embedding-model identity."
+        )
+    if checkpoint_model and checkpoint_model != MODEL_ID:
+        raise ValueError(
+            f"Checkpoint model '{checkpoint_model}' does not match index builder "
+            f"model '{MODEL_ID}'. Rebuild with one embedding model per index."
+        )
+
+    checkpoint_count = int(checkpoint.get("indexed_count", 0))
+    checkpoint_last_id = int(checkpoint.get("last_id", 0))
+    if checkpoint_count < 0 or checkpoint_count > len(document_ids):
+        raise ValueError(
+            "Checkpoint count is inconsistent with the saved vector/ID files."
+        )
+
+    expected_checkpoint_id = (
+        document_ids[checkpoint_count - 1] if checkpoint_count else 0
+    )
+    if checkpoint_last_id != expected_checkpoint_id:
+        raise ValueError(
+            "Checkpoint last_id does not match the ID map at indexed_count; "
+            "refusing to continue with ambiguous index state."
+        )
+
+    # If the index and ID map were saved but the checkpoint write was interrupted,
+    # the verified ID map may be ahead. Resume after its last ID to avoid duplicates.
+    return latest_id, len(document_ids)
+
+
 def save_checkpoint(
     last_id: int,
     indexed_count: int,
@@ -86,14 +150,8 @@ def main() -> None:
             f"RAG database not found: {DB_PATH}"
         )
 
+    checkpoint_exists = CHECKPOINT_PATH.exists()
     checkpoint = load_checkpoint()
-
-    last_id = int(
-        checkpoint.get("last_id", 0)
-    )
-    indexed_count = int(
-        checkpoint.get("indexed_count", 0)
-    )
 
     print("MODEL:", MODEL_ID)
     print("MAX SEQ LENGTH:", MAX_SEQ_LENGTH)
@@ -101,13 +159,11 @@ def main() -> None:
     print("MAX DOCUMENTS:", MAX_DOCUMENTS or "ALL")
     print("DATABASE:", DB_PATH)
     print("OUTPUT:", OUT_DIR)
-    print("RESUME LAST ID:", last_id)
-    print("RESUME COUNT:", indexed_count)
 
     print("\nLoading embedding model...")
-
+    configured_device = os.getenv("FINAI_RAG_DEVICE", "").strip() or None
     adapter = QwenEmbeddingAdapter(
-        device="cuda",
+        device=configured_device,
         max_seq_length=MAX_SEQ_LENGTH,
     )
 
@@ -131,12 +187,27 @@ def main() -> None:
             dimension
         )
 
+    if int(index.d) != int(dimension):
+        raise ValueError(
+            f"Existing FAISS dimension {index.d} does not match embedding dimension "
+            f"{dimension}. Back up the old artifacts and rebuild the index."
+        )
+
     if IDS_PATH.exists():
         document_ids = np.load(
             IDS_PATH
         ).astype(np.int64).tolist()
     else:
         document_ids = []
+
+    last_id, indexed_count = validate_resume_state(
+        vector_count=int(index.ntotal),
+        document_ids=document_ids,
+        checkpoint=checkpoint,
+        checkpoint_exists=checkpoint_exists,
+    )
+    print("RESUME LAST ID:", last_id)
+    print("RESUME COUNT:", indexed_count)
 
     con = sqlite3.connect(
         str(DB_PATH)

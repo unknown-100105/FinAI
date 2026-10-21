@@ -140,15 +140,15 @@ export default function CausalRiskLab() {
     gold: 10,
     cash: 5,
   });
-  const [savedHoldingsCount, setSavedHoldingsCount] = useState(0);
+  const [savedHoldingsCount] = useState(() => readSavedHoldingCount());
   const [graph, setGraph] = useState<CausalGraph>(fallbackGraph);
   const [architecture, setArchitecture] = useState<Record<string, unknown> | null>(null);
   const [result, setResult] = useState<CounterfactualResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
 
+  // oxlint-disable-next-line react/set-state-in-effect -- Loads the remote graph and architecture asynchronously; local storage is initialized separately.
   useEffect(() => {
-    setSavedHoldingsCount(readSavedHoldingCount());
     void Promise.all([getCausalGraph(), getCausalArchitecture()])
       .then(([nextGraph, nextArchitecture]) => {
         setGraph(nextGraph);

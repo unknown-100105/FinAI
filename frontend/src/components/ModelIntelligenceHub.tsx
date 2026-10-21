@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Cloud, Cpu, Gauge, RefreshCw, Route, ShieldCheck } from "lucide-react";
 import {
   getFinAIModels,
@@ -49,24 +49,25 @@ export default function ModelIntelligenceHub() {
   const [route, setRoute] = useState<ModelRoutePreview | null>(null);
   const [resources, setResources] = useState<HardwareResourceSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
-  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeLoading, setRouteLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadModels = async () => {
-    setLoading(true);
-    setError("");
+  const loadModels = useCallback(async () => {
     try {
       const data = await getFinAIModels();
       setModels(data.models);
+      setError("");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Model registry unavailable.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { void loadModels(); }, []);
+  // oxlint-disable-next-line react/set-state-in-effect -- This effect loads external model metadata asynchronously; state updates follow the request.
+  useEffect(() => { void loadModels(); }, [loadModels]);
 
+  // oxlint-disable-next-line react/set-state-in-effect -- Hardware metadata is fetched asynchronously and then rendered.
   useEffect(() => {
     void getHardwareResources()
       .then(setResources)
@@ -88,9 +89,7 @@ export default function ModelIntelligenceHub() {
   const enabledModels = models.filter((model) => model.enabled && model.configured);
   const activeCandidates = models.filter((model) => capability === "all" || model.capabilities.includes(capability));
 
-  const runRoutePreview = async () => {
-    setRouteLoading(true);
-    setError("");
+  const runRoutePreview = useCallback(async () => {
     try {
       setRoute(await previewModelRoute({ capability, risk_level: risk, language, network_mode: networkMode, data_sensitivity: dataSensitivity }));
     } catch (requestError) {
@@ -98,9 +97,10 @@ export default function ModelIntelligenceHub() {
     } finally {
       setRouteLoading(false);
     }
-  };
+  }, [capability, risk, language, networkMode, dataSensitivity]);
 
-  useEffect(() => { void runRoutePreview(); }, [capability, risk, language, networkMode, dataSensitivity]);
+  // oxlint-disable-next-line react/set-state-in-effect -- Route preview synchronizes user-selected controls with the backend preview API.
+  useEffect(() => { void runRoutePreview(); }, [runRoutePreview]);
 
   return (
     <section className="module-page model-intelligence-page">
@@ -128,15 +128,15 @@ export default function ModelIntelligenceHub() {
         <section className="workspace-panel">
           <div className="module-panel-head">
             <div><div className="module-kicker">01 · Route preview</div><h2>Adaptive execution planner</h2></div>
-            <button className="secondary-module-button" type="button" onClick={() => void loadModels()} disabled={loading}><RefreshCw size={12} /> Refresh registry</button>
+            <button className="secondary-module-button" type="button" onClick={() => { setLoading(true); setError(""); void loadModels(); }} disabled={loading}><RefreshCw size={12} /> Refresh registry</button>
           </div>
           <p className="ai-muted">Choose the workload and risk level to see the model FinAI would select before any generation call is made.</p>
           <div className="ai-route-controls">
-            <label>Network<select value={networkMode} onChange={(event) => setNetworkMode(event.target.value)}><option value="online">Online</option><option value="degraded">Degraded</option><option value="offline">Offline</option></select></label>
-            <label>Data sensitivity<select value={dataSensitivity} onChange={(event) => setDataSensitivity(event.target.value)}><option value="public">Public</option><option value="standard">Standard</option><option value="financial">Financial</option><option value="restricted">Restricted</option></select></label>
-            <label>Capability<select value={capability} onChange={(event) => setCapability(event.target.value)}>{capabilities.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
-            <label>Risk<select value={risk} onChange={(event) => setRisk(event.target.value)}><option>low</option><option>medium</option><option>high</option><option>critical</option></select></label>
-            <label>Language<select value={language} onChange={(event) => setLanguage(event.target.value)}><option>English</option><option>Tamil</option><option>Telugu</option><option>Kannada</option><option>Malayalam</option></select></label>
+            <label>Network<select value={networkMode} onChange={(event) => { setRouteLoading(true); setError(""); setNetworkMode(event.target.value); }}><option value="online">Online</option><option value="degraded">Degraded</option><option value="offline">Offline</option></select></label>
+            <label>Data sensitivity<select value={dataSensitivity} onChange={(event) => { setRouteLoading(true); setError(""); setDataSensitivity(event.target.value); }}><option value="public">Public</option><option value="standard">Standard</option><option value="financial">Financial</option><option value="restricted">Restricted</option></select></label>
+            <label>Capability<select value={capability} onChange={(event) => { setRouteLoading(true); setError(""); setCapability(event.target.value); }}>{capabilities.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+            <label>Risk<select value={risk} onChange={(event) => { setRouteLoading(true); setError(""); setRisk(event.target.value); }}><option>low</option><option>medium</option><option>high</option><option>critical</option></select></label>
+            <label>Language<select value={language} onChange={(event) => { setRouteLoading(true); setError(""); setLanguage(event.target.value); }}><option>English</option><option>Tamil</option><option>Telugu</option><option>Kannada</option><option>Malayalam</option></select></label>
           </div>
           {route && (
             <div className="ai-route-result">

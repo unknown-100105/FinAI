@@ -94,6 +94,43 @@ python scripts/build_rag_faiss.py
 
 The current builders expect the domain chunk files under `data/domain_chunks/`. Those source datasets must be obtained or generated separately. A fresh clone therefore does not contain a ready-to-query production RAG index until these assets are prepared.
 
+Before running end-to-end tests on a fresh clone, run the local preflight and review offline-mode behavior:
+
+```powershell
+python scripts/finai_preflight.py
+python scripts/finai_preflight.py --json
+```
+
+See [Offline mode and preflight guide](docs/OFFLINE_AND_PREFLIGHT.md) for the network-policy contract, local model requirements, artifact prerequisites, and tests. Offline checks cover the currently guarded provider paths, not arbitrary direct network calls from future modules.
+
+## Optional local Colibrì inference
+
+FinAI can optionally route response generation to a separately installed
+[Colibrì inference engine](https://github.com/JustVugg/colibri) through its
+OpenAI-compatible local API. FinAI does **not** bundle the third-party engine or
+its model weights, and this adapter does not implement Colibrì's GPU/RAM/NVMe
+weight streaming itself.
+
+Follow the upstream [Windows guide](https://github.com/JustVugg/colibri/blob/main/docs/windows.md)
+and [API guide](https://github.com/JustVugg/colibri/blob/main/docs/api.md) to
+install a supported runtime/model and bind its server to `127.0.0.1`. Then
+set these values in the PowerShell session that launches FinAI (or in your
+local `.env` file, which must not be committed):
+
+```powershell
+$env:FINAI_COLIBRI_BASE_URL = "http://127.0.0.1:8000/v1"
+$env:FINAI_COLIBRI_MODEL = "olmoe-colibri" # must match the server's configured model ID
+$env:FINAI_COLIBRI_API_KEY = "local-finetoken"
+$env:FINAI_NETWORK_MODE = "offline"
+$env:FINAI_DATA_SENSITIVITY = "restricted"
+```
+
+The adapter is disabled while `FINAI_COLIBRI_BASE_URL` is blank, accepts only
+loopback endpoints, and refuses redirects. Check the actual model identifier
+with the local server's `/v1/models` endpoint before running FinAI tests. See
+[Offline mode and preflight](docs/OFFLINE_AND_PREFLIGHT.md) for the full setup
+and limitations.
+
 ## Cloud response providers
 
 FinAI now exposes a provider-agnostic response layer with Google Gemini, OpenAI, OpenRouter, Anthropic and Mistral adapters, plus local/research models. Providers remain server-side behind the ModelGateway; credentials are never sent to the browser.
@@ -108,6 +145,8 @@ See `docs/multi-cloud-model-routing.md` for the provider matrix and environment 
 
 Financial calculations and tool results are treated as system-owned authoritative results. The language model is used as an explanation layer and is subject to the response/claim verification paths that are applicable to the intent.
 
+The local FinAI Brain readiness endpoint is `GET /api/v1/system/brain-status`. It reports file/configuration evidence only; it does not contact providers or claim successful live inference.
+
 ## Development notes
 
 Large model weights, generated datasets, RAG indexes, caches, and XAI trace outputs are excluded from normal source control. For reproducible deployment, keep the source-code commit and the separately versioned model/data artifacts together.
@@ -116,7 +155,7 @@ Before production deployment, replace the demo/session authentication flow with 
 
 ## Professional market intelligence
 
-The market workspace now includes an interactive candlestick terminal with wheel zoom, drag-to-pan, crosshair/inspection, reset and fullscreen controls. The Market Analyst adds a chronological model arena with Logistic Regression, Random Forest, Extra Trees, Gradient Boosting, HistGradientBoosting and MLP, plus ensemble probability, validation metrics and feature attribution.
+The market workspace now includes an interactive candlestick terminal with wheel zoom, drag-to-pan, crosshair/inspection, reset and fullscreen controls. The Market Analyst adds a chronological model arena with Logistic Regression, Random Forest, Extra Trees, Gradient Boosting, HistGradientBoosting and MLP, plus ensemble probability, validation metrics and feature attribution. The terminal also includes browser-local watchlists, above/below quote alert conditions, and a position-sizing/reward-risk calculator. These are planning tools only: alerts are not push notifications, and the UI does not place broker orders. See docs/TRADE_VIEW_TOOLS.md.
 
 The Global Markets workspace provides a research registry across major regions and asset classes including equities, ETFs, government bonds, corporate bonds, deposits/FDs, funds, REITs, commodities and currencies. For an Indian resident, the eligibility workflow explicitly checks the areas that must be verified: FEMA/LRS, local foreign-investor rules, KYC, currency/repatriation, withholding and Indian tax/reporting.
 
@@ -183,3 +222,33 @@ The registry includes major markets across North America, Europe, Asia-Pacific, 
 Investment knowledge API endpoints:
 - `/api/v1/investments/scope`
 - `/api/v1/investments/global-markets`
+
+
+## Experimental causal-risk research prototypes
+
+The research branch includes two explicitly experimental mechanisms:
+
+- **Evidence-Gated Paired-World Causal Risk Propagation (EPCRP):** finance_engine/epcrp.py compares baseline and intervention worlds and records edge acceptance/rejection plus evidence lineage. See docs/EPCRP_EVIDENCE_GATED_CAUSAL_RISK.md.
+- **Intervention feasibility screening:** finance_engine/counterfactual_screening.py screens bounded linear-DAG interventions using conservative interval bounds. RETAIN means only that infeasibility was not proven.
+- **Counterfactual directional stability gate:** finance_engine/counterfactual_stability.py compares repeated, approved estimates across model versions, graph/evidence fingerprints and regimes. It flags intervals crossing zero or directional disagreement and emits a deterministic replay digest. It is a robustness diagnostic, not causal identification or a forecast guarantee.
+
+Run python -m pytest -q tests/test_epcrp.py tests/test_counterfactual_screening.py tests/test_counterfactual_stability.py tests/test_counterfactual_stability_api.py and python benchmarks/counterfactual_screening_benchmark.py from the repository root. These are research prototypes and synthetic benchmarks, not real-market validation, causal discovery, or proof of patentability. They are not enabled as production decision paths by default.
+
+
+### Running the experimental research endpoints (local only)
+
+The EPCRP, feasibility-screen, and counterfactual-stability HTTP routes are disabled by default. To mount them in a local development server, set the environment variables before starting the API process:
+
+PowerShell:
+
+    $env:FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS = "true"
+    $env:FINAI_RESEARCH_API_TOKEN = "<unique-random-secret-at-least-32-characters>"
+
+Then start FinAI using the normal API command for this checkout. Restart the process after changing the variable. The router requires this bearer token on every research request. Do not expose these research-only endpoints to public clients without a separately reviewed deployment boundary, rate limiting, and monitoring. The API token is not user identity or tenant isolation. Never commit actual credentials.
+
+
+## ResilientPay bridge status
+
+The branch includes a local-first payment-intent journal and adapter contract in resilient_pay/ledger.py. It supports idempotency conflict checks, confirmed/authenticated adapter dispatch, state transitions, reconciliation-required handling for ambiguous outcomes, and an integrity-checkable hash-chained journal. LocalSimulationAdapter is a sandbox-only simulator. This is not a live bank or Hyperledger Fabric settlement integration; see docs/RESILIENTPAY_SETTLEMENT_BRIDGE.md.
+
+Run the local-only ResilientPay simulation with `python scripts/demo_resilient_pay.py`. It uses an in-memory journal and a SIM-prefixed adapter; no external payment service is called and no real funds are moved.

@@ -9,10 +9,13 @@ from __future__ import annotations
 from typing import Any, Dict
 import requests
 
+from policy.network_mode import assert_external_network_allowed
+
 BASE = "https://mempool.space/api/v1"
 
 
 def _get(path: str) -> Any:
+    assert_external_network_allowed("mempool.space mining statistics")
     response = requests.get(BASE + path, timeout=12)
     response.raise_for_status()
     return response.json()

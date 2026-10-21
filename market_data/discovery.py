@@ -2,6 +2,8 @@ from typing import Any, Dict, List, Optional
 
 import yfinance as yf
 
+from policy.network_mode import assert_external_network_allowed
+
 
 _QUOTE_TYPE_MAP = {
     "EQUITY": "equity",
@@ -56,6 +58,7 @@ def search_instruments(
         raise ValueError("Instrument search query must not be empty.")
 
     count = max(1, min(int(count), 50))
+    assert_external_network_allowed("yfinance instrument search")
 
     try:
         result = yf.Search(

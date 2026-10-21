@@ -13,8 +13,8 @@ export function KnowledgeHub() {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
 
+  // oxlint-disable-next-line react/set-state-in-effect -- Searches the backend when the query/category changes; results update asynchronously.
   useEffect(() => {
-    setBusy(true);
     const request = query.trim()
       ? searchKnowledge(query)
       : getRegulationTopics(category === "All" ? undefined : category);
@@ -42,8 +42,8 @@ export function KnowledgeHub() {
       {error && <div className="module-error">{error}</div>}
 
       <div className="compliance-toolbar">
-        <div className="compliance-search"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search IPO, FPI, FDI, ETF, Bitcoin, mining, SEBI…" /></div>
-        {!query && <div className="compliance-categories">{categories.map((item) => <button type="button" key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div>}
+        <div className="compliance-search"><Search size={15} /><input value={query} onChange={(event) => { setBusy(true); setQuery(event.target.value); }} placeholder="Search IPO, FPI, FDI, ETF, Bitcoin, mining, SEBI…" /></div>
+        {!query && <div className="compliance-categories">{categories.map((item) => <button type="button" key={item} className={category === item ? "active" : ""} onClick={() => { if (category !== item) setBusy(true); setCategory(item); }}>{item}</button>)}</div>}
       </div>
 
       <div className="compliance-layout">

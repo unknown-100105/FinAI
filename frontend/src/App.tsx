@@ -30,8 +30,10 @@ import {
 } from "lucide-react";
 import {
   authenticateSession,
+  getBrainStatus,
   logoutSession,
   sendChat,
+  type BrainStatus,
 } from "./api/finai";
 import { getFinAIModels, type FinAIModel } from "./api/models";
 import { MarketTerminal } from "./components/MarketTerminal";
@@ -82,6 +84,21 @@ const navigation = [
 ] as const;
 
 type Section = (typeof navigation)[number]["id"];
+
+const brainLayerIds = new Set<string>([
+  "routing",
+  "policy_authority",
+  "deterministic_finance",
+  "market_data",
+  "structured_knowledge",
+  "retrieval",
+  "model_generation",
+  "offline_inference",
+  "verification_xai",
+  "resource_planning",
+  "adaptive_orchestration",
+  "causal_risk_research",
+]);
 
 type Message = {
   role: "user" | "assistant";
@@ -190,13 +207,19 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
     model: "Gemini",
     verification: "Ready",
   });
+  const [capabilityPlan, setCapabilityPlan] = useState<any>(null);
+  const [brainStatus, setBrainStatus] = useState<BrainStatus | null>(null);
 
   useEffect(() => {
     void getFinAIModels("financial_qa").then((data) => {
       const enabled = data.models.filter((model) => model.enabled);
       setModels(enabled);
-      if (!modelId && enabled.length) setModelId(enabled[0].model_id);
+      setModelId((current) => current || enabled[0]?.model_id || current);
     }).catch(() => setModels([]));
+  }, []);
+
+  useEffect(() => {
+    void getBrainStatus().then(setBrainStatus).catch(() => setBrainStatus(null));
   }, []);
 
   const [messages, setMessages] = useState<Message[]>([
@@ -232,6 +255,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
 
   const applyResult = (result: any, addAssistantMessage = true) => {
     if (result?.session_id) setSessionId(result.session_id);
+    setCapabilityPlan(rootOf(result)?.capability_execution_plan ?? null);
 
     const session = result?.session ?? {};
     setAuthenticated(session.authenticated === true);
@@ -282,6 +306,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
     if (!text || loading) return;
 
     setError("");
+    setCapabilityPlan(null);
     setMessages((current) => [...current, { role: "user", content: text }]);
     setMessage("");
     setLoading(true);
@@ -555,7 +580,11 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
         <section className="glass-panel side-card">
           <div className="side-title"><Languages size={15} /> Preferences</div>
           <label>Language<select value={language} onChange={(event) => setLanguage(event.target.value)} disabled={loading}>{languages.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label>Persona<select value={persona} onChange={(event) => setPersona(event.target.value)} disabled={loading}>{personas.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>\n          <label>Reasoning model<select value={modelId} onChange={(event) => setModelId(event.target.value)} disabled={loading}>\n            <option value="">Automatic</option>\n            {models.map((model) => <option key={model.model_id} value={model.model_id}>{model.model_name}</option>)}\n          </select></label>
+          <label>Persona<select value={persona} onChange={(event) => setPersona(event.target.value)} disabled={loading}>{personas.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label>Reasoning model<select value={modelId} onChange={(event) => setModelId(event.target.value)} disabled={loading}>
+            <option value="">Automatic</option>
+            {models.map((model) => <option key={model.model_id} value={model.model_id}>{model.model_name}</option>)}
+          </select></label>
         </section>
 
         <section className="glass-panel side-card">
@@ -588,10 +617,69 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
           )}
         </section>
 
+        <section className="glass-panel side-card brain-plan-card">
+          <div className="side-title"><BrainCircuit size={15} /> FinAI Brain plan</div>
+          <p className="brain-plan-note">Request-path diagnostic from the backend. Planned stages are not proof that every capability executed successfully.</p>
+          {capabilityPlan ? (
+            <>
+              <div className={capabilityPlan.blocked ? "brain-plan-status blocked" : "brain-plan-status"}>
+                <span>{capabilityPlan.blocked ? "Plan blocked" : "Plan generated"}</span>
+                <small>{String(capabilityPlan.mode ?? "online").toUpperCase()} · {capabilityPlan.steps?.length ?? 0} stage(s)</small>
+              </div>
+              {capabilityPlan.observed_stage && (
+                <div className="brain-observed-stage">
+                  <span>Observed backend stage</span>
+                  <strong>{traceValue(String(capabilityPlan.observed_stage))}</strong>
+                  {capabilityPlan.observed_status && <small>{traceValue(String(capabilityPlan.observed_status))}</small>}
+                </div>
+              )}
+              <div className="brain-plan-steps">
+                {(Array.isArray(capabilityPlan.steps) ? capabilityPlan.steps : []).map((step: any, index: number) => (
+                  <div className="brain-plan-step" key={step.step_id ?? step.capability ?? index}>
+                    <span className="brain-step-index">{String(index + 1).padStart(2, "0")}</span>
+                    <div>
+                      <strong>{traceValue(String(step.capability ?? step.kind ?? "Unknown stage"))}</strong>
+                      <small>{traceValue(String(step.kind ?? "stage"))}{step.required ? " · required" : " · optional"}</small>
+                      <small className="brain-step-status">Observed: {traceValue(String(step.observed_status ?? "NOT_OBSERVED"))}</small>
+                      {Array.isArray(step.depends_on) && step.depends_on.length > 0 && (
+                        <small>After: {step.depends_on.map((value: unknown) => String(value)).join(", ")}</small>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {Array.isArray(capabilityPlan.explanations) && capabilityPlan.explanations.length > 0 && (
+                <ul className="brain-plan-explanations">
+                  {capabilityPlan.explanations.map((item: unknown, index: number) => <li key={index}>{String(item)}</li>)}
+                </ul>
+              )}
+              <small className="brain-plan-footnote">Planner role: {traceValue(String(capabilityPlan.planner_role ?? "diagnostic"))}. Existing policy, authority and risk-control layers remain authoritative.</small>
+            </>
+          ) : (
+            <p className="brain-plan-empty">Send a request to inspect the stages FinAI reports for that request.</p>
+          )}
+        </section>
+
         <section className="glass-panel side-card evidence-mini">
-          <div className="side-title"><FileSearch size={15} /> Knowledge layer</div>
-          <div className="mini-status"><CheckCircle2 size={14} /> Hybrid RAG</div>
-          <div className="mini-status"><CheckCircle2 size={14} /> Evidence grounding</div>
+          <div className="side-title"><FileSearch size={15} /> Brain layer status</div>
+          <p className="brain-plan-note">Local readiness only. Green/ready means file or configuration evidence, not a live quality guarantee.</p>
+          {brainStatus ? (
+            <div className="brain-layer-list">
+              {brainStatus.layers.filter((layer) => brainLayerIds.has(layer.id)).map((layer) => (
+                <div className="brain-layer-row" key={layer.id}>
+                  <span>{traceValue(layer.id)}</span>
+                  <strong className={/missing|no_cloud_credentials|assets_missing|incomplete|offline_mode_requested|runtime_unverified/i.test(layer.status) ? "needs-attention" : "layer-present"}>
+                    {traceValue(layer.status)}
+                  </strong>
+                </div>
+              ))}
+              <button type="button" className="xai-open-button" onClick={() => void getBrainStatus().then(setBrainStatus).catch(() => setBrainStatus(null))}>
+                Refresh local diagnostics
+              </button>
+            </div>
+          ) : (
+            <p className="brain-plan-empty">Diagnostics unavailable. Check the API connection and reload.</p>
+          )}
         </section>
       </aside>
     </section>

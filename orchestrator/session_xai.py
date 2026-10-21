@@ -113,6 +113,10 @@ class XAISessionOrchestrator:
             trace.record_execution_plan(
                 result.get("execution_plan")
             )
+
+            trace.record_capability_execution_plan(
+                result.get("capability_execution_plan")
+            )
             trace.record_rag(result.get("rag"))
             trace.record_response_generation(
                 result.get("response_generation")
@@ -217,6 +221,10 @@ class XAISessionOrchestrator:
             trace.record_execution_plan(
                 result.get("execution_plan")
             )
+
+            trace.record_capability_execution_plan(
+                result.get("capability_execution_plan")
+            )
             trace.record_rag(result.get("rag"))
             trace.record_response_generation(
                 result.get("response_generation")
@@ -301,6 +309,10 @@ class XAISessionOrchestrator:
         trace.record_policy(result.get("policy"))
         trace.record_execution_plan(
             result.get("execution_plan")
+        )
+
+        trace.record_capability_execution_plan(
+            result.get("capability_execution_plan")
         )
         trace.record_rag(result.get("rag"))
         trace.record_response_generation(

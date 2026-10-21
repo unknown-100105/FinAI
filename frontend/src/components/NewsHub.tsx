@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ExternalLink, Filter, Newspaper, Search, Sparkles } from "lucide-react";
 import { getMarketNews, type MarketNewsItem } from "../api/market";
 import "./PlatformModules.css";
@@ -16,21 +16,27 @@ export function NewsHub() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const load = async (nextQuery = query) => {
-    setLoading(true);
-    setError("");
+  const fetchNews = useCallback(async (nextQuery: string) => {
     try {
       const result = await getMarketNews(nextQuery, 16);
       setArticles(result.articles);
+      setError("");
     } catch (requestError) {
       setArticles([]);
       setError(requestError instanceof Error ? requestError.message : "News is unavailable.");
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const load = async (nextQuery = query) => {
+    setLoading(true);
+    setError("");
+    await fetchNews(nextQuery);
   };
 
-  useEffect(() => { void load(); }, []);
+  // oxlint-disable-next-line react/set-state-in-effect -- Loads news from an external API; state updates follow the request.
+  useEffect(() => { void fetchNews("Indian stock market"); }, [fetchNews]);
 
   return (
     <section className="module-page">

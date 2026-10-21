@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRightLeft, Calculator, RefreshCw, Search, TriangleAlert } from "lucide-react";
 import {
   estimateCryptoArbitrage,
@@ -57,7 +57,7 @@ export function CryptoArbitrageHub() {
   const [tickerSearch, setTickerSearch] = useState("");
   const [tickers, setTickers] = useState<any[]>([]);
   const [tickerCount, setTickerCount] = useState(0);
-  const [tickersBusy, setTickersBusy] = useState(false);
+  const [tickersBusy, setTickersBusy] = useState(true);
   const [miningHashrate, setMiningHashrate] = useState("200");
   const [miningPower, setMiningPower] = useState("3500");
   const [miningElectricity, setMiningElectricity] = useState("0.10");
@@ -89,8 +89,7 @@ export function CryptoArbitrageHub() {
     }).join(" ");
   }, [chartBars]);
 
-  const loadChart = async () => {
-    setChartError("");
+  const loadChart = useCallback(async () => {
     try {
       const symbol = chartSymbol + "/" + "USDT";
       const [quote, buyHistory, sellHistory] = await Promise.all([
@@ -98,6 +97,7 @@ export function CryptoArbitrageHub() {
         getCryptoOHLCV(chartBuyVenue, symbol, chartTimeframe, chartLimit),
         getCryptoOHLCV(chartSellVenue, symbol, chartTimeframe, chartLimit),
       ]);
+      setChartError("");
       setChartQuote(quote.quote);
       setChartBars(
         (buyHistory.candles || []).map((row: any) => ({
@@ -126,19 +126,10 @@ export function CryptoArbitrageHub() {
     } catch (requestError) {
       setChartQuote(null);
       setChartBars([]);
+      setSellChartBars([]);
       setChartError(requestError instanceof Error ? requestError.message : "Crypto chart unavailable.");
     }
-  };
-
-  useEffect(() => { void loadChart(); }, [chartSymbol, chartRange, chartBuyVenue, chartSellVenue, chartTimeframe]);
-  useEffect(() => {
-    const timer = window.setInterval(() => { void loadChart(); }, 10000);
-    return () => window.clearInterval(timer);
-  }, [chartSymbol, chartRange]);
-  useEffect(() => {
-    const timer = window.setInterval(() => { void loadTickers(); }, 15000);
-    return () => window.clearInterval(timer);
-  }, [tickerExchange, tickerSearch]);
+  }, [chartSymbol, chartTimeframe, chartLimit, chartBuyVenue, chartSellVenue]);
 
   useEffect(() => {
     void getCryptoConnectors().then((data) => {
@@ -147,8 +138,7 @@ export function CryptoArbitrageHub() {
     }).catch(() => setConnectors([]));
   }, []);
 
-  const loadTickers = async () => {
-    setTickersBusy(true);
+  const loadTickers = useCallback(async () => {
     try {
       const result = await getCryptoTickers(tickerExchange, tickerQuote, tickerSearch, 500, 0);
       setTickers(result.tickers || []);
@@ -159,9 +149,21 @@ export function CryptoArbitrageHub() {
     } finally {
       setTickersBusy(false);
     }
-  };
+  }, [tickerExchange, tickerQuote, tickerSearch]);
 
-  useEffect(() => { void loadTickers(); }, [tickerExchange, tickerQuote]);
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Polls asynchronous market data.
+    void loadChart();
+    const timer = window.setInterval(() => { void loadChart(); }, 10000);
+    return () => window.clearInterval(timer);
+  }, [loadChart]);
+
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Polls asynchronous exchange tickers.
+    void loadTickers();
+    const timer = window.setInterval(() => { void loadTickers(); }, 15000);
+    return () => window.clearInterval(timer);
+  }, [loadTickers]);
 
   const runEstimate = async () => {
     setLoading(true);
@@ -266,18 +268,18 @@ export function CryptoArbitrageHub() {
       <section className="workspace-panel crypto-universe-panel">
         <div className="module-panel-head">
           <div><div className="module-kicker">All-pair market universe</div><h2>{tickerExchange.toUpperCase()} · {tickerCount.toLocaleString()} {tickerQuote} pairs with public ticker snapshots</h2></div>
-          <button className="market-refresh" type="button" onClick={() => void loadTickers()} disabled={tickersBusy}><RefreshCw size={13}/> Refresh</button>
+          <button className="market-refresh" type="button" onClick={() => { setTickersBusy(true); void loadTickers(); }} disabled={tickersBusy}><RefreshCw size={13}/> Refresh</button>
         </div>
         <div className="crypto-universe-toolbar">
           <div className="crypto-selector-row">
-            <select value={tickerExchange} onChange={(e) => setTickerExchange(e.target.value)}>
+            <select value={tickerExchange} onChange={(e) => { setTickersBusy(true); setTickerExchange(e.target.value); }}>
               {connectors.map((item: any) => <option key={item.exchange_id} value={item.exchange_id}>{item.trade_name}</option>)}
             </select>
-            <select value={tickerQuote} onChange={(e) => setTickerQuote(e.target.value)}>
+            <select value={tickerQuote} onChange={(e) => { setTickersBusy(true); setTickerQuote(e.target.value); }}>
               {["USDT","USDC","INR","BTC","ETH"].map((value) => <option key={value} value={value}>{value}</option>)}
             </select>
           </div>
-          <div className="compliance-search"><Search size={13}/><input value={tickerSearch} onChange={(e) => setTickerSearch(e.target.value)} placeholder="Filter pairs, e.g. BTC, ETH, SOL" /><button type="button" onClick={() => void loadTickers()}>Search</button></div>
+          <div className="compliance-search"><Search size={13}/><input value={tickerSearch} onChange={(e) => { setTickersBusy(true); setTickerSearch(e.target.value); }} placeholder="Filter pairs, e.g. BTC, ETH, SOL" /><button type="button" onClick={() => { setTickersBusy(true); void loadTickers(); }}>Search</button></div>
         </div>
         <div className="ticker-table-wrap">
           <table className="ticker-table"><thead><tr><th>Pair</th><th>Last</th><th>Bid</th><th>Ask</th><th>Spread</th><th>24h Quote Volume</th></tr></thead>

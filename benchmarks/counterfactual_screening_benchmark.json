@@ -1,0 +1,283 @@
+{
+  "graph_version": "588917ea85e7fcd63863",
+  "target": "portfolio_loss",
+  "target_interval": [
+    10,
+    15
+  ],
+  "candidate_count": 8,
+  "masked_count": 4,
+  "retained_count": 4,
+  "exhaustive_reference_evaluation_calls": 8,
+  "screened_reference_evaluation_calls": 4,
+  "candidate_evaluations_avoided": 4,
+  "candidate_evaluation_reduction_fraction": 0.5,
+  "interval_equations_evaluated": 12,
+  "exhaustive_reference_feasible_action_ids": [
+    "rate_shock_4",
+    "rate_shock_5",
+    "rate_shock_6",
+    "rate_shock_7"
+  ],
+  "screened_reference_feasible_action_ids": [
+    "rate_shock_4",
+    "rate_shock_5",
+    "rate_shock_6",
+    "rate_shock_7"
+  ],
+  "missed_reference_feasible_action_ids": [],
+  "masked_reference_feasible_action_ids": [],
+  "reference_recall": 1.0,
+  "all_reference_feasible_actions_retained": true,
+  "validation_reference_calls_including_crosscheck": 12,
+  "certificates": [
+    {
+      "action_id": "rate_shock_0",
+      "status": "MASK",
+      "reason": "BACKWARD_CERTIFICATE_DISJOINT:rate_shock",
+      "graph_version": "588917ea85e7fcd63863",
+      "target": "portfolio_loss",
+      "target_interval": [
+        10,
+        15
+      ],
+      "reachable_target_interval": null,
+      "backward_checks": [
+        {
+          "intervention_node": "rate_shock",
+          "action_interval": [
+            -5,
+            -4
+          ],
+          "necessary_interval": [
+            1.7916666666666665,
+            5
+          ]
+        }
+      ],
+      "recomputed_nodes": [],
+      "interval_equations_evaluated": 0
+    },
+    {
+      "action_id": "rate_shock_1",
+      "status": "MASK",
+      "reason": "BACKWARD_CERTIFICATE_DISJOINT:rate_shock",
+      "graph_version": "588917ea85e7fcd63863",
+      "target": "portfolio_loss",
+      "target_interval": [
+        10,
+        15
+      ],
+      "reachable_target_interval": null,
+      "backward_checks": [
+        {
+          "intervention_node": "rate_shock",
+          "action_interval": [
+            -3,
+            -2
+          ],
+          "necessary_interval": [
+            1.7916666666666665,
+            5
+          ]
+        }
+      ],
+      "recomputed_nodes": [],
+      "interval_equations_evaluated": 0
+    },
+    {
+      "action_id": "rate_shock_2",
+      "status": "MASK",
+      "reason": "BACKWARD_CERTIFICATE_DISJOINT:rate_shock",
+      "graph_version": "588917ea85e7fcd63863",
+      "target": "portfolio_loss",
+      "target_interval": [
+        10,
+        15
+      ],
+      "reachable_target_interval": null,
+      "backward_checks": [
+        {
+          "intervention_node": "rate_shock",
+          "action_interval": [
+            -1,
+            0
+          ],
+          "necessary_interval": [
+            1.7916666666666665,
+            5
+          ]
+        }
+      ],
+      "recomputed_nodes": [],
+      "interval_equations_evaluated": 0
+    },
+    {
+      "action_id": "rate_shock_3",
+      "status": "MASK",
+      "reason": "BACKWARD_CERTIFICATE_DISJOINT:rate_shock",
+      "graph_version": "588917ea85e7fcd63863",
+      "target": "portfolio_loss",
+      "target_interval": [
+        10,
+        15
+      ],
+      "reachable_target_interval": null,
+      "backward_checks": [
+        {
+          "intervention_node": "rate_shock",
+          "action_interval": [
+            0.5,
+            1
+          ],
+          "necessary_interval": [
+            1.7916666666666665,
+            5
+          ]
+        }
+      ],
+      "recomputed_nodes": [],
+      "interval_equations_evaluated": 0
+    },
+    {
+      "action_id": "rate_shock_4",
+      "status": "RETAIN",
+      "reason": "POSSIBLE_TARGET_REQUIRES_EXACT_EVALUATION",
+      "graph_version": "588917ea85e7fcd63863",
+      "target": "portfolio_loss",
+      "target_interval": [
+        10,
+        15
+      ],
+      "reachable_target_interval": [
+        5.1,
+        10.5
+      ],
+      "backward_checks": [
+        {
+          "intervention_node": "rate_shock",
+          "action_interval": [
+            1.5,
+            2
+          ],
+          "necessary_interval": [
+            1.7916666666666665,
+            5
+          ]
+        }
+      ],
+      "recomputed_nodes": [
+        "rate_shock",
+        "funding_spread",
+        "default_rate",
+        "portfolio_loss"
+      ],
+      "interval_equations_evaluated": 3
+    },
+    {
+      "action_id": "rate_shock_5",
+      "status": "RETAIN",
+      "reason": "POSSIBLE_TARGET_REQUIRES_EXACT_EVALUATION",
+      "graph_version": "588917ea85e7fcd63863",
+      "target": "portfolio_loss",
+      "target_interval": [
+        10,
+        15
+      ],
+      "reachable_target_interval": [
+        6.300000000000001,
+        11.700000000000001
+      ],
+      "backward_checks": [
+        {
+          "intervention_node": "rate_shock",
+          "action_interval": [
+            2,
+            2.5
+          ],
+          "necessary_interval": [
+            1.7916666666666665,
+            5
+          ]
+        }
+      ],
+      "recomputed_nodes": [
+        "rate_shock",
+        "funding_spread",
+        "default_rate",
+        "portfolio_loss"
+      ],
+      "interval_equations_evaluated": 3
+    },
+    {
+      "action_id": "rate_shock_6",
+      "status": "RETAIN",
+      "reason": "POSSIBLE_TARGET_REQUIRES_EXACT_EVALUATION",
+      "graph_version": "588917ea85e7fcd63863",
+      "target": "portfolio_loss",
+      "target_interval": [
+        10,
+        15
+      ],
+      "reachable_target_interval": [
+        8.7,
+        14.100000000000001
+      ],
+      "backward_checks": [
+        {
+          "intervention_node": "rate_shock",
+          "action_interval": [
+            3,
+            3.5
+          ],
+          "necessary_interval": [
+            1.7916666666666665,
+            5
+          ]
+        }
+      ],
+      "recomputed_nodes": [
+        "rate_shock",
+        "funding_spread",
+        "default_rate",
+        "portfolio_loss"
+      ],
+      "interval_equations_evaluated": 3
+    },
+    {
+      "action_id": "rate_shock_7",
+      "status": "RETAIN",
+      "reason": "POSSIBLE_TARGET_REQUIRES_EXACT_EVALUATION",
+      "graph_version": "588917ea85e7fcd63863",
+      "target": "portfolio_loss",
+      "target_interval": [
+        10,
+        15
+      ],
+      "reachable_target_interval": [
+        11.100000000000001,
+        17.700000000000003
+      ],
+      "backward_checks": [
+        {
+          "intervention_node": "rate_shock",
+          "action_interval": [
+            4,
+            5
+          ],
+          "necessary_interval": [
+            1.7916666666666665,
+            5
+          ]
+        }
+      ],
+      "recomputed_nodes": [
+        "rate_shock",
+        "funding_spread",
+        "default_rate",
+        "portfolio_loss"
+      ],
+      "interval_equations_evaluated": 3
+    }
+  ]
+}

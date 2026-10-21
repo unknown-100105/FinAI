@@ -1,6 +1,7 @@
 """Explicit approval gate for research-derived causal graphs."""
 from __future__ import annotations
 
+import math
 from collections import defaultdict, deque
 from typing import Any, Mapping, Sequence
 
@@ -26,10 +27,29 @@ def validate_research_graph(
         errors.append("graph requires at least two non-empty node ids")
     if len(set(labels)) != len(labels):
         errors.append("graph node ids must be unique")
-    if not 0.5 <= float(min_selection_frequency) <= 1.0:
-        errors.append("min_selection_frequency must be between 0.5 and 1.0")
-    if not 0.5 <= float(require_sign_consistency) <= 1.0:
-        errors.append("require_sign_consistency must be between 0.5 and 1.0")
+    try:
+        min_selection_frequency = float(min_selection_frequency)
+    except (TypeError, ValueError, OverflowError):
+        errors.append("min_selection_frequency must be a finite number between 0.5 and 1.0")
+        min_selection_frequency = 0.75
+    else:
+        if not math.isfinite(min_selection_frequency):
+            errors.append("min_selection_frequency must be finite")
+            min_selection_frequency = 0.75
+        elif not 0.5 <= min_selection_frequency <= 1.0:
+            errors.append("min_selection_frequency must be between 0.5 and 1.0")
+
+    try:
+        require_sign_consistency = float(require_sign_consistency)
+    except (TypeError, ValueError, OverflowError):
+        errors.append("require_sign_consistency must be a finite number between 0.5 and 1.0")
+        require_sign_consistency = 0.90
+    else:
+        if not math.isfinite(require_sign_consistency):
+            errors.append("require_sign_consistency must be finite")
+            require_sign_consistency = 0.90
+        elif not 0.5 <= require_sign_consistency <= 1.0:
+            errors.append("require_sign_consistency must be between 0.5 and 1.0")
 
     node_set = set(labels)
     normalized: list[dict[str, Any]] = []
@@ -40,13 +60,37 @@ def validate_research_graph(
             source = str(raw["source"]).strip()
             target = str(raw["target"]).strip()
             weight = float(raw["weight"])
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, OverflowError, AttributeError):
             errors.append(f"edge {index} is missing valid source, target, or weight")
             continue
 
-        lag = int(raw.get("lag", 0))
-        frequency = float(raw.get("selection_frequency", 1.0))
-        sign_consistency = float(raw.get("sign_consistency", 0.0))
+        try:
+            lag_value = float(raw.get("lag", 0))
+            frequency = float(raw.get("selection_frequency", 1.0))
+            sign_consistency = float(raw.get("sign_consistency", 0.0))
+        except (TypeError, ValueError, OverflowError, AttributeError):
+            errors.append(f"edge {index} has invalid lag, selection_frequency, or sign_consistency")
+            continue
+
+        if not math.isfinite(lag_value) or not lag_value.is_integer():
+            errors.append(f"edge {index} has invalid lag")
+            continue
+        lag = int(lag_value)
+
+        invalid_numeric_fields = [
+            name for name, value in (
+                ("weight", weight),
+                ("selection_frequency", frequency),
+                ("sign_consistency", sign_consistency),
+            )
+            if not math.isfinite(value)
+        ]
+        if invalid_numeric_fields:
+            errors.append(
+                f"edge {index} has non-finite numeric fields: "
+                + ", ".join(invalid_numeric_fields)
+            )
+            continue
 
         if source not in node_set or target not in node_set:
             errors.append(f"edge {index} references an unknown node")
@@ -71,7 +115,8 @@ def validate_research_graph(
         }
         normalized.append(item)
 
-        if lag == 0 and source != target:
+        # Only connect known nodes; invalid endpoints must not break cycle checking.
+        if lag == 0 and source in node_set and target in node_set and source != target:
             adjacency[source].append(target)
 
     # Kahn topological check for contemporaneous structure only. Lagged edges

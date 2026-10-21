@@ -267,3 +267,39 @@
 .instrument-results button:hover{background:rgba(92,120,166,.11)}
 .instrument-results span{min-width:0}.instrument-results strong{display:block;font-size:10px}.instrument-results small{display:block;margin-top:2px;color:#71839a;font-size:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:235px}.instrument-results em{flex:0 0 auto;color:#667991;font-size:8px;font-style:normal}
 @media(max-width:600px){.market-search-box{min-width:0;width:100%}}
+
+/* Trade planning tools: local-first, explicit about what is and is not live. */
+.trade-tools{margin-top:14px;padding:16px;border:1px solid rgba(146,174,208,.12);border-radius:17px;background:linear-gradient(145deg,rgba(13,25,41,.86),rgba(7,15,26,.82))}
+.trade-tools-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
+.trade-tools-heading h3{margin:4px 0 0;color:#e4edf9;font-size:15px}
+.trade-tools-kicker{color:#6886b4;font-size:8px;font-weight:900;letter-spacing:.16em}
+.trade-tools-symbol{padding:6px 9px;border:1px solid rgba(111,146,208,.18);border-radius:8px;color:#a9c2f4;font-size:10px;font-weight:800}
+.trade-tools-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.trade-tool-card{min-width:0;padding:13px;border:1px solid rgba(146,174,208,.1);border-radius:12px;background:rgba(4,11,20,.38)}
+.trade-tool-title{display:flex;align-items:center;gap:7px;margin-bottom:11px;color:#9cb8ec}
+.trade-tool-title strong{color:#dce7f7;font-size:11px}
+.trade-inline-form{display:flex;gap:6px;min-width:0}
+.trade-inline-form input,.trade-alert-form select,.trade-calculator-fields input{width:100%;min-width:0;border:1px solid rgba(146,174,208,.15);border-radius:8px;padding:9px 10px;background:rgba(5,12,22,.76);color:#e4edf9;font-size:10px;outline:none}
+.trade-inline-form input:focus,.trade-alert-form select:focus,.trade-calculator-fields input:focus{border-color:rgba(100,143,245,.62)}
+.trade-inline-form button,.trade-alert-row button,.trade-watch-row>button:last-child{display:grid;place-items:center;flex:0 0 auto;width:33px;min-height:33px;border:1px solid rgba(146,174,208,.13);border-radius:8px;background:rgba(78,108,163,.12);color:#a9c2f4}
+.trade-inline-form button:disabled{opacity:.4;cursor:not-allowed}
+.trade-watchlist,.trade-alert-list{display:grid;gap:5px;margin-top:9px}
+.trade-watch-row,.trade-alert-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 7px;border:1px solid transparent;border-radius:8px;background:rgba(146,174,208,.035)}
+.trade-watch-row.selected{border-color:rgba(92,132,230,.23);background:rgba(70,105,190,.1)}
+.trade-watch-row>button:first-child{flex:1;border:0;background:transparent;color:#c8d6eb;text-align:left;font-size:10px;font-weight:800}
+.trade-watch-row>button:last-child,.trade-alert-row button{width:27px;min-height:27px}
+.trade-alert-form{display:grid;gap:7px}
+.trade-alert-form select{appearance:auto}
+.trade-alert-row{color:#aebed3;font-size:10px}
+.trade-tool-empty,.trade-tool-hint{margin:9px 0 0;color:#72849b;font-size:9px;line-height:1.5}
+.trade-alert-triggered{display:flex;align-items:center;gap:6px;margin-top:9px;padding:8px;border:1px solid rgba(244,185,89,.22);border-radius:8px;background:rgba(177,116,27,.08);color:#f2c77e;font-size:9px;line-height:1.45}
+.trade-position-card{grid-column:1/-1}
+.trade-calculator-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.trade-calculator-fields label{display:grid;gap:5px;color:#788ba4;font-size:9px}
+.trade-position-result{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.trade-position-result>div{display:grid;gap:5px;padding:10px;border-radius:9px;background:rgba(76,108,170,.08)}
+.trade-position-result span{color:#778ba5;font-size:8px}
+.trade-position-result strong{color:#e4edf9;font-size:13px;overflow-wrap:anywhere}
+.trade-tool-disclaimer{margin:10px 0 0;color:#667a92;font-size:8px;line-height:1.5}
+@media(max-width:720px){.trade-tools-grid{grid-template-columns:1fr}.trade-position-card{grid-column:auto}.trade-calculator-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:420px){.trade-position-result{grid-template-columns:1fr}.trade-tools{padding:11px}.trade-tool-card{padding:10px}}

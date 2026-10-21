@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BookMarked, ExternalLink, LineChart, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { getMarketHistory, getMarketNews, getMarketQuote, type MarketBar } from "../api/market";
 import { CandleChart } from "./CandleChart";
@@ -18,7 +18,18 @@ function summarize(bars:MarketBar[]){
 }
 
 export function InvestmentDiaryHub(){
-  const [entries,setEntries]=useState<DiaryEntry[]>([]);
+  const [entries,setEntries]=useState<DiaryEntry[]>(() => {
+    try {
+      const stored: unknown = JSON.parse(localStorage.getItem(diaryKey()) || "[]");
+      return Array.isArray(stored) ? stored.filter((item): item is DiaryEntry =>
+        Boolean(item) && typeof item === "object" &&
+        typeof item.id === "string" && typeof item.date === "string" &&
+        typeof item.asset === "string" && typeof item.thesis === "string" &&
+        typeof item.action === "string" && typeof item.notes === "string" &&
+        typeof item.price === "string"
+      ) : [];
+    } catch { return []; }
+  });
   const [asset,setAsset]=useState("TCS");
   const [action,setAction]=useState("Watch");
   const [price,setPrice]=useState("");
@@ -27,21 +38,19 @@ export function InvestmentDiaryHub(){
   const [bars,setBars]=useState<MarketBar[]>([]);
   const [news,setNews]=useState<any[]>([]);
   const [quote,setQuote]=useState<any>(null);
-  const [busy,setBusy]=useState(false);
-  const [watchlist,setWatchlist]=useState<string[]>([]);
+  const [busy,setBusy]=useState(true);
+  const [watchlist]=useState<string[]>(() => {
+    try {
+      const stored: unknown = JSON.parse(localStorage.getItem("finai.watchlist") || "[]");
+      return Array.isArray(stored) ? [...new Set(stored.filter((item): item is string => typeof item === "string").map((item) => item.trim().toUpperCase()).filter(Boolean))] : [];
+    } catch { return []; }
+  });
   const [watchData,setWatchData]=useState<Record<string,{price:number|null;return30:number|null;volumeRatio:number|null;trend:string;news:any[]}>>({});
   const [watchBusy,setWatchBusy]=useState(false);
 
-  useEffect(()=>{
-    try{
-      setEntries(JSON.parse(localStorage.getItem(diaryKey())||"[]"));
-      setWatchlist(JSON.parse(localStorage.getItem("finai.watchlist")||"[]"));
-    }catch{ setEntries([]); setWatchlist([]); }
-  },[]);
   const snapshot=useMemo(()=>summarize(bars),[bars]);
 
-  const refresh=async()=>{
-    setBusy(true);
+  const refresh = useCallback(async () => {
     try{
       const end=new Date(),start=new Date();
       start.setDate(end.getDate()-30);
@@ -52,11 +61,13 @@ export function InvestmentDiaryHub(){
       ]);
       setQuote(q.quote);setPrice(String(q.quote.price??""));setBars(h.bars);setNews(n.articles);
     } finally { setBusy(false); }
-  };
-  useEffect(()=>{ void refresh().catch(()=>setBars([])); },[asset]);
-  const refreshWatchlist = async () => {
-    if (!watchlist.length) return;
+  }, [asset]);
+  // oxlint-disable-next-line react/set-state-in-effect -- Fetches the selected asset's market snapshot whenever the asset changes.
+  useEffect(() => { void refresh().catch(() => setBars([])); }, [refresh]);
+  const refreshWatchlist = useCallback(async () => {
+    if (!watchlist.length) { setWatchData({}); setWatchBusy(false); return; }
     setWatchBusy(true);
+
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - 30);
@@ -81,8 +92,9 @@ export function InvestmentDiaryHub(){
     results.forEach((result) => { if (result.status === "fulfilled") next[result.value[0]] = result.value[1]; });
     setWatchData(next);
     setWatchBusy(false);
-  };
-  useEffect(()=>{ void refreshWatchlist().catch(()=>undefined); },[watchlist]);
+  }, [watchlist]);
+  // oxlint-disable-next-line react/set-state-in-effect -- Fetches market/news snapshots for the current watchlist.
+  useEffect(() => { void refreshWatchlist().catch(() => undefined); }, [refreshWatchlist]);
 
 
   const save=()=>{
@@ -101,11 +113,11 @@ export function InvestmentDiaryHub(){
       <div><div className="module-kicker"><BookMarked size={14}/> Personal investment diary</div>
       <h1>Record the thesis, then compare it with what actually happened.</h1>
       <p>Each diary entry is local to this browser. FinAI attaches a current market snapshot and contextual headlines for research; it does not place trades or claim a future price move.</p></div>
-      <button className="market-refresh" type="button" onClick={()=>void refresh()} disabled={busy}><RefreshCw size={14}/> Refresh snapshot</button>
+      <button className="market-refresh" type="button" onClick={()=>{setBusy(true);void refresh()}} disabled={busy}><RefreshCw size={14}/> Refresh snapshot</button>
     </div>
 
     <section className="workspace-panel">
-      <div className="module-panel-head"><div><div className="module-kicker">Watchlist intelligence</div><h2>{watchlist.length} tracked assets</h2></div><button className="market-refresh" type="button" onClick={()=>void refreshWatchlist()} disabled={watchBusy}><RefreshCw size={13}/> {watchBusy?"Scanning…":"Refresh watchlist"}</button></div>
+      <div className="module-panel-head"><div><div className="module-kicker">Watchlist intelligence</div><h2>{watchlist.length} tracked assets</h2></div><button className="market-refresh" type="button" onClick={()=>{setWatchBusy(true);void refreshWatchlist()}} disabled={watchBusy}><RefreshCw size={13}/> {watchBusy?"Scanning…":"Refresh watchlist"}</button></div>
       {watchlist.length ? <div className="watch-analysis-table-wrap"><table className="ticker-table"><thead><tr><th>Asset</th><th>Latest</th><th>30D return</th><th>Volume ratio</th><th>Trend</th><th>Context</th></tr></thead><tbody>{watchlist.map(symbol=>{
         const d=watchData[symbol];
         return <tr key={symbol} onClick={()=>setAsset(symbol)}><td><strong>{symbol}</strong></td><td>{d?.price ?? "—"}</td><td className={Number(d?.return30||0)>=0?"market-positive":"market-negative"}>{d?.return30==null?"—":d.return30.toFixed(2)+"%"}</td><td>{d?.volumeRatio==null?"—":d.volumeRatio.toFixed(2)+"×"}</td><td>{d?.trend||"—"}</td><td>{d?.news?.[0]?.title||"No headline returned"}</td></tr>;

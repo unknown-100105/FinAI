@@ -434,3 +434,136 @@ def test_tail_evaluation_reports_expected_shortfall_metrics():
     summary = result["tail_evaluation"]["summary"]
     assert summary["systemic_stress_cvar95"] >= summary["systemic_stress_p95"]
     assert summary["absolute_portfolio_impact_cvar95"] >= summary["absolute_portfolio_impact_p95"]
+
+def test_allocation_validator_rejects_non_finite_values():
+    from causal_risk.constraints import validate_allocation
+
+    for invalid in (float("nan"), float("inf"), float("-inf")):
+        result = validate_allocation({"equity": invalid, "debt": 100.0})
+        assert result["passed"] is False
+        assert "non-finite allocation: equity" in result["errors"]
+
+
+def test_allocation_validator_rejects_overflowing_total():
+    from causal_risk.constraints import validate_allocation
+
+    result = validate_allocation({"equity": 1e308, "debt": 1e308})
+    assert result["passed"] is False
+    assert "allocation total must be finite" in result["errors"]
+    assert result["total_percent"] is None
+
+
+def test_shock_validator_rejects_non_finite_values():
+    from causal_risk.constraints import validate_shocks
+
+    for invalid in (float("nan"), float("inf"), float("-inf")):
+        result = validate_shocks({"rates": invalid}, ("rates",))
+        assert result["passed"] is False
+        assert "non-finite shock: rates" in result["errors"]
+
+
+def test_counterfactual_engine_rejects_non_finite_inputs():
+    valid_allocation = {"equity": 55, "debt": 30, "gold": 10, "cash": 5}
+
+    try:
+        run_counterfactual({"rates": float("nan")}, valid_allocation)
+    except ValueError as exc:
+        assert "non-finite shock: rates" in str(exc)
+    else:
+        raise AssertionError("expected non-finite shock to fail validation")
+
+    try:
+        run_counterfactual(
+            {"rates": 10},
+            {"equity": float("nan"), "debt": 30, "gold": 10, "cash": 5},
+        )
+    except ValueError as exc:
+        assert "non-finite allocation: equity" in str(exc)
+    else:
+        raise AssertionError("expected non-finite allocation to fail validation")
+
+def test_validate_graph_rejects_non_finite_edge_weights():
+    from causal_risk.schema import CausalEdge, CausalNode, validate_graph
+
+    nodes = (
+        CausalNode("a", "Node A", "test"),
+        CausalNode("b", "Node B", "test"),
+    )
+
+    for invalid in (float("nan"), float("inf"), float("-inf")):
+        errors = validate_graph(
+            nodes,
+            (CausalEdge("a", "b", invalid),),
+        )
+        assert "non-finite edge weight: a->b" in errors
+
+def test_research_graph_rejects_unknown_endpoint_without_crashing():
+    from causal_risk.research_graph import validate_research_graph
+
+    result = validate_research_graph(
+        ["a", "b"],
+        [{
+            "source": "a",
+            "target": "unknown",
+            "weight": 0.2,
+            "lag": 0,
+            "selection_frequency": 1.0,
+            "sign_consistency": 1.0,
+        }],
+        approved=True,
+    )
+    assert result["status"] == "RESEARCH_GRAPH_REJECTED"
+    assert result["counterfactual_ready"] is False
+    assert any("unknown node" in error for error in result["errors"])
+
+
+def test_research_graph_rejects_malformed_numeric_edge_fields():
+    from causal_risk.research_graph import validate_research_graph
+
+    base = {
+        "source": "a",
+        "target": "b",
+        "weight": 0.2,
+        "lag": 0,
+        "selection_frequency": 1.0,
+        "sign_consistency": 1.0,
+    }
+    cases = (
+        ("weight", 10**10000),
+        ("lag", "not-a-number"),
+        ("selection_frequency", "not-a-number"),
+        ("sign_consistency", 10**10000),
+    )
+
+    for field, invalid in cases:
+        edge = {**base, field: invalid}
+        result = validate_research_graph(["a", "b"], [edge], approved=True)
+        assert result["status"] == "RESEARCH_GRAPH_REJECTED"
+        assert result["structurally_valid"] is False
+        assert result["counterfactual_ready"] is False
+        assert result["errors"]
+
+
+def test_research_graph_rejects_invalid_threshold_values():
+    from causal_risk.research_graph import validate_research_graph
+
+    edge = {
+        "source": "a",
+        "target": "b",
+        "weight": 0.2,
+        "lag": 0,
+        "selection_frequency": 1.0,
+        "sign_consistency": 1.0,
+    }
+
+    for field in ("min_selection_frequency", "require_sign_consistency"):
+        for invalid in ("not-a-number", float("nan"), float("inf"), 10**10000):
+            result = validate_research_graph(
+                ["a", "b"],
+                [edge],
+                approved=True,
+                **{field: invalid},
+            )
+            assert result["status"] == "RESEARCH_GRAPH_REJECTED"
+            assert result["counterfactual_ready"] is False
+            assert result["errors"]

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BriefcaseBusiness,
   Heart,
@@ -84,11 +84,12 @@ export function WealthWorkspace() {
     [watchlist, portfolioSymbols],
   );
 
-  const refreshQuotes = async () => {
-    if (!trackedSymbols.length) return;
-
-    setLoading(true);
-    setError("");
+  const refreshQuotes = useCallback(async () => {
+    if (!trackedSymbols.length) {
+      setQuotes({});
+      setLoading(false);
+      return;
+    }
 
     try {
       const entries = await Promise.all(
@@ -108,14 +109,13 @@ export function WealthWorkspace() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [trackedSymbols]);
 
   useEffect(() => {
     window.localStorage.setItem(
       "finai.watchlist",
       JSON.stringify(watchlist),
     );
-    void refreshQuotes();
   }, [watchlist]);
 
   useEffect(() => {
@@ -123,17 +123,25 @@ export function WealthWorkspace() {
       "finai.portfolio",
       JSON.stringify(holdings),
     );
-    void refreshQuotes();
   }, [holdings]);
+
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Refreshes quote data when the tracked-symbol set changes.
+    void refreshQuotes();
+  }, [refreshQuotes]);
 
   const addWatchlist = () => {
     const symbol = newSymbol.trim().toUpperCase();
     if (!symbol || watchlist.includes(symbol)) return;
 
+    setLoading(true);
+    setError("");
     setWatchlist((current) => [...current, symbol]);
   };
 
   const removeWatchlist = (symbol: string) => {
+    setLoading(true);
+    setError("");
     setWatchlist((current) => current.filter((item) => item !== symbol));
   };
 
@@ -154,6 +162,7 @@ export function WealthWorkspace() {
     }
 
     setError("");
+    setLoading(true);
     setHoldings((current) => [
       ...current,
       {
@@ -167,6 +176,8 @@ export function WealthWorkspace() {
   };
 
   const removeHolding = (id: string) => {
+    setLoading(true);
+    setError("");
     setHoldings((current) => current.filter((item) => item.id !== id));
   };
 
@@ -220,7 +231,7 @@ export function WealthWorkspace() {
         <button
           type="button"
           className="wealth-refresh"
-          onClick={() => void refreshQuotes()}
+          onClick={() => { setLoading(true); setError(""); void refreshQuotes(); }}
           disabled={loading}
         >
           <RefreshCw size={14} />

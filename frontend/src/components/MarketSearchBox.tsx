@@ -17,7 +17,6 @@ export function MarketSearchBox({ value, onSelect }: Props) {
   useEffect(() => {
     const text = query.trim();
     if (text.length < 2) {
-      setResults([]);
       return;
     }
 
@@ -36,7 +35,11 @@ export function MarketSearchBox({ value, onSelect }: Props) {
         <Search size={15} />
         <input
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            const nextQuery = event.target.value;
+            setQuery(nextQuery);
+            if (nextQuery.trim().length < 2) setResults([]);
+          }}
           placeholder={value || "Search any stock, ETF, fund, index, FX or crypto…"}
           aria-label="Search financial instruments"
         />

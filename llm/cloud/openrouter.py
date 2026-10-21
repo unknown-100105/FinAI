@@ -5,6 +5,7 @@ from typing import Any, Dict
 import requests
 
 from .base import CloudLLMProvider
+from policy.network_mode import assert_cloud_provider_allowed
 
 
 class OpenRouterProvider(CloudLLMProvider):
@@ -96,6 +97,8 @@ class OpenRouterProvider(CloudLLMProvider):
             raise RuntimeError(
                 "OPENROUTER_API_KEY is not configured."
             )
+
+        assert_cloud_provider_allowed("openrouter")
 
         prompt = self._build_prompt(
             user_text=user_text,

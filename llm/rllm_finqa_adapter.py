@@ -1,4 +1,6 @@
-﻿import time
+﻿import os
+import time
+from pathlib import Path
 from typing import Any, Dict
 
 import torch
@@ -32,6 +34,21 @@ class RLLMFinQAModelAdapter:
                 "CUDA is required for rLLM-FinQA-4B."
             )
 
+        configured_model_path = os.getenv("FINAI_RLLM_MODEL_PATH", "").strip()
+        model_reference = configured_model_path or self.MODEL_ID
+
+        if configured_model_path:
+            local_path = Path(configured_model_path).expanduser()
+            if not local_path.is_absolute():
+                local_path = Path(__file__).resolve().parents[1] / local_path
+            local_path = local_path.resolve()
+            if not local_path.is_dir():
+                raise FileNotFoundError(
+                    "FINAI_RLLM_MODEL_PATH does not point to a local model directory: "
+                    f"{local_path}"
+                )
+            model_reference = str(local_path)
+
         quant_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
@@ -39,21 +56,24 @@ class RLLMFinQAModelAdapter:
             bnb_4bit_compute_dtype=torch.bfloat16,
         )
 
+        # This local specialist must never download multi-gigabyte weights as a
+        # side effect of a chat request. Provision/cache the model explicitly.
+        # This also makes offline mode safe if a caller passed it as a request
+        # option instead of setting the process-wide environment variable.
+        load_options = {"local_files_only": True}
         start = time.perf_counter()
 
-        self.tokenizer = (
-            AutoTokenizer.from_pretrained(
-                self.MODEL_ID,
-            )
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_reference,
+            **load_options,
         )
 
-        self.model = (
-            AutoModelForCausalLM.from_pretrained(
-                self.MODEL_ID,
-                quantization_config=quant_config,
-                device_map="auto",
-                low_cpu_mem_usage=True,
-            )
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_reference,
+            quantization_config=quant_config,
+            device_map="auto",
+            low_cpu_mem_usage=True,
+            **load_options,
         )
 
         self.load_seconds = (

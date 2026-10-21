@@ -5,6 +5,7 @@ from typing import Any, Dict
 import requests
 
 from .base import CloudLLMProvider
+from policy.network_mode import assert_cloud_provider_allowed
 
 
 class MistralProvider(CloudLLMProvider):
@@ -62,6 +63,8 @@ class MistralProvider(CloudLLMProvider):
     ) -> Dict[str, Any]:
         if not self.api_key:
             raise RuntimeError("MISTRAL_API_KEY is not configured.")
+
+        assert_cloud_provider_allowed("mistral")
 
         payload = {
             "model": self.model_name,

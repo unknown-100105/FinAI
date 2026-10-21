@@ -11,11 +11,12 @@ from xai.claims import build_finance_claims
 
 from llm.response_adapter import SarvamResponseAdapter
 from llm.rllm_finqa_adapter import RLLMFinQAModelAdapter
+from llm.colibri_adapter import ColibriResponseAdapter
 from llm.cloud.gemini_adapter import GeminiProResponseAdapter, GeminiResponseAdapter
 from llm.cloud.openrouter_adapter import OpenRouterResponseAdapter
 from llm.cloud.anthropic_adapter import AnthropicResponseAdapter
 from llm.cloud.mistral_adapter import MistralResponseAdapter
-from llm.model_router import ModelRouter
+from llm.model_router import ModelRouter, provider_for
 from llm.cloud.openai_adapter import OpenAIAstraResponseAdapter, OpenAISolResponseAdapter, OpenAIResponseAdapter
 
 
@@ -39,6 +40,7 @@ class ResponseService:
         "openai-sol": OpenAISolResponseAdapter,
         "gemini-pro-cloud": GeminiProResponseAdapter,
         "rllm-finqa-4b": RLLMFinQAModelAdapter,
+        "colibri-local": ColibriResponseAdapter,
         "sarvam-1": SarvamResponseAdapter,
         "anthropic-claude": AnthropicResponseAdapter,
         "mistral-large": MistralResponseAdapter,
@@ -53,6 +55,7 @@ class ResponseService:
             "openrouter-cloud",
             "anthropic-claude",
             "mistral-large",
+            "colibri-local",
         ),
         "financial_qa": (
             "gemini-cloud",
@@ -60,6 +63,7 @@ class ResponseService:
             "anthropic-claude",
             "mistral-large",
             "rllm-finqa-4b",
+            "colibri-local",
         ),
     }
 
@@ -188,8 +192,11 @@ class ResponseService:
         persona: str,
         max_new_tokens: int,
         capability: str,
+        network_mode: str = "online",
+        data_sensitivity: str = "standard",
+        allowed_providers: Optional[tuple[str, ...]] = None,
     ) -> Dict[str, Any]:
-        """Generate with capability-compatible provider fallbacks."""
+        """Generate with fallbacks constrained by the request's network policy."""
 
         try:
             result = self.gateway.generate(
@@ -225,17 +232,41 @@ class ResponseService:
                     (),
                 )
             )
-            fallback_candidates = [
-                fallback_id
-                for fallback_id in configured_fallback_candidates
-                if (
+            allowed = {
+                str(provider).strip().lower()
+                for provider in (allowed_providers or ())
+                if str(provider).strip()
+            }
+            normalized_mode = str(network_mode or "online").strip().lower()
+            normalized_sensitivity = str(data_sensitivity or "standard").strip().lower()
+            fallback_candidates = []
+            for fallback_id in configured_fallback_candidates:
+                try:
+                    spec = get_model_spec(fallback_id)
+                    fallback_provider = provider_for(spec)
+                except (KeyError, ValueError):
+                    attempted.append(fallback_id)
+                    continue
+
+                # Offline and restricted-data policies are hard constraints:
+                # a failed local attempt must never silently fall back to cloud.
+                if normalized_mode == "offline" and fallback_provider != "local":
+                    continue
+                if normalized_sensitivity == "restricted" and fallback_provider != "local":
+                    continue
+                if allowed and fallback_provider not in allowed:
+                    continue
+
+                configured = (
                     fallback_id in self._fallback_adapters
                     or fallback_id in self.gateway.available_models()
-                    or provider_configured(
-                        get_model_spec(fallback_id).provider
+                    or (
+                        fallback_provider != "local"
+                        and provider_configured(spec.provider)
                     )
                 )
-            ]
+                if configured:
+                    fallback_candidates.append(fallback_id)
 
             for fallback_model_id in fallback_candidates:
 
@@ -577,6 +608,9 @@ class ResponseService:
             language=language,
             persona=persona,
             max_new_tokens=max_new_tokens,
+            network_mode=route.network_mode,
+            data_sensitivity=route.data_sensitivity,
+            allowed_providers=route.allowed_providers,
         )
 
         actual_selected_model = str(

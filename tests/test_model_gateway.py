@@ -162,3 +162,40 @@ def test_available_models_are_sorted():
         "a-model",
         "z-model",
     ]
+
+
+def test_gateway_blocks_cloud_provider_in_offline_mode(monkeypatch):
+    from policy.network_mode import NetworkAccessDisabledError
+
+    monkeypatch.setenv("FINAI_NETWORK_MODE", "offline")
+    adapter = FakeAdapter("gemini")
+    gateway = ModelGateway(default_model="gemini-cloud")
+    gateway.register("gemini-cloud", adapter)
+
+    with pytest.raises(NetworkAccessDisabledError, match="offline mode"):
+        gateway.generate(
+            user_text="Explain EMI.",
+            intent="EMI_QUERY",
+            verified_result={},
+            source="test",
+        )
+
+    assert adapter.calls == []
+
+
+def test_gateway_blocks_cloud_provider_for_restricted_data(monkeypatch):
+    monkeypatch.setenv("FINAI_NETWORK_MODE", "online")
+    monkeypatch.setenv("FINAI_DATA_SENSITIVITY", "restricted")
+    adapter = FakeAdapter("gemini")
+    gateway = ModelGateway(default_model="gemini-cloud")
+    gateway.register("gemini-cloud", adapter)
+
+    with pytest.raises(RuntimeError, match="Restricted data"):
+        gateway.generate(
+            user_text="Explain EMI.",
+            intent="EMI_QUERY",
+            verified_result={},
+            source="test",
+        )
+
+    assert adapter.calls == []

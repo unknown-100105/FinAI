@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Activity, ArrowDownRight, ArrowUpRight, BarChart3, ExternalLink,
   Newspaper, RefreshCw, ShieldCheck,
@@ -10,6 +10,7 @@ import {
 } from "../api/market";
 import { MarketSearchBox } from "./MarketSearchBox";
 import { CandleChart } from "./CandleChart";
+import { TradeToolsPanel } from "./TradeToolsPanel";
 import "./MarketTerminal.css";
 
 const ranges = [
@@ -106,16 +107,7 @@ export function MarketTerminal() {
     return true;
   };
 
-  useEffect(() => {
-    setInterval(selectedRange.interval);
-  }, [range]);
-
-  const load = async () => {
-    setLoading(true);
-    setError("");
-    setQuote(null);
-    setBars([]);
-    setAnalytics({});
+  const load = useCallback(async () => {
     const window = datesFor(selectedRange.days);
 
     try {
@@ -125,6 +117,7 @@ export function MarketTerminal() {
         getMarketAnalytics(instrument, window.start, window.end, interval),
       ]);
 
+      setError("");
       const failures: string[] = [];
       if (quoteResult.status === "fulfilled") {
         setQuote(quoteResult.value.quote);
@@ -160,10 +153,9 @@ export function MarketTerminal() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [instrument, selectedRange.days, interval]);
 
-  const loadSide = async () => {
-    setSideLoading(true);
+  const loadSide = useCallback(async () => {
     try {
       const [overview, headlines] = await Promise.all([
         getMarketOverview(),
@@ -177,14 +169,34 @@ export function MarketTerminal() {
     } finally {
       setSideLoading(false);
     }
-  };
+  }, [instrument]);
 
-  useEffect(() => { void load(); }, [instrument, range, interval]);
   useEffect(() => {
-    const timer = window.setInterval(() => { void load(); }, interval === "1m" || interval === "5m" || interval === "15m" || interval === "30m" ? 15000 : 60000);
+    // oxlint-disable-next-line react/set-state-in-effect -- Polls quote/history/analytics APIs for the selected instrument.
+    void load();
+    const timer = window.setInterval(
+      () => { void load(); },
+      interval === "1m" || interval === "5m" || interval === "15m" || interval === "30m" ? 15000 : 60000,
+    );
     return () => window.clearInterval(timer);
-  }, [instrument, range, interval]);
-  useEffect(() => { void loadSide(); }, [instrument]);
+  }, [load, interval]);
+
+  // oxlint-disable-next-line react/set-state-in-effect -- Fetches market overview and news from external APIs.
+  useEffect(() => { void loadSide(); }, [loadSide]);
+
+  useEffect(() => {
+    const handleSymbol = (event: Event) => {
+      const custom = event as CustomEvent<string>;
+      if (typeof custom.detail === "string" && custom.detail.trim()) {
+        setInstrument(custom.detail.trim().toUpperCase());
+        setQuote(null);
+        setLoading(true);
+        setSideLoading(true);
+      }
+    };
+    window.addEventListener("finai:market-symbol", handleSymbol);
+    return () => window.removeEventListener("finai:market-symbol", handleSymbol);
+  }, []);
 
   const firstClose = bars.length ? bars[0].close : null;
   const lastClose = bars.length ? bars[bars.length - 1].close : null;
@@ -200,7 +212,7 @@ export function MarketTerminal() {
           <h2>Market & crypto terminal</h2>
           <p>Search instruments, inspect intraday or long-horizon price action, calculate indicators and open instrument-specific news.</p>
         </div>
-        <button className="market-refresh" type="button" onClick={() => { void load(); void loadSide(); }} disabled={loading}>
+        <button className="market-refresh" type="button" onClick={() => { setLoading(true); setSideLoading(true); void load(); void loadSide(); }} disabled={loading}>
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
@@ -211,10 +223,10 @@ export function MarketTerminal() {
         <div className="market-main">
           <div className="instrument-toolbar market-toolbar-enhanced">
             <div className="market-search-stack">
-              <MarketSearchBox value={instrument} onSelect={setInstrument} />
+              <MarketSearchBox value={instrument} onSelect={(symbol) => { setInstrument(symbol); setQuote(null); setLoading(true); setSideLoading(true); }} />
               <div className="market-quick-list">
                 {quickSymbols.map((symbol) => (
-                  <button key={symbol} type="button" className={instrument === symbol ? "active" : ""} onClick={() => setInstrument(symbol)}>
+                  <button key={symbol} type="button" className={instrument === symbol ? "active" : ""} onClick={() => { setInstrument(symbol); setQuote(null); setLoading(true); setSideLoading(true); }}>
                     {symbol}
                   </button>
                 ))}
@@ -224,13 +236,13 @@ export function MarketTerminal() {
               <div className="control-group">
                 <span>Range</span>
                 <div className="range-tabs">{ranges.map((item) => (
-                  <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => setRange(item.id)}>{item.id}</button>
+                  <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => { setRange(item.id); setInterval(item.interval); setLoading(true); }}>{item.id}</button>
                 ))}</div>
               </div>
               <div className="control-group">
                 <span>Interval</span>
                 <div className="range-tabs interval-tabs">{intervals.map((value) => (
-                  <button key={value} type="button" className={interval === value ? "active" : ""} disabled={!intervalAllowed(value)} onClick={() => setInterval(value)}>{value}</button>
+                  <button key={value} type="button" className={interval === value ? "active" : ""} disabled={!intervalAllowed(value)} onClick={() => { setInterval(value); setLoading(true); }}>{value}</button>
                 ))}</div>
               </div>
             </div>
@@ -267,6 +279,8 @@ export function MarketTerminal() {
               <span>{bars.at(-1)?.timestamp ? new Date(bars.at(-1)!.timestamp).toLocaleString() : "—"}</span>
             </div>
           </div>
+
+          <TradeToolsPanel symbol={instrument} price={finite(quote?.price)} currency={currency} />
 
           <div className="analytics-grid">
             {[

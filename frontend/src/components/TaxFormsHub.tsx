@@ -26,8 +26,8 @@ export function TaxFormsHub() {
   const [gain, setGain] = useState<number | null>(null);
   const [calcBusy, setCalcBusy] = useState(false);
 
+  // oxlint-disable-next-line react/set-state-in-effect -- Loads the external compliance catalogue when the selected category changes.
   useEffect(() => {
-    setLoading(true);
     void getComplianceCatalog(category === "All" ? undefined : category)
       .then((data) => { setItems(data.items); setMeta(data.meta); })
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "Compliance catalogue unavailable."))
@@ -87,7 +87,7 @@ export function TaxFormsHub() {
         <div className="compliance-search"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search ITR, TDS, AIS, GST, capital gains…" /></div>
         <div className="compliance-categories">
           {categories.map((item) => (
-            <button type="button" key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>
+            <button type="button" key={item} className={category === item ? "active" : ""} onClick={() => { if (category !== item) setLoading(true); setCategory(item); }}>{item}</button>
           ))}
         </div>
       </div>

@@ -121,6 +121,30 @@ MODEL_REGISTRY = {
         routing_priority=75,
     ),
 
+    "colibri-local": ModelSpec(
+        model_id="colibri-local",
+        model_name="Colibrì local inference server",
+        role="local_streaming_inference",
+        capabilities=(
+            "response_generation",
+            "financial_qa",
+            "financial_explanation",
+            "persona_control",
+            "tool_assisted_qa",
+        ),
+        enabled=False,
+        provider="local",
+        quality_tier=2,
+        latency_tier=3,
+        cost_tier=1,
+        routing_priority=55,
+        # The model is hosted in a separate local Colibrì process. The server
+        # owns its VRAM/RAM/NVMe placement and must be checked independently.
+        min_ram_gb=0.0,
+        preferred_vram_gb=0.0,
+        gpu_required=False,
+    ),
+
     "rllm-finqa-4b": ModelSpec(
         model_id="rllm-finqa-4b",
         model_name="rLLM/rLLM-FinQA-4B",
@@ -141,7 +165,9 @@ MODEL_REGISTRY = {
         routing_priority=40,
         min_ram_gb=4.0,
         preferred_vram_gb=4.0,
-        gpu_required=False,
+        # The current adapter uses 4-bit CUDA quantization. Do not advertise
+        # this model as runnable on CPU-only hosts.
+        gpu_required=True,
     ),
 
     "anthropic-claude": ModelSpec(
@@ -278,17 +304,21 @@ def provider_configured(provider: str) -> bool:
 
 
 def enabled_models():
-    import os
-
     result = []
     for spec in MODEL_REGISTRY.values():
+        if spec.model_id == "colibri-local":
+            # The optional local server is opt-in and is not probed at startup.
+            if os.getenv("FINAI_COLIBRI_BASE_URL", "").strip():
+                result.append(spec)
+            continue
         if spec.enabled or provider_configured(spec.provider):
             result.append(spec)
     return result
 
 
 def model_configured(spec: ModelSpec) -> bool:
-    import os
+    if spec.model_id == "colibri-local":
+        return bool(os.getenv("FINAI_COLIBRI_BASE_URL", "").strip())
 
     if spec.provider == "local":
         return True

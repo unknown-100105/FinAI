@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, FileSearch, RefreshCw, ShieldCheck, Workflow } from "lucide-react";
 import { getXAITrace, listXAITraces, type XAITraceSummary } from "../api/xai";
 import "./PlatformModules.css";
@@ -11,8 +11,7 @@ export function XAIExplorerHub(){
   const [busy,setBusy]=useState(true);
   const [error,setError]=useState("");
 
-  const load=async()=>{
-    setBusy(true); setError("");
+  const fetchTraces=useCallback(async()=>{
     try{
       const result=await listXAITraces();
       const available = result.traces || [];
@@ -28,9 +27,12 @@ export function XAIExplorerHub(){
       }
     }catch(e){setError(e instanceof Error?e.message:"XAI trace feed unavailable.");}
     finally{setBusy(false);}
-  };
+  }, []);
 
-  useEffect(()=>{void load();},[]);
+  const load = () => { setBusy(true); setError(""); void fetchTraces(); };
+
+  // oxlint-disable-next-line react/set-state-in-effect -- Fetches persisted trace data asynchronously.
+    useEffect(()=>{void fetchTraces();},[fetchTraces]);
 
   return <section className="module-page">
     <div className="module-hero">

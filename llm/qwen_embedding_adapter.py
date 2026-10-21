@@ -1,10 +1,14 @@
 ﻿from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
+
+from policy.network_mode import get_network_mode
 
 
 class QwenEmbeddingAdapter:
@@ -28,10 +32,44 @@ class QwenEmbeddingAdapter:
         self.max_seq_length = max_seq_length
         self._model = None
 
+    def _resolve_model_source(self) -> str:
+        configured_path = os.getenv("FINAI_EMBEDDING_MODEL_PATH", "").strip()
+        if configured_path:
+            local_path = Path(configured_path).expanduser()
+            if not local_path.is_absolute():
+                local_path = Path(__file__).resolve().parents[1] / local_path
+            local_path = local_path.resolve()
+            if not local_path.is_dir():
+                raise FileNotFoundError(
+                    "FINAI_EMBEDDING_MODEL_PATH does not point to an existing "
+                    f"model directory: {local_path}"
+                )
+            return str(local_path)
+
+        if get_network_mode() == "offline":
+            # Resolve the already-cached snapshot without making a network call;
+            # passing its local path to SentenceTransformer prevents a hidden fetch.
+            try:
+                from huggingface_hub import snapshot_download
+
+                return snapshot_download(
+                    repo_id=self.hf_model_id,
+                    local_files_only=True,
+                )
+            except Exception as exc:
+                raise FileNotFoundError(
+                    f"Embedding model '{self.hf_model_id}' is not available in the "
+                    "local Hugging Face cache. Pre-download it while online or set "
+                    "FINAI_EMBEDDING_MODEL_PATH to an existing local model directory."
+                ) from exc
+
+        return self.hf_model_id
+
     def _load(self) -> SentenceTransformer:
         if self._model is None:
+            model_source = self._resolve_model_source()
             self._model = SentenceTransformer(
-                self.hf_model_id,
+                model_source,
                 device=self.device,
             )
 

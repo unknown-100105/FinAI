@@ -1,5 +1,6 @@
 import os
 from typing import Any, Dict, Optional
+from policy.network_mode import assert_cloud_provider_allowed
 
 
 class OpenAIProvider:
@@ -96,6 +97,8 @@ class OpenAIProvider:
     ) -> Dict[str, Any]:
         if not self.client:
             raise RuntimeError("OpenAI client is not initialized.")
+
+        assert_cloud_provider_allowed(self.provider_id)
 
         use_web_search = (
             web_search

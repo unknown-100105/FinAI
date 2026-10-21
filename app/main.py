@@ -1,8 +1,10 @@
-﻿from typing import Any, Dict, Optional
+﻿import os
+from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from app.api_security import FinAIAPIAuthMiddleware
 from pydantic import BaseModel, Field
 
 from orchestrator.session_xai import XAISessionOrchestrator
@@ -51,6 +53,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Optional shared-token guard; production fails closed without a strong server token.
+app.add_middleware(FinAIAPIAuthMiddleware)
+
 
 app.include_router(market_router)
 app.include_router(market_analyst_router)
@@ -67,6 +72,13 @@ app.include_router(market_intelligence_router)
 app.include_router(investment_knowledge_router)
 app.include_router(causal_risk_router)
 app.include_router(advanced_causal_router)
+
+# Experimental patent-mechanism endpoints remain disabled unless explicitly opted in.
+if os.getenv("FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS", "").strip().casefold() in {
+    "1", "true", "yes", "on"
+}:
+    from app.patent_mechanism_api import router as patent_mechanism_router
+    app.include_router(patent_mechanism_router)
 
 
 _orchestrator: Optional[XAISessionOrchestrator] = None
@@ -186,7 +198,8 @@ def api_info() -> Dict[str, Any]:
         "endpoints": {
             "health": "/health",
             "chat": "/api/v1/chat",
-            "xai": "app.xai_api",
+            "xai": "/api/v1/xai",
+            "brain_status": "/api/v1/system/brain-status",
         },
     }
 

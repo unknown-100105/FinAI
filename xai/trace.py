@@ -52,6 +52,8 @@ class XAITrace:
                 "status": None,
             },
 
+            "capability_execution_plan": None,
+
             "session": {
                 "authenticated": False,
                 "awaiting_authentication": False,
@@ -219,6 +221,17 @@ class XAITrace:
                 execution_plan.get("decision")
             ),
         }
+
+    def record_capability_execution_plan(
+        self,
+        capability_plan: Optional[Dict[str, Any]],
+    ):
+        """Store the diagnostic capability plan without replacing authority decisions."""
+        if not isinstance(capability_plan, dict):
+            return
+        self.data["capability_execution_plan"] = self._clean_value(
+            capability_plan
+        )
 
     def record_session(self, session_snapshot: Optional[Dict[str, Any]]):
         if not session_snapshot:

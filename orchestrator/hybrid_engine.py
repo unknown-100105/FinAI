@@ -14,6 +14,16 @@ from orchestrator.market_operation_planner import (
     plan_market_operations,
 )
 from orchestrator.risk_controller import RiskCapabilityController
+from orchestrator.execution_plan import (
+    Capability,
+    CapabilityStateGraph,
+    ExecutionMode,
+    build_execution_plan,
+)
+import os
+from uuid import uuid4
+
+from policy.network_mode import get_network_mode
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,30 +48,39 @@ class FinAIHybridEngine:
 
     def _get_rag_retriever(self):
         if self.rag_retriever is None:
+            db_path = ROOT / "data" / "rag" / "finai_rag.db"
+            index_path = (
+                ROOT / "data" / "rag" / "embeddings" / "finai_rag.faiss"
+            )
+            document_ids_path = (
+                ROOT / "data" / "rag" / "embeddings" / "document_ids.npy"
+            )
+            required_assets = (db_path, index_path, document_ids_path)
+            missing_assets = [path for path in required_assets if not path.is_file()]
+            if missing_assets:
+                missing = ", ".join(str(path) for path in missing_assets)
+                raise FileNotFoundError(
+                    "FinAI RAG assets are incomplete: "
+                    f"{missing}. First provide approved source chunks under "
+                    "data/domain_chunks/, then run scripts/build_rag_index.py "
+                    "and scripts/build_rag_faiss.py. Large datasets and generated "
+                    "indexes are intentionally not downloaded automatically."
+                )
+
             from rag.hybrid_retriever import HybridRetriever
             from llm.qwen_embedding_adapter import QwenEmbeddingAdapter
 
+            # The adapter selects CUDA when it is available and otherwise uses CPU.
+            # Avoid hard-coding CUDA on CPU-only clean clones.
             embedding_adapter = QwenEmbeddingAdapter(
-                device="cuda",
+                device=None,
                 max_seq_length=640,
             )
 
             self.rag_retriever = HybridRetriever(
-                db_path=ROOT / "data" / "rag" / "finai_rag.db",
-                faiss_index_path=(
-                    ROOT
-                    / "data"
-                    / "rag"
-                    / "embeddings"
-                    / "finai_rag.faiss"
-                ),
-                document_ids_path=(
-                    ROOT
-                    / "data"
-                    / "rag"
-                    / "embeddings"
-                    / "document_ids.npy"
-                ),
+                db_path=db_path,
+                faiss_index_path=index_path,
+                document_ids_path=document_ids_path,
                 embedding_adapter=embedding_adapter,
             )
 
@@ -132,7 +151,366 @@ class FinAIHybridEngine:
             self.market_data = MarketDataDispatcher(service)
 
         return self.market_data
+    @staticmethod
+    def _provider_configured() -> bool:
+        """Return whether any supported cloud response provider has a key configured."""
+        key_names = (
+            "OPENAI_API_KEY",
+            "OPENROUTER_API_KEY",
+            "ANTHROPIC_API_KEY",
+            "MISTRAL_API_KEY",
+            "GOOGLE_API_KEY",
+            "GEMINI_API_KEY",
+            "SARVAM_API_KEY",
+        )
+        return any(bool(os.getenv(name, "").strip()) for name in key_names)
+
+    def _capability_plan_for_result(
+        self,
+        *,
+        result: dict,
+        request_id: str,
+        user_text: str,
+        generate_response: bool,
+    ) -> dict:
+        """Attach an auditable, non-authorizing capability plan to every engine result.
+
+        The existing router, policy engine, authority contract, and risk controller
+        remain the enforcement points. This plan diagnoses the path and its currently
+        observed capabilities; it does not authorize or execute tools itself.
+        """
+        router = result.get("router") or {}
+        legacy_plan = result.get("execution_plan") or {}
+        intent = str(router.get("intent") or "UNCLASSIFIED")
+        stage = str(result.get("stage") or "")
+        status = str(result.get("status") or "")
+        generation = result.get("response_generation")
+        generation = generation if isinstance(generation, dict) else {}
+        generation_status = str(generation.get("status") or "")
+        verification = generation.get("verification")
+        verification_observed = (
+            isinstance(verification, dict)
+            or generation_status in {
+                "GENERATED_VERIFIED",
+                "VERIFICATION_FAILED",
+                "INCOMPLETE_GENERATION",
+            }
+        )
+        # Distinguish capabilities that exist on the machine from stages that
+        # belong in this request's observed execution path.
+        needs_retrieval = (
+            str(legacy_plan.get("capability") or "") == "rag"
+            and stage == "rag"
+        )
+        needs_generation = (
+            bool(generate_response)
+            and stage in {"finance_engine", "rag", "financial_knowledge"}
+            and status not in {
+                "MISSING_PARAMETERS", "RAG_ERROR", "NO_EVIDENCE",
+            }
+        )
+        needs_market_data = (
+            stage == "market_data"
+            or str(legacy_plan.get("capability") or "") == "market_data"
+        )
+        needs_structured_knowledge = stage == "financial_knowledge"
+
+        rag_paths = (
+            ROOT / "data" / "rag" / "finai_rag.db",
+            ROOT / "data" / "rag" / "embeddings" / "finai_rag.faiss",
+            ROOT / "data" / "rag" / "embeddings" / "document_ids.npy",
+        )
+        retrieval_available = (
+            getattr(self, "rag_retriever", None) is not None
+            or all(path.exists() for path in rag_paths)
+        )
+        response_service_available = (
+            getattr(self, "response_service", None) is not None
+            or self._provider_configured()
+        )
+        generation_failed = generation_status in {
+            "PROVIDER_UNAVAILABLE",
+            "MODEL_UNAVAILABLE",
+            "GENERATION_ERROR",
+        }
+        model_available = needs_generation and (
+            bool(generation) and not generation_failed
+            if generate_response and stage in {
+                "finance_engine", "rag", "financial_knowledge"
+            } and status != "MISSING_PARAMETERS"
+            else response_service_available
+        )
+        verification_available = needs_generation and (
+            verification_observed
+            if generate_response and generation
+            else verification_observed
+        )
+
+        all_modes = tuple(ExecutionMode)
+        online_only = (ExecutionMode.ONLINE, ExecutionMode.DEGRADED)
+        mode = ExecutionMode(get_network_mode())
+        # A successful observed generation is evidence that the selected local
+        # or remote path ran. Mere credentials/configuration never prove that.
+        selected_generation_model = str(
+            generation.get("model_id")
+            or (generation.get("selection") or {}).get("actual_model_id")
+            or (generation.get("selection") or {}).get("model_id")
+            or ""
+        ).strip().lower()
+        offline_generation_observed = (
+            bool(generation)
+            and not generation_failed
+            and selected_generation_model in {"rllm-finqa-4b", "colibri-local"}
+        )
+        model_modes = (
+            all_modes
+            if generation
+            and not generation_failed
+            and (mode != ExecutionMode.OFFLINE or offline_generation_observed)
+            else online_only
+        )
+        resource_planning_available = (
+            (ROOT / "llm" / "resource_orchestrator.py").is_file()
+            and (ROOT / "llm" / "model_router.py").is_file()
+        )
+        graph = CapabilityStateGraph(
+            capabilities=(
+                Capability(
+                    "policy",
+                    True,
+                    all_modes,
+                    metadata={"source": "existing_policy_and_risk_controller"},
+                ),
+                Capability(
+                    "market_data",
+                    needs_market_data,
+                    all_modes,
+                    reason="the observed request did not enter the market-data dispatcher",
+                    metadata={"source": "market_data_dispatcher"},
+                ),
+                Capability(
+                    "deterministic_finance",
+                    getattr(self, "finance", None) is not None,
+                    all_modes,
+                    reason="deterministic finance dispatcher is not initialized",
+                    metadata={"source": "finance_dispatcher"},
+                ),
+                Capability(
+                    "structured_knowledge",
+                    needs_structured_knowledge,
+                    all_modes,
+                    reason="the observed request did not use the structured finance knowledge path",
+                    metadata={"source": "financial catalog, encyclopedia, compliance and investment eligibility"},
+                ),
+                Capability(
+                    "retrieval",
+                    retrieval_available and needs_retrieval,
+                    all_modes if retrieval_available and needs_retrieval else online_only,
+                    reason=(
+                        "RAG retriever or all required local index artifacts are unavailable"
+                        if needs_retrieval
+                        else "retrieval is not required by the observed request path"
+                    ),
+                    metadata={"source": "hybrid_rrf", "requested_for_path": needs_retrieval},
+                ),
+                Capability(
+                    "resource_planning",
+                    resource_planning_available,
+                    all_modes,
+                    reason="hardware-aware model/resource planner is not available",
+                    metadata={"source": "llm.resource_orchestrator and llm.model_router"},
+                ),
+                Capability(
+                    "model_generation",
+                    model_available,
+                    model_modes,
+                    reason="no usable response generation result or provider configuration was observed",
+                    metadata={"source": "injected response service or server-side provider configuration"},
+                ),
+                Capability(
+                    "claim_verification",
+                    verification_available,
+                    all_modes,
+                    reason="this request did not produce an observable claim-verification result",
+                    metadata={"observed": verification_observed},
+                ),
+                Capability(
+                    "response_verification",
+                    verification_available,
+                    all_modes,
+                    reason="this request did not produce an observable response-verification result",
+                    metadata={"observed": verification_observed},
+                ),
+            ),
+            prerequisites={
+                "market_data": ("policy",),
+                "deterministic_finance": ("policy",),
+                "structured_knowledge": ("policy",),
+                "retrieval": ("policy",),
+                "resource_planning": ("policy",),
+                "model_generation": ("policy", "resource_planning"),
+                "claim_verification": ("model_generation",),
+                "response_verification": ("claim_verification",),
+            },
+        )
+        plan = build_execution_plan(
+            request_id=request_id,
+            intent=intent,
+            graph=graph,
+            mode=mode,
+            require_retrieval=needs_retrieval,
+            require_market_data=needs_market_data,
+            require_structured_knowledge=needs_structured_knowledge,
+            require_resource_planning=needs_generation,
+            require_model=needs_generation,
+            require_claim_verification=needs_generation,
+            require_response_verification=needs_generation,
+        ).to_dict()
+
+        # Keep the planner separate from enforcement, but annotate the plan with
+        # what this request actually exposed so the UI cannot imply that a
+        # planned stage necessarily executed successfully.
+        policy_result = result.get("policy") or {}
+        policy_status = str(policy_result.get("status") or "")
+        if stage == "policy" or status in {
+            "AUTH_REQUIRED", "CONFIRMATION_REQUIRED", "SECURITY_REVIEW_REQUIRED",
+        }:
+            observed_policy = status or policy_status or "BLOCKED_OR_PENDING"
+        elif policy_status:
+            observed_policy = policy_status
+        else:
+            observed_policy = "NOT_OBSERVED"
+
+        finance_result = result.get("finance") or {}
+        if stage == "finance_engine":
+            observed_finance = str(finance_result.get("status") or status or "OBSERVED")
+        elif not any(
+            token in intent.lower()
+            for token in (
+                "calculate", "calculation", "emi", "loan", "budget",
+                "portfolio", "payment", "interest", "tax", "sip",
+                "compound", "fixed_deposit", "recurring_deposit",
+                "finance_engine", "financial_calculation",
+            )
+        ):
+            observed_finance = "NOT_REQUIRED"
+        else:
+            observed_finance = "NOT_OBSERVED"
+
+        rag_result = result.get("rag") or {}
+        if status == "RAG_ERROR":
+            observed_retrieval = "FAILED"
+        elif status == "NO_EVIDENCE":
+            observed_retrieval = "NO_EVIDENCE"
+        elif stage == "rag":
+            observed_retrieval = (
+                "EVIDENCE_FOUND"
+                if rag_result.get("documents")
+                else "OBSERVED"
+            )
+        elif not needs_retrieval:
+            observed_retrieval = "NOT_REQUIRED"
+        else:
+            observed_retrieval = "NOT_OBSERVED"
+
+        claim_result = generation.get("claim_verification")
+        response_verification_result = generation.get("verification")
+        if not generate_response:
+            observed_generation = "NOT_REQUESTED"
+        elif mode == ExecutionMode.OFFLINE and generation and not offline_generation_observed:
+            observed_generation = "OFFLINE_MODEL_NOT_VERIFIED_LOCAL"
+        elif generation_status in {"PROVIDER_UNAVAILABLE", "MODEL_UNAVAILABLE", "GENERATION_ERROR"}:
+            observed_generation = "FAILED"
+        elif generation:
+            observed_generation = generation_status or "OBSERVED"
+        elif status in {"MISSING_PARAMETERS", "RAG_ERROR", "NO_EVIDENCE"}:
+            observed_generation = "NOT_REACHED"
+        else:
+            observed_generation = "NOT_OBSERVED"
+
+        def verification_status(value):
+            if not isinstance(value, dict):
+                return "NOT_OBSERVED"
+            if value.get("applicable") is False:
+                return "NOT_APPLICABLE"
+            if isinstance(value.get("passed"), bool):
+                return "PASSED" if value["passed"] else "FAILED"
+            return "NOT_OBSERVED"
+
+        observed_by_capability = {
+            "policy": observed_policy,
+            "market_data": status if stage == "market_data" else "NOT_REQUIRED",
+            "deterministic_finance": observed_finance,
+            "structured_knowledge": status if stage == "financial_knowledge" else "NOT_REQUIRED",
+            "retrieval": observed_retrieval,
+            "resource_planning": (
+                "OBSERVED"
+                if isinstance(generation.get("selection"), dict)
+                else "NOT_OBSERVED"
+            ),
+            "model_generation": observed_generation,
+            "claim_verification": verification_status(claim_result),
+            "response_verification": verification_status(response_verification_result),
+        }
+        for step in plan.get("steps", []):
+            step["observed_status"] = observed_by_capability.get(
+                step.get("capability"), "NOT_OBSERVED"
+            )
+
+        plan["request_outcome"] = status or "UNKNOWN"
+        plan["request_outcome_stage"] = stage or "UNKNOWN"
+        plan["planner_role"] = "request_path_diagnostic"
+        plan["enforcement"] = (
+            "Existing routing, policy, authority, and risk-control layers remain authoritative."
+        )
+        plan["observed_stage"] = stage or None
+        plan["observed_status"] = status or None
+        return plan
+
     def process(
+        self,
+        user_text: str,
+        authenticated: bool = False,
+        confirmed: bool = False,
+        account_id: str = "ACC1001",
+        card_id: str = "CARD1001",
+        transaction_id: str = "TXN002",
+        upi_id: str = "UPI1001",
+        transfer_id: str = "TRF1001",
+        refund_id: str = "REF1001",
+        generate_response: bool = False,
+        language: str = "English",
+        persona: str = "neutral",
+        max_new_tokens: int = 256,
+        model_id: str | None = None,
+    ):
+        request_id = uuid4().hex
+        result = self._process_core(
+            user_text=user_text,
+            authenticated=authenticated,
+            confirmed=confirmed,
+            account_id=account_id,
+            card_id=card_id,
+            transaction_id=transaction_id,
+            upi_id=upi_id,
+            transfer_id=transfer_id,
+            refund_id=refund_id,
+            generate_response=generate_response,
+            language=language,
+            persona=persona,
+            max_new_tokens=max_new_tokens,
+            model_id=model_id,
+        )
+        result = dict(result)
+        result["capability_execution_plan"] = self._capability_plan_for_result(
+            result=result,
+            request_id=request_id,
+            user_text=user_text,
+            generate_response=generate_response,
+        )
+        return result
+
+    def _process_core(
         self,
         user_text: str,
         authenticated: bool = False,
