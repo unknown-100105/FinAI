@@ -1,7 +1,14 @@
-﻿from types import SimpleNamespace
+﻿import pytest
+from types import SimpleNamespace
 
 from llm.response_service import ResponseService
 from llm.response_verifier import FinancialResponseVerifier
+
+
+@pytest.fixture(autouse=True)
+def explicit_provider_consent_for_tests(monkeypatch):
+    # These tests exercise provider-response verification, not the default privacy policy.
+    monkeypatch.setenv("FINAI_DATA_SENSITIVITY", "standard")
 
 
 VERIFIED = {
