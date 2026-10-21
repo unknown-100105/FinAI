@@ -1,7 +1,14 @@
-﻿from llm.response_service import ResponseService
+﻿import pytest
+
+from llm.response_service import ResponseService
 from llm.rllm_finqa_adapter import RLLMFinQAModelAdapter
 from llm.response_adapter import SarvamResponseAdapter
 from llm.cloud.gemini_adapter import GeminiResponseAdapter
+
+
+@pytest.fixture(autouse=True)
+def explicit_provider_consent_for_model_selection_tests(monkeypatch):
+    monkeypatch.setenv("FINAI_DATA_SENSITIVITY", "standard")
 
 
 def test_enabled_models_are_registered():
