@@ -592,8 +592,10 @@ class XAITrace:
             payload["rag"]["query"] = None
             payload["rag"]["documents"] = []
             payload["claims"]["items"] = []
+            payload["claims"]["verification"]["report"] = {}
             payload["verification"]["response"] = {}
             payload["verification"]["claims"] = {}
+            payload["rag"]["error"] = None
             payload["session"]["pending_intent"] = None
             payload["session"]["pending_tool"] = None
 
