@@ -1,10 +1,9 @@
-from pathlib import Path
 import json
 from fastapi import APIRouter, Depends, HTTPException
 from app.trace_security import require_trace_api_enabled
+from xai.trace import TRACE_DIR
 
 router = APIRouter(prefix='/api/v1/xai', tags=['xai'])
-TRACE_DIR = Path(__file__).resolve().parent.parent / 'xai' / 'traces'
 
 @router.get('/traces')
 def list_traces(_: None = Depends(require_trace_api_enabled)):
@@ -23,8 +22,11 @@ def list_traces(_: None = Depends(require_trace_api_enabled)):
 def get_trace(trace_id: str, _: None = Depends(require_trace_api_enabled)):
     if not trace_id.replace('-', '').isalnum():
         raise HTTPException(status_code=400, detail='Invalid trace ID.')
-    path = TRACE_DIR / (trace_id + '.json')
-    if not path.exists():
+    trace_root = TRACE_DIR.resolve()
+    path = (trace_root / (trace_id + '.json')).resolve()
+    if not path.is_relative_to(trace_root):
+        raise HTTPException(status_code=400, detail='Invalid trace path.')
+    if not path.is_file():
         raise HTTPException(status_code=404, detail='Trace not found.')
     try:
         return json.loads(path.read_text(encoding='utf-8'))
