@@ -168,6 +168,35 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
         path for path in rag_assets if not (root / path).is_file()
     ]
 
+    rag_manifest_path = root / "configs" / "rag-artifact-manifest.json"
+    if rag_manifest_path.is_file():
+        try:
+            from scripts.verify_rag_manifest import verify_manifest
+            rag_manifest_status = verify_manifest(rag_manifest_path, root)
+        except Exception as exc:
+            rag_manifest_status = {
+                "status": "INCOMPLETE",
+                "errors": [f"Manifest verification failed: {type(exc).__name__}"],
+            }
+    else:
+        rag_manifest_status = {
+            "status": "NOT_CONFIGURED",
+            "errors": ["Create configs/rag-artifact-manifest.json from the example and fill in approved provenance."],
+        }
+
+    next_steps = _next_steps(
+        root=root,
+        package_status=package_status,
+        router_model_present=router_model.is_file(),
+        router_training_inputs_available=available_router_inputs,
+        missing_source_chunks=missing_source_chunks,
+        missing_rag_assets=missing_rag_assets,
+    )
+    if rag_manifest_status["status"] != "READY":
+        next_steps.append(
+            "Complete and verify configs/rag-artifact-manifest.json before treating the RAG corpus/index as reproducible."
+        )
+
     return {
         "schema_version": "1.0",
         "scope": "local_presence_check_only_no_network_calls",
@@ -198,15 +227,9 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
             "rag_source_chunks_missing": missing_source_chunks,
             "rag_assets_missing": missing_rag_assets,
             "rag_assets_ready": not missing_rag_assets,
+            "rag_manifest": rag_manifest_status,
         },
-        "next_steps": _next_steps(
-            root=root,
-            package_status=package_status,
-            router_model_present=router_model.is_file(),
-            router_training_inputs_available=available_router_inputs,
-            missing_source_chunks=missing_source_chunks,
-            missing_rag_assets=missing_rag_assets,
-        ),
+        "next_steps": next_steps,
     }
 
 
