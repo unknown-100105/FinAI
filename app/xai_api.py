@@ -1,13 +1,17 @@
 ﻿from pathlib import Path
 import json
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+
+from app.api_security import FinAIAPIAuthMiddleware
+from app.trace_security import require_trace_api_enabled
 
 app = FastAPI(
     title="FinAI XAI API",
     version="0.1.0",
     description="Read-only API for FinAI explainability traces.",
 )
+app.add_middleware(FinAIAPIAuthMiddleware)
 
 TRACE_DIR = Path(__file__).resolve().parent.parent / "xai" / "traces"
 
@@ -22,7 +26,7 @@ def health():
 
 
 @app.get("/api/v1/xai/traces")
-def list_traces():
+def list_traces(_: None = Depends(require_trace_api_enabled)):
     if not TRACE_DIR.exists():
         return {
             "count": 0,
@@ -72,7 +76,7 @@ def list_traces():
 
 
 @app.get("/api/v1/xai/traces/{trace_id}")
-def get_trace(trace_id: str):
+def get_trace(trace_id: str, _: None = Depends(require_trace_api_enabled)):
     if not trace_id.replace("-", "").isalnum():
         raise HTTPException(
             status_code=400,
