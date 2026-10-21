@@ -1,4 +1,6 @@
-﻿from llm.response_service import ResponseService
+﻿from types import SimpleNamespace
+
+from llm.response_service import ResponseService
 from llm.response_verifier import FinancialResponseVerifier
 
 
@@ -196,3 +198,47 @@ def test_compound_interest_verifier_rejects_wrong_amount_and_missing_labels():
         "final_amount", "total_interest", "principal"
     }
     assert result["semantic_errors"]
+
+
+def test_compound_interest_generation_uses_operation_specific_verification(monkeypatch):
+    response = (
+        "Principal: ₹100,000.00. "
+        "Final amount: ₹148,984.57. "
+        "Total interest: ₹48,984.57."
+    )
+    gateway = FakeGateway(response)
+    service = ResponseService(gateway=gateway)
+    monkeypatch.setattr(
+        service.model_router,
+        "route",
+        lambda **kwargs: SimpleNamespace(
+            selected_model="fake-model",
+            network_mode="online",
+            data_sensitivity="restricted",
+            allowed_providers=(),
+            reason="test",
+            policy="restricted",
+            risk_level="low",
+            fallback_chain=[],
+        ),
+    )
+
+    result = service.generate(
+        user_text="Calculate compound interest",
+        intent="INTEREST_QUERY",
+        verified_result={
+            "principal": 100_000.00,
+            "annual_rate": 8.0,
+            "years": 5,
+            "compounding_frequency": 12,
+            "final_amount": 148_984.57,
+            "total_interest": 48_984.57,
+        },
+        source="deterministic_finance_engine",
+    )
+
+    assert result["status"] == "GENERATED_VERIFIED"
+    assert result["verification"]["applicable"] is True
+    assert result["verification"]["passed"] is True
+    assert result["claim_verification"]["applicable"] is True
+    assert result["claim_verification"]["passed"] is True
