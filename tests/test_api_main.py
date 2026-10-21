@@ -227,3 +227,47 @@ def test_chat_api_does_not_expose_rejected_model_output(monkeypatch):
     assert "original_response" not in data
     assert "original_response" not in data["response_generation"]
     assert data["response_generation"]["response"] == "Safe public message"
+
+
+def test_existing_chat_session_requires_server_issued_capability(monkeypatch):
+    monkeypatch.delenv("FINAI_ENABLE_DEMO_SESSION_AUTH", raising=False)
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
+
+    class FakeOrchestrator:
+        def handle_message(self, **kwargs):
+            return {"status": "OK", "message": "safe", "session": {"authenticated": False}}
+
+    monkeypatch.setattr("app.main.get_orchestrator", lambda: FakeOrchestrator())
+    first = client.post("/api/v1/chat", json={"message": "hello"})
+    assert first.status_code == 200
+    data = first.json()
+    assert data["session_id"].startswith("session-")
+    assert len(data["session_token"]) >= 32
+
+    follow_up = client.post(
+        "/api/v1/chat",
+        json={
+            "message": "continue",
+            "session_id": data["session_id"],
+            "session_token": data["session_token"],
+        },
+    )
+    assert follow_up.status_code == 200
+    assert follow_up.json()["session_id"] == data["session_id"]
+
+    hijack = client.post(
+        "/api/v1/chat",
+        json={"message": "continue", "session_id": data["session_id"]},
+    )
+    assert hijack.status_code == 401
+
+
+def test_caller_selected_session_id_cannot_create_an_existing_session_without_capability(monkeypatch):
+    monkeypatch.delenv("FINAI_ENABLE_DEMO_SESSION_AUTH", raising=False)
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
+
+    response = client.post(
+        "/api/v1/chat",
+        json={"message": "hello", "session_id": "attacker-chosen-session"},
+    )
+    assert response.status_code == 401
