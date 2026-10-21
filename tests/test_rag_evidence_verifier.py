@@ -26,7 +26,7 @@ def test_supported_rag_response_passes():
     )
 
     assert result["applicable"] is True
-    assert result["mode"] == "EVIDENCE_SUPPORT"
+    assert result["mode"] == "LEXICAL_OVERLAP_SUPPORT"
     assert result["passed"] is True
     assert result["unsupported_claims"] == []
     assert len(result["supported_claims"]) == 2
