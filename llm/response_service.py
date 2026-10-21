@@ -1,3 +1,4 @@
+import re
 from typing import Any, Dict, Optional
 
 from llm.model_gateway import ModelGateway
@@ -185,6 +186,39 @@ class ResponseService:
         return adapter
 
     @staticmethod
+    def _minimize_provider_prompt(intent: str, user_text: str) -> str:
+        """Avoid sending raw calculation prompts and obvious identifiers to providers."""
+        if intent in {"EMI_QUERY", "INTEREST_QUERY"}:
+            return (
+                "Explain the verified deterministic financial calculation. "
+                "Use only the supplied verified values; do not invent figures."
+            )
+
+        text = str(user_text or "")
+        text = re.sub(
+            r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
+            "[REDACTED_EMAIL]",
+            text,
+        )
+        text = re.sub(
+            r"(?<!\d)(?:\+?91[\s-]?)?[6-9]\d{9}(?!\d)",
+            "[REDACTED_PHONE_OR_IDENTIFIER]",
+            text,
+        )
+        text = re.sub(
+            r"\b[A-Z]{5}\d{4}[A-Z]\b",
+            "[REDACTED_TAX_IDENTIFIER]",
+            text,
+            flags=re.IGNORECASE,
+        )
+        text = re.sub(
+            r"(?<!\d)(?:\d[\s-]?){12,19}(?!\d)",
+            "[REDACTED_LONG_IDENTIFIER]",
+            text,
+        )
+        return text
+
+    @staticmethod
     def _minimize_provider_context(
         intent: str,
         context: Dict[str, Any],
@@ -256,10 +290,14 @@ class ResponseService:
             intent=intent,
             context=verified_result,
         )
+        provider_user_text = self._minimize_provider_prompt(
+            intent=intent,
+            user_text=provider_user_text,
+        )
 
         try:
             result = self.gateway.generate(
-                user_text=user_text,
+                user_text=provider_user_text,
                 intent=intent,
                 verified_result=provider_context,
                 source=source,
@@ -345,7 +383,7 @@ class ResponseService:
 
                 try:
                     fallback_result = adapter.generate(
-                        user_text=user_text,
+                        user_text=provider_user_text,
                         intent=intent,
                         verified_result=provider_context,
                         source=source,
