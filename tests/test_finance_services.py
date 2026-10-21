@@ -14,6 +14,8 @@ def test_sip_service():
     )
 
     assert result["status"] == "CALCULATED"
+    assert "assumptions" in result
+    assert any("not guaranteed" in item.lower() for item in result["assumptions"])
 
     assert result["result"]["total_invested"] == pytest.approx(
         1_200_000,
@@ -50,6 +52,8 @@ def test_interest_service():
     )
 
     assert result["status"] == "CALCULATED"
+    assert "assumptions" in result
+    assert any("fixed" in item.lower() for item in result["assumptions"])
 
     assert result["result"]["final_amount"] == pytest.approx(
         148984.57,
