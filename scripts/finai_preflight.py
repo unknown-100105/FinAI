@@ -171,7 +171,12 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
     rag_manifest_path = root / "configs" / "rag-artifact-manifest.json"
     if rag_manifest_path.is_file():
         try:
-            from scripts.verify_rag_manifest import verify_manifest
+            try:
+                from scripts.verify_rag_manifest import verify_manifest
+            except ModuleNotFoundError:
+                # When executed as "python scripts/finai_preflight.py", the
+                # scripts directory (not repository root) is sys.path[0].
+                from verify_rag_manifest import verify_manifest
             rag_manifest_status = verify_manifest(rag_manifest_path, root)
         except Exception as exc:
             rag_manifest_status = {
