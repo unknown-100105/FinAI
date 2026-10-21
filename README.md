@@ -40,6 +40,8 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 The main API is available at `http://127.0.0.1:8000`.
 
+For multi-turn chat, start by sending a request without `session_id`. The server returns a generated `session_id` and an opaque `session_token`; clients must send both on subsequent turns. The token is a session capability, not proof of real-world identity. The mock authentication flow remains disabled unless explicitly enabled for an isolated local demo, and must not be used for real financial actions.
+
 The XAI trace API is disabled by default because traces can contain financial and personal context. To expose trace endpoints for a controlled local review, configure a strong bearer token and explicitly opt in:
 
 ```powershell
