@@ -125,7 +125,7 @@ def get_orchestrator() -> XAISessionOrchestrator:
 class SessionRequest(BaseModel):
     session_id: str = Field(
         ..., min_length=1, max_length=128,
-        pattern=r"^[A-Za-z0-9][A-Za-z0-9-]{0,127}$",
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
     )
 
 
@@ -140,7 +140,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = Field(
         default=None,
         max_length=128,
-        pattern=r"^[A-Za-z0-9][A-Za-z0-9-]{0,127}$",
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
         description=(
             "Conversation session ID. "
             "A new one is generated when omitted."
