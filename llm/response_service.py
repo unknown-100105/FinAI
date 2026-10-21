@@ -263,7 +263,9 @@ class ResponseService:
                 return result
             if isinstance(value, (list, tuple)):
                 return [clean(item) for item in value]
-            if value is None or isinstance(value, (str, int, float, bool)):
+            if isinstance(value, str):
+                return ResponseService._minimize_provider_prompt("SUPPORT_REQUEST", value)
+            if value is None or isinstance(value, (int, float, bool)):
                 return value
             return str(value)
 
