@@ -40,11 +40,18 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 The main API is available at `http://127.0.0.1:8000`.
 
-The XAI trace API can be run separately:
+The XAI trace API is disabled by default because traces can contain financial and personal context. To expose trace endpoints for a controlled local review, configure a strong bearer token and explicitly opt in:
 
 ```powershell
+$env:FINAI_API_AUTH_MODE = "bearer"
+$env:FINAI_API_BEARER_TOKEN = "<use-a-long-random-secret-of-at-least-32-characters>"
+$env:FINAI_ENABLE_XAI_TRACE_API = "true"
 uvicorn app.xai_api:app --host 127.0.0.1 --port 8001
 ```
+
+Use the same settings for the mounted /api/v1/xai/traces routes. A shared bearer token is not per-user authorization; do not expose trace access to multiple users until a verified identity gateway and principal-level access policy are configured. Trace content is minimized by default, with seven-day automatic expiry. Do not set FINAI_TRACE_STORE_CONTENTS=true without a documented privacy review.
+
+The mock session authentication endpoint and phrase-only authentication are disabled by default. For an isolated local demo only, set FINAI_ENABLE_DEMO_SESSION_AUTH=true while FINAI_ENV is not production. This is not real identity, OTP, or bank authentication and must never be used for real financial operations.
 
 ## Frontend
 
