@@ -62,16 +62,6 @@ class FinanceEngine:
         )
         if not float(tenure_months).is_integer():
             raise ValueError("Tenure must be a whole number of months.")
-        _require_finite_parameters(
-            principal=principal,
-            annual_rate=annual_rate,
-            years=years,
-            compounding_frequency=compounding_frequency,
-        )
-        if not float(years).is_integer():
-            raise ValueError("Investment period must be a whole number of years.")
-        if not float(compounding_frequency).is_integer():
-            raise ValueError("Compounding frequency must be a whole number.")
         if principal <= 0:
             raise ValueError("Principal must be greater than zero.")
 
@@ -190,6 +180,17 @@ class FinanceEngine:
         years: int,
         compounding_frequency: int = 12,
     ) -> CompoundInterestResult:
+
+        _require_finite_parameters(
+            principal=principal,
+            annual_rate=annual_rate,
+            years=years,
+            compounding_frequency=compounding_frequency,
+        )
+        if not float(years).is_integer():
+            raise ValueError("Investment period must be a whole number of years.")
+        if not float(compounding_frequency).is_integer():
+            raise ValueError("Compounding frequency must be a whole number.")
 
         if principal <= 0:
             raise ValueError("Principal must be greater than zero.")
