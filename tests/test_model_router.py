@@ -176,3 +176,10 @@ def test_offline_fails_when_no_local_model_fits():
         assert "No enabled model" in str(exc)
         return
     raise AssertionError("Offline routing unexpectedly selected an unfit model.")
+
+
+def test_router_defaults_to_restricted_data_sensitivity():
+    result = ModelRouter().route("financial_qa", hardware=capable_gpu())
+    assert result.data_sensitivity == "restricted"
+    assert result.provider == "local"
+    assert "restricted_data_local_only" in result.constraints_applied
