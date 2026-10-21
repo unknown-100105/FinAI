@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+import app.xai_api as xai_api_module
 from app.xai_api import app
 
 
@@ -72,3 +73,20 @@ def test_trace_api_rejects_missing_bearer(monkeypatch):
     configure_trace_access(monkeypatch)
     response = client.get("/api/v1/xai/traces")
     assert response.status_code == 401
+
+
+def test_trace_can_be_deleted_with_authorized_opt_in(tmp_path, monkeypatch):
+    headers = configure_trace_access(monkeypatch)
+    monkeypatch.setattr(xai_api_module, "TRACE_DIR", tmp_path)
+    trace_id = "trace-delete123"
+    trace_path = tmp_path / f"{trace_id}.json"
+    trace_path.write_text('{"trace_id":"trace-delete123"}', encoding="utf-8")
+
+    response = client.delete(
+        f"/api/v1/xai/traces/{trace_id}",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "DELETED", "trace_id": trace_id}
+    assert not trace_path.exists()
