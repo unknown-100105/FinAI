@@ -32,3 +32,17 @@ def get_trace(trace_id: str, _: None = Depends(require_trace_api_enabled)):
         return json.loads(path.read_text(encoding='utf-8'))
     except (OSError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=500, detail='Trace file is unreadable.') from exc
+
+@router.delete('/traces/{trace_id}')
+def delete_trace(trace_id: str, _: None = Depends(require_trace_api_enabled)):
+    if not trace_id.replace('-', '').isalnum():
+        raise HTTPException(status_code=400, detail='Invalid trace ID.')
+    trace_root = TRACE_DIR.resolve()
+    path = (trace_root / (trace_id + '.json')).resolve()
+    if not path.is_relative_to(trace_root):
+        raise HTTPException(status_code=400, detail='Invalid trace path.')
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail='Trace not found.')
+    path.unlink()
+    return {'status': 'DELETED', 'trace_id': trace_id}
+
