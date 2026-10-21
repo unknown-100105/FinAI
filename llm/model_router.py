@@ -219,7 +219,7 @@ class ModelRouter:
         language: str = "English",
         explicit_model: str | None = None,
         network_mode: str = "online",
-        data_sensitivity: str = "standard",
+        data_sensitivity: str = "restricted",
         allowed_providers: Optional[list[str]] = None,
         hardware: Optional[HardwareSnapshot] = None,
     ) -> ModelRoute:
