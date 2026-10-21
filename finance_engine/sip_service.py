@@ -28,7 +28,17 @@ class SIPService:
                     "annual_return": annual_return,
                     "years": years,
                 },
-                "message": "SIP projection calculated successfully.",
+                "message": (
+                    "SIP projection assumes monthly contributions at period end "
+                    "and a constant annualized return. Actual returns vary and "
+                    "are not guaranteed."
+                ),
+                "assumptions": [
+                    "Contributions are made monthly at period end.",
+                    "The annualized return is held constant for illustration.",
+                    "Market volatility, taxes, fees, and contribution changes are excluded.",
+                    "Projected returns are not guaranteed.",
+                ],
                 "result": {
                     "monthly_investment": result.monthly_investment,
                     "annual_return": result.annual_return,
