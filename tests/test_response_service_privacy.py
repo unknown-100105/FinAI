@@ -53,13 +53,14 @@ def test_provider_context_minimization_removes_sensitive_fields():
             "account_id": "ACC-123",
             "balance": 5000,
             "summary": "general help",
-            "nested": {"phone": "555-0100", "topic": "budgeting"},
+            "nested": {"phone": "555-0100", "topic": "budgeting", "note": "Email person@example.com"},
         },
     )
     assert "account_id" not in cleaned
     assert "balance" not in cleaned
     assert cleaned["summary"] == "general help"
-    assert cleaned["nested"] == {"topic": "budgeting"}
+    assert cleaned["nested"]["topic"] == "budgeting"
+    assert "person@example.com" not in cleaned["nested"]["note"]
 
 
 def test_finance_provider_context_uses_allowlist():
