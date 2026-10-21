@@ -12,6 +12,7 @@ def enable_isolated_demo_auth(monkeypatch):
     monkeypatch.setenv("FINAI_ENV", "development")
     monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
     monkeypatch.delenv("FINAI_API_BEARER_TOKEN", raising=False)
+    monkeypatch.delenv("FINAI_ENABLE_XAI_TRACE_API", raising=False)
     monkeypatch.setenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "true")
 
 
@@ -271,3 +272,25 @@ def test_caller_selected_session_id_cannot_create_an_existing_session_without_ca
         json={"message": "hello", "session_id": "attacker-chosen-session"},
     )
     assert response.status_code == 401
+
+
+def test_mounted_trace_api_is_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("FINAI_ENABLE_XAI_TRACE_API", raising=False)
+    response = client.get("/api/v1/xai/traces")
+    assert response.status_code == 404
+
+
+def test_mounted_trace_api_requires_bearer_when_enabled(monkeypatch):
+    token = "test-only-token-with-at-least-32-characters"
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "bearer")
+    monkeypatch.setenv("FINAI_API_BEARER_TOKEN", token)
+    monkeypatch.setenv("FINAI_ENABLE_XAI_TRACE_API", "true")
+
+    denied = client.get("/api/v1/xai/traces")
+    assert denied.status_code == 401
+
+    allowed = client.get(
+        "/api/v1/xai/traces",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert allowed.status_code == 200
