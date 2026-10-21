@@ -99,6 +99,14 @@ Then build the semantic index:
 python scripts/build_rag_faiss.py
 ```
 
+Before using or evaluating the index, copy `configs/rag-artifact-manifest.example.json` to `configs/rag-artifact-manifest.json` and fill in the approved source licenses, retrieval timestamps, source hashes, chunking settings, embedding model revision/dimension, and generated-artifact hashes. Verify the completed manifest with:
+
+```powershell
+python scripts/verify_rag_manifest.py --manifest configs/rag-artifact-manifest.json
+```
+
+The verifier fails closed when metadata is missing, paths escape the repository, files are absent, or SHA-256 fingerprints differ. The template is intentionally incomplete until the owner supplies the real source and artifact provenance.
+
 The current builders expect the domain chunk files under `data/domain_chunks/`. Those source datasets must be obtained or generated separately. A fresh clone therefore does not contain a ready-to-query production RAG index until these assets are prepared.
 
 Before running end-to-end tests on a fresh clone, run the local preflight and review offline-mode behavior:
