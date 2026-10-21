@@ -103,6 +103,20 @@ def get_trace(trace_id: str, _: None = Depends(require_trace_api_enabled)):
         )
 
 
+@app.delete("/api/v1/xai/traces/{trace_id}")
+def delete_trace(trace_id: str, _: None = Depends(require_trace_api_enabled)):
+    if not trace_id.replace("-", "").isalnum():
+        raise HTTPException(status_code=400, detail="Invalid trace ID.")
+    trace_root = TRACE_DIR.resolve()
+    path = (trace_root / f"{trace_id}.json").resolve()
+    if not path.is_relative_to(trace_root):
+        raise HTTPException(status_code=400, detail="Invalid trace path.")
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Trace not found.")
+    path.unlink()
+    return {"status": "DELETED", "trace_id": trace_id}
+
+
 if __name__ == "__main__":
     import uvicorn
 
