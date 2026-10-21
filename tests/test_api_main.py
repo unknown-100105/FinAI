@@ -215,6 +215,7 @@ def test_chat_api_does_not_expose_rejected_model_output(monkeypatch):
                     "original_response": "Private rejected text with account 123456",
                 },
                 "original_response": "Top-level rejected text",
+                "trace_path": "xai/traces/private-path.json",
             }
 
     monkeypatch.setattr("app.main.get_orchestrator", lambda: FakeOrchestrator())
@@ -227,6 +228,7 @@ def test_chat_api_does_not_expose_rejected_model_output(monkeypatch):
     data = response.json()
     assert "original_response" not in data
     assert "original_response" not in data["response_generation"]
+    assert "trace_path" not in data
     assert data["response_generation"]["response"] == "Safe public message"
 
 
