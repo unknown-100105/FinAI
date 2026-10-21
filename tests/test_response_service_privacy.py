@@ -82,3 +82,25 @@ def test_finance_provider_context_uses_allowlist():
         "principal", "annual_rate", "tenure_months",
         "monthly_emi", "total_payment", "total_interest",
     }
+
+
+def test_provider_prompt_redacts_obvious_identifiers():
+    prompt = (
+        "Contact me at person@example.com or +91 9876543210. "
+        "PAN ABCDE1234F and Aadhaar 1234 5678 9012."
+    )
+    cleaned = ResponseService._minimize_provider_prompt("SUPPORT_REQUEST", prompt)
+    assert "person@example.com" not in cleaned
+    assert "9876543210" not in cleaned
+    assert "ABCDE1234F" not in cleaned
+    assert "1234 5678 9012" not in cleaned
+
+
+def test_finance_provider_prompt_does_not_forward_raw_request():
+    cleaned = ResponseService._minimize_provider_prompt(
+        "EMI_QUERY",
+        "Calculate EMI for ₹10 lakh using account 123456789012",
+    )
+    assert "10 lakh" not in cleaned
+    assert "123456789012" not in cleaned
+    assert "verified deterministic" in cleaned.lower()
