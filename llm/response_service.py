@@ -1,4 +1,5 @@
 import re
+import os
 from typing import Any, Dict, Optional
 
 from llm.model_gateway import ModelGateway
@@ -158,6 +159,8 @@ class ResponseService:
             risk_level=risk_level,
             language=language,
             explicit_model=explicit_model,
+            network_mode=os.getenv("FINAI_NETWORK_MODE", "online"),
+            data_sensitivity=os.getenv("FINAI_DATA_SENSITIVITY", "restricted"),
         )
         return route.selected_model
 
