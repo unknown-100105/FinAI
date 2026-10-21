@@ -123,7 +123,10 @@ def get_orchestrator() -> XAISessionOrchestrator:
 
 
 class SessionRequest(BaseModel):
-    session_id: str = Field(..., min_length=1, max_length=128)
+    session_id: str = Field(
+        ..., min_length=1, max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9-]{0,127}$",
+    )
 
 
 class ChatRequest(BaseModel):
@@ -137,6 +140,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = Field(
         default=None,
         max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9-]{0,127}$",
         description=(
             "Conversation session ID. "
             "A new one is generated when omitted."
@@ -204,8 +208,24 @@ def api_info() -> Dict[str, Any]:
     }
 
 
+def _demo_session_auth_enabled() -> bool:
+    """Allow mock session auth only when explicitly enabled outside production."""
+    enabled = os.getenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "").strip().casefold()
+    environment = os.getenv("FINAI_ENV", "development").strip().casefold()
+    return enabled in {"1", "true", "yes", "on"} and environment not in {"prod", "production"}
+
+
+def _require_demo_session_auth() -> None:
+    if not _demo_session_auth_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Demo session authentication is disabled. Configure a verified identity provider.",
+        )
+
+
 @app.post("/api/v1/session/authenticate")
 def authenticate_session(request: SessionRequest) -> Dict[str, Any]:
+    _require_demo_session_auth()
     session_id = request.session_id.strip()
     if not session_id:
         raise HTTPException(status_code=422, detail="session_id cannot be empty.")
@@ -215,7 +235,7 @@ def authenticate_session(request: SessionRequest) -> Dict[str, Any]:
     return {
         "status": "AUTHENTICATED",
         "message": (
-            "Demo session authenticated. This development flow does not verify "
+            "DEMO ONLY: this isolated development flow does not verify "
             "real-world identity, OTP, or bank credentials."
         ),
         "session": session,
@@ -224,6 +244,7 @@ def authenticate_session(request: SessionRequest) -> Dict[str, Any]:
 
 @app.post("/api/v1/session/logout")
 def logout_session(request: SessionRequest) -> Dict[str, Any]:
+    _require_demo_session_auth()
     session_id = request.session_id.strip()
     if not session_id:
         raise HTTPException(status_code=422, detail="session_id cannot be empty.")
@@ -232,7 +253,7 @@ def logout_session(request: SessionRequest) -> Dict[str, Any]:
 
     return {
         "status": "LOGGED_OUT",
-        "message": "Session authentication has been cleared.",
+        "message": "Demo session authentication has been cleared.",
         "session": session,
     }
 
