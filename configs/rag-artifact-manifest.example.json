@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "corpus_id": "REPLACE_WITH_APPROVED_CORPUS_VERSION",
+  "created_at_utc": null,
+  "source_policy": {
+    "point_in_time_only": true,
+    "license_review_owner": null,
+    "reviewed_at_utc": null
+  },
+  "sources": [
+    {
+      "name": "REPLACE_WITH_SOURCE_NAME",
+      "uri": null,
+      "license": "REQUIRED_LICENSE_IDENTIFIER",
+      "retrieved_at_utc": null,
+      "source_file": "data/domain_chunks/REPLACE_WITH_SOURCE_FILE",
+      "sha256": null
+    }
+  ],
+  "chunking": {
+    "implementation": "REQUIRED_BUILDER_OR_VERSION",
+    "max_tokens": null,
+    "overlap_tokens": null,
+    "normalization_version": null
+  },
+  "embedding": {
+    "model_id": "REQUIRED_EXACT_MODEL_ID",
+    "model_revision": null,
+    "dimension": null,
+    "normalization": null
+  },
+  "artifacts": [
+    {
+      "role": "sqlite_fts_index",
+      "path": "REPLACE_WITH_SQLITE_INDEX_PATH",
+      "sha256": null
+    },
+    {
+      "role": "faiss_vector_index",
+      "path": "REPLACE_WITH_FAISS_INDEX_PATH",
+      "sha256": null
+    },
+    {
+      "role": "document_id_map",
+      "path": "REPLACE_WITH_DOCUMENT_ID_MAP_PATH",
+      "sha256": null
+    }
+  ],
+  "evaluation": {
+    "query_set_version": null,
+    "human_label_set_version": null,
+    "recall_at_k": null,
+    "mrr": null,
+    "known_limitations": [
+      "A manifest verifies provenance and artifact identity, not factual correctness or retrieval quality."
+    ]
+  }
+}
