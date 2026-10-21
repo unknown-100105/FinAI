@@ -444,6 +444,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
       const result = await sendChat({
         message: "yes",
         session_id: id,
+        session_token: sessionToken,
         language,
         persona,
         generate_response: true,
