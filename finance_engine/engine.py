@@ -93,6 +93,11 @@ class FinanceEngine:
 
         total_payment = emi * tenure_months
         total_interest = total_payment - principal
+        _require_finite_parameters(
+            monthly_emi=emi,
+            total_payment=total_payment,
+            total_interest=total_interest,
+        )
 
         return EMIResult(
             principal=round(principal, 2),
@@ -158,6 +163,11 @@ class FinanceEngine:
 
         estimated_profit = (
             estimated_value - total_invested
+        )
+        _require_finite_parameters(
+            total_invested=total_invested,
+            estimated_value=estimated_value,
+            estimated_profit=estimated_profit,
         )
 
         return SIPResult(
