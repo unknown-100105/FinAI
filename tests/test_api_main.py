@@ -1,9 +1,19 @@
-﻿from fastapi.testclient import TestClient
+﻿import pytest
+from fastapi.testclient import TestClient
 
 from app.main import app
 
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def enable_isolated_demo_auth(monkeypatch):
+    monkeypatch.setenv("FINAI_ENV", "development")
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
+    monkeypatch.delenv("FINAI_API_BEARER_TOKEN", raising=False)
+    monkeypatch.delenv("FINAI_ENABLE_XAI_TRACE_API", raising=False)
+    monkeypatch.setenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "true")
 
 
 def test_health():
@@ -191,3 +201,98 @@ def test_chat_confirmation_cannot_bypass_authentication():
     assert executed["status"] == "TOOL_EXECUTED"
     assert executed["tool"]["success"] is True
     assert executed["session"]["awaiting_confirmation"] is False
+
+
+def test_chat_api_does_not_expose_rejected_model_output(monkeypatch):
+    class FakeOrchestrator:
+        def handle_message(self, **kwargs):
+            return {
+                "status": "VERIFICATION_FAILED",
+                "message": "Safe public message",
+                "response_generation": {
+                    "status": "VERIFICATION_FAILED",
+                    "response": "Safe public message",
+                    "original_response": "Private rejected text with account 123456",
+                },
+                "original_response": "Top-level rejected text",
+                "trace_path": "xai/traces/private-path.json",
+            }
+
+    monkeypatch.setattr("app.main.get_orchestrator", lambda: FakeOrchestrator())
+    response = client.post(
+        "/api/v1/chat",
+        json={"message": "Explain this finance result"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "original_response" not in data
+    assert "original_response" not in data["response_generation"]
+    assert "trace_path" not in data
+    assert data["response_generation"]["response"] == "Safe public message"
+
+
+def test_existing_chat_session_requires_server_issued_capability(monkeypatch):
+    monkeypatch.delenv("FINAI_ENABLE_DEMO_SESSION_AUTH", raising=False)
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
+
+    class FakeOrchestrator:
+        def handle_message(self, **kwargs):
+            return {"status": "OK", "message": "safe", "session": {"authenticated": False}}
+
+    monkeypatch.setattr("app.main.get_orchestrator", lambda: FakeOrchestrator())
+    first = client.post("/api/v1/chat", json={"message": "hello"})
+    assert first.status_code == 200
+    data = first.json()
+    assert data["session_id"].startswith("session-")
+    assert len(data["session_token"]) >= 32
+
+    follow_up = client.post(
+        "/api/v1/chat",
+        json={
+            "message": "continue",
+            "session_id": data["session_id"],
+            "session_token": data["session_token"],
+        },
+    )
+    assert follow_up.status_code == 200
+    assert follow_up.json()["session_id"] == data["session_id"]
+
+    hijack = client.post(
+        "/api/v1/chat",
+        json={"message": "continue", "session_id": data["session_id"]},
+    )
+    assert hijack.status_code == 401
+
+
+def test_caller_selected_session_id_cannot_create_an_existing_session_without_capability(monkeypatch):
+    monkeypatch.delenv("FINAI_ENABLE_DEMO_SESSION_AUTH", raising=False)
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
+
+    response = client.post(
+        "/api/v1/chat",
+        json={"message": "hello", "session_id": "attacker-chosen-session"},
+    )
+    assert response.status_code == 401
+
+
+def test_mounted_trace_api_is_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("FINAI_ENABLE_XAI_TRACE_API", raising=False)
+    response = client.get("/api/v1/xai/traces")
+    assert response.status_code == 404
+
+
+def test_mounted_trace_api_requires_bearer_when_enabled(monkeypatch):
+    token = "test-only-token-with-at-least-32-characters"
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "bearer")
+    monkeypatch.setenv("FINAI_API_BEARER_TOKEN", token)
+    monkeypatch.setenv("FINAI_ENABLE_XAI_TRACE_API", "true")
+
+    denied = client.get("/api/v1/xai/traces")
+    assert denied.status_code == 401
+
+    allowed = client.get(
+        "/api/v1/xai/traces",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert allowed.status_code == 200

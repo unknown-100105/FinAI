@@ -4,6 +4,12 @@ from llm.model_gateway import ModelGateway
 from llm.response_service import ResponseService
 
 
+@pytest.fixture(autouse=True)
+def explicit_provider_consent_for_tests(monkeypatch):
+    # This suite tests cloud fallback behavior; restricted-policy cases pass that policy explicitly.
+    monkeypatch.setenv("FINAI_DATA_SENSITIVITY", "standard")
+
+
 class FakeAdapter:
     def __init__(self, label, response=None, error=None):
         self.label = label

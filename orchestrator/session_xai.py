@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from orchestrator.hybrid_engine import FinAIHybridEngine
@@ -456,9 +457,14 @@ class XAISessionOrchestrator:
 
     @staticmethod
     def _is_authentication(text: str):
+        # Phrase-only authentication is a demo shortcut, never an identity check.
+        # It is disabled unless explicitly opted into a non-production demo.
+        enabled = os.getenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "").strip().casefold()
+        environment = os.getenv("FINAI_ENV", "development").strip().casefold()
+        if enabled not in {"1", "true", "yes", "on"} or environment in {"prod", "production"}:
+            return False
 
-        normalized = text.strip().lower()
-
+        normalized = text.strip().casefold()
         return normalized in {
             "authenticated",
             "authentication complete",

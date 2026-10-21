@@ -51,7 +51,12 @@ class EMIService:
             "status": "CALCULATED",
             "parameters": params,
             "missing": [],
-            "message": "EMI calculated successfully.",
+            "message": "EMI calculated assuming a constant nominal annual rate divided monthly and equal monthly payments; fees, insurance, and taxes are excluded unless included in the principal.",
+            "assumptions": [
+                "Nominal annual rate is divided by 12 for the monthly rate.",
+                "Payments are equal and made monthly.",
+                "Fees, insurance, taxes, and rate changes are excluded unless represented in the principal or rate.",
+            ],
             "result": result,
         }
 

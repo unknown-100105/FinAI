@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Query
 from llm.model_registry import MODEL_REGISTRY, enabled_models, models_for_capability, model_configured
@@ -54,9 +55,9 @@ def route_preview(payload: Dict[str, Any]) -> Dict[str, Any]:
     risk_level = str(payload.get("risk_level", "low")).strip().lower()
     language = str(payload.get("language", "English")).strip()
     model_id = payload.get("model_id")
-    network_mode = str(payload.get("network_mode", "online")).strip().lower()
+    network_mode = str(payload.get("network_mode", os.getenv("FINAI_NETWORK_MODE", "online"))).strip().lower()
     data_sensitivity = str(
-        payload.get("data_sensitivity", "standard")
+        payload.get("data_sensitivity", os.getenv("FINAI_DATA_SENSITIVITY", "restricted"))
     ).strip().lower()
     allowed_providers = payload.get("allowed_providers")
     if allowed_providers is not None and not isinstance(allowed_providers, list):

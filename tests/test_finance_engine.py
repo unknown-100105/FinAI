@@ -214,3 +214,42 @@ def test_negative_asset_quantity_rejected():
 
     with pytest.raises(ValueError):
         FinanceEngine.portfolio_summary(assets)
+
+
+@pytest.mark.parametrize("bad_value", [float("nan"), float("inf"), float("-inf")])
+def test_emi_rejects_non_finite_parameters(bad_value):
+    with pytest.raises(ValueError, match="finite"):
+        FinanceEngine.calculate_emi(
+            principal=100_000,
+            annual_rate=bad_value,
+            tenure_months=120,
+        )
+
+
+def test_sip_rejects_fractional_years():
+    with pytest.raises(ValueError, match="whole number"):
+        FinanceEngine.calculate_sip(
+            monthly_investment=1_000,
+            annual_return=8,
+            years=1.5,
+        )
+
+
+def test_compound_interest_rejects_non_finite_principal():
+    with pytest.raises(ValueError, match="finite"):
+        FinanceEngine.calculate_compound_interest(
+            principal=float("nan"),
+            annual_rate=8,
+            years=5,
+            compounding_frequency=12,
+        )
+
+
+def test_compound_interest_rejects_fractional_frequency():
+    with pytest.raises(ValueError, match="whole number"):
+        FinanceEngine.calculate_compound_interest(
+            principal=100_000,
+            annual_rate=8,
+            years=5,
+            compounding_frequency=12.5,
+        )

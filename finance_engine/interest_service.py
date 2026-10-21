@@ -81,9 +81,15 @@ class InterestService:
             "parameters": params,
             "missing": [],
             "message": (
-                "Compound-interest projection "
-                "calculated successfully."
+                "Compound-interest projection assumes a fixed nominal annual rate "
+                "and the selected compounding frequency; taxes, fees, and rate "
+                "changes are not included."
             ),
+            "assumptions": [
+                "The nominal annual rate remains fixed over the projection period.",
+                f"Interest compounds {params['compounding_frequency']} times per year.",
+                "Taxes, fees, contributions, and rate changes are excluded.",
+            ],
             "result": output,
         }
 

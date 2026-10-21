@@ -1,15 +1,17 @@
-﻿from pathlib import Path
-import json
+﻿import json
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+
+from app.api_security import FinAIAPIAuthMiddleware
+from app.trace_security import require_trace_api_enabled, require_trace_details_enabled
+from xai.trace import TRACE_DIR
 
 app = FastAPI(
     title="FinAI XAI API",
     version="0.1.0",
     description="Read-only API for FinAI explainability traces.",
 )
-
-TRACE_DIR = Path(__file__).resolve().parent.parent / "xai" / "traces"
+app.add_middleware(FinAIAPIAuthMiddleware)
 
 
 @app.get("/health")
@@ -22,7 +24,7 @@ def health():
 
 
 @app.get("/api/v1/xai/traces")
-def list_traces():
+def list_traces(_: None = Depends(require_trace_api_enabled)):
     if not TRACE_DIR.exists():
         return {
             "count": 0,
@@ -72,16 +74,19 @@ def list_traces():
 
 
 @app.get("/api/v1/xai/traces/{trace_id}")
-def get_trace(trace_id: str):
+def get_trace(trace_id: str, _: None = Depends(require_trace_details_enabled)):
     if not trace_id.replace("-", "").isalnum():
         raise HTTPException(
             status_code=400,
             detail="Invalid trace ID.",
         )
 
-    path = TRACE_DIR / f"{trace_id}.json"
+    trace_root = TRACE_DIR.resolve()
+    path = (trace_root / f"{trace_id}.json").resolve()
+    if not path.is_relative_to(trace_root):
+        raise HTTPException(status_code=400, detail="Invalid trace path.")
 
-    if not path.exists():
+    if not path.is_file():
         raise HTTPException(
             status_code=404,
             detail="Trace not found.",
@@ -96,6 +101,20 @@ def get_trace(trace_id: str):
             status_code=500,
             detail="Trace file contains invalid JSON.",
         )
+
+
+@app.delete("/api/v1/xai/traces/{trace_id}")
+def delete_trace(trace_id: str, _: None = Depends(require_trace_details_enabled)):
+    if not trace_id.replace("-", "").isalnum():
+        raise HTTPException(status_code=400, detail="Invalid trace ID.")
+    trace_root = TRACE_DIR.resolve()
+    path = (trace_root / f"{trace_id}.json").resolve()
+    if not path.is_relative_to(trace_root):
+        raise HTTPException(status_code=400, detail="Invalid trace path.")
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Trace not found.")
+    path.unlink()
+    return {"status": "DELETED", "trace_id": trace_id}
 
 
 if __name__ == "__main__":

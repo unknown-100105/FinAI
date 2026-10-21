@@ -31,6 +31,40 @@ class FinancialResponseVerifier:
 
         return False
 
+    def verify_compound_interest(
+        self,
+        response: str,
+        verified_result: Dict,
+    ) -> Dict:
+        """Check deterministic compound-interest outputs in generated text."""
+        response = str(response)
+        required_values = {
+            "final_amount": verified_result["final_amount"],
+            "total_interest": verified_result["total_interest"],
+        }
+        if "principal" in verified_result:
+            required_values["principal"] = verified_result["principal"]
+
+        missing_values = []
+        for field, value in required_values.items():
+            if not self._contains_numeric_value(response, value):
+                missing_values.append({
+                    "field": field,
+                    "value": f"{float(value):,.2f}",
+                })
+
+        semantic_errors = []
+        if not re.search(r"final\s+(?:amount|value)|maturity\s+amount", response, re.IGNORECASE):
+            semantic_errors.append("The response does not clearly label the final amount.")
+        if not re.search(r"interest", response, re.IGNORECASE):
+            semantic_errors.append("The response does not identify the interest amount.")
+
+        return {
+            "passed": not missing_values and not semantic_errors,
+            "missing_values": missing_values,
+            "semantic_errors": semantic_errors,
+        }
+
     def verify_emi(
         self,
         response: str,

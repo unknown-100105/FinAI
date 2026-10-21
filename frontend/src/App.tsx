@@ -192,6 +192,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
   const [modelId, setModelId] = useState("");
   const [message, setMessage] = useState("");
   const [sessionId, setSessionId] = useState<string | undefined>();
+  const [sessionToken, setSessionToken] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -255,6 +256,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
 
   const applyResult = (result: any, addAssistantMessage = true) => {
     if (result?.session_id) setSessionId(result.session_id);
+    if (result?.session_token) setSessionToken(result.session_token);
     setCapabilityPlan(rootOf(result)?.capability_execution_plan ?? null);
 
     const session = result?.session ?? {};
@@ -315,6 +317,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
       const result = await sendChat({
         message: text,
         session_id: sessionId,
+        session_token: sessionToken,
         language,
         persona,
         generate_response: true,
@@ -330,6 +333,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
         const fallbackResult = await sendChat({
           message: text,
           session_id: sessionId,
+        session_token: sessionToken,
           language,
           persona,
           generate_response: false,
@@ -372,6 +376,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
         const result = await sendChat({
           message: "authenticated",
           session_id: id,
+          session_token: sessionToken,
           language,
           persona,
           generate_response: true,
@@ -408,6 +413,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
     try {
       await logoutSession(sessionId);
       setAuthenticated(false);
+      setSessionToken(undefined);
       setAuthRequired(false);
       setConfirmationRequired(false);
       setPendingRequest("");
@@ -438,6 +444,7 @@ function AssistantWorkspace({ onNavigate }: { onNavigate: (section: Section) => 
       const result = await sendChat({
         message: "yes",
         session_id: id,
+        session_token: sessionToken,
         language,
         persona,
         generate_response: true,

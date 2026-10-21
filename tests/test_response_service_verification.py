@@ -1,4 +1,14 @@
-﻿from llm.response_service import ResponseService
+﻿import pytest
+from types import SimpleNamespace
+
+from llm.response_service import ResponseService
+from llm.response_verifier import FinancialResponseVerifier
+
+
+@pytest.fixture(autouse=True)
+def explicit_provider_consent_for_tests(monkeypatch):
+    # These tests exercise provider-response verification, not the default privacy policy.
+    monkeypatch.setenv("FINAI_DATA_SENSITIVITY", "standard")
 
 
 VERIFIED = {
@@ -161,3 +171,81 @@ def test_rllm_model_id_is_preserved_in_verified_result():
     assert result["model_id"] == "rllm-finqa-4b"
     assert result["selection"]["model_id"] == "rllm-finqa-4b"
     assert result["selection"]["capability"] == "financial_qa"
+
+
+def test_compound_interest_verifier_checks_deterministic_values_and_labels():
+    verifier = FinancialResponseVerifier()
+    verified = {
+        "principal": 100_000.00,
+        "final_amount": 148_984.57,
+        "total_interest": 48_984.57,
+    }
+    good = (
+        "Final amount: ₹148,984.57. "
+        "Total interest: ₹48,984.57. "
+        "Principal: ₹100,000.00."
+    )
+    result = verifier.verify_compound_interest(good, verified)
+    assert result["passed"] is True
+    assert result["missing_values"] == []
+    assert result["semantic_errors"] == []
+
+
+def test_compound_interest_verifier_rejects_wrong_amount_and_missing_labels():
+    verifier = FinancialResponseVerifier()
+    verified = {
+        "principal": 100_000.00,
+        "final_amount": 148_984.57,
+        "total_interest": 48_984.57,
+    }
+    bad = "Your investment grows to ₹160,000.00."
+    result = verifier.verify_compound_interest(bad, verified)
+    assert result["passed"] is False
+    assert {item["field"] for item in result["missing_values"]} == {
+        "final_amount", "total_interest", "principal"
+    }
+    assert result["semantic_errors"]
+
+
+def test_compound_interest_generation_uses_operation_specific_verification(monkeypatch):
+    response = (
+        "Principal: ₹100,000.00. "
+        "Final amount: ₹148,984.57. "
+        "Total interest: ₹48,984.57."
+    )
+    gateway = FakeGateway(response)
+    service = ResponseService(gateway=gateway)
+    monkeypatch.setattr(
+        service.model_router,
+        "route",
+        lambda **kwargs: SimpleNamespace(
+            selected_model="fake-model",
+            network_mode="online",
+            data_sensitivity="restricted",
+            allowed_providers=(),
+            reason="test",
+            policy="restricted",
+            risk_level="low",
+            fallback_chain=[],
+        ),
+    )
+
+    result = service.generate(
+        user_text="Calculate compound interest",
+        intent="INTEREST_QUERY",
+        verified_result={
+            "principal": 100_000.00,
+            "annual_rate": 8.0,
+            "years": 5,
+            "compounding_frequency": 12,
+            "final_amount": 148_984.57,
+            "total_interest": 48_984.57,
+        },
+        source="deterministic_finance_engine",
+    )
+
+    assert result["status"] == "GENERATED_VERIFIED"
+    assert result["verification"]["applicable"] is True
+    assert result["verification"]["passed"] is True
+    assert result["claim_verification"]["applicable"] is True
+    assert result["claim_verification"]["passed"] is True

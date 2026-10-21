@@ -1,4 +1,8 @@
-﻿import os
+﻿import hashlib
+import hmac
+import os
+import secrets
+import time
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
@@ -83,6 +87,8 @@ if os.getenv("FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS", "").strip().casefold() in
 
 _orchestrator: Optional[XAISessionOrchestrator] = None
 _market_data_service: Optional[MarketDataService] = None
+_SESSION_CAPABILITY_TTL_SECONDS = 3600
+_SESSION_CAPABILITIES: dict[str, tuple[str, float]] = {}
 
 
 def get_market_data_service() -> MarketDataService:
@@ -123,7 +129,10 @@ def get_orchestrator() -> XAISessionOrchestrator:
 
 
 class SessionRequest(BaseModel):
-    session_id: str = Field(..., min_length=1, max_length=128)
+    session_id: str = Field(
+        ..., min_length=1, max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+    )
 
 
 class ChatRequest(BaseModel):
@@ -134,9 +143,17 @@ class ChatRequest(BaseModel):
         description="User's financial request.",
     )
 
+    session_token: Optional[str] = Field(
+        default=None,
+        min_length=32,
+        max_length=128,
+        description="Opaque session capability returned by the server.",
+    )
+
     session_id: Optional[str] = Field(
         default=None,
         max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
         description=(
             "Conversation session ID. "
             "A new one is generated when omitted."
@@ -204,8 +221,57 @@ def api_info() -> Dict[str, Any]:
     }
 
 
+def _issue_session_capability(session_id: str) -> str:
+    now = time.time()
+    expired = [
+        key for key, (_, expiry) in _SESSION_CAPABILITIES.items()
+        if expiry <= now
+    ]
+    for key in expired:
+        _SESSION_CAPABILITIES.pop(key, None)
+    if len(_SESSION_CAPABILITIES) >= 10000:
+        raise HTTPException(status_code=503, detail="Session capacity reached; retry later.")
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    _SESSION_CAPABILITIES[session_id] = (
+        token_hash,
+        now + _SESSION_CAPABILITY_TTL_SECONDS,
+    )
+    return token
+
+
+def _valid_session_capability(session_id: str, token: Optional[str]) -> bool:
+    if not token:
+        return False
+    record = _SESSION_CAPABILITIES.get(session_id)
+    if record is None:
+        return False
+    expected_hash, expiry = record
+    if expiry <= time.time():
+        _SESSION_CAPABILITIES.pop(session_id, None)
+        return False
+    supplied_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    return hmac.compare_digest(supplied_hash, expected_hash)
+
+
+def _demo_session_auth_enabled() -> bool:
+    """Allow mock session auth only when explicitly enabled outside production."""
+    enabled = os.getenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "").strip().casefold()
+    environment = os.getenv("FINAI_ENV", "development").strip().casefold()
+    return enabled in {"1", "true", "yes", "on"} and environment not in {"prod", "production"}
+
+
+def _require_demo_session_auth() -> None:
+    if not _demo_session_auth_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Demo session authentication is disabled. Configure a verified identity provider.",
+        )
+
+
 @app.post("/api/v1/session/authenticate")
 def authenticate_session(request: SessionRequest) -> Dict[str, Any]:
+    _require_demo_session_auth()
     session_id = request.session_id.strip()
     if not session_id:
         raise HTTPException(status_code=422, detail="session_id cannot be empty.")
@@ -215,7 +281,7 @@ def authenticate_session(request: SessionRequest) -> Dict[str, Any]:
     return {
         "status": "AUTHENTICATED",
         "message": (
-            "Demo session authenticated. This development flow does not verify "
+            "DEMO ONLY: this isolated development flow does not verify "
             "real-world identity, OTP, or bank credentials."
         ),
         "session": session,
@@ -224,6 +290,7 @@ def authenticate_session(request: SessionRequest) -> Dict[str, Any]:
 
 @app.post("/api/v1/session/logout")
 def logout_session(request: SessionRequest) -> Dict[str, Any]:
+    _require_demo_session_auth()
     session_id = request.session_id.strip()
     if not session_id:
         raise HTTPException(status_code=422, detail="session_id cannot be empty.")
@@ -232,7 +299,7 @@ def logout_session(request: SessionRequest) -> Dict[str, Any]:
 
     return {
         "status": "LOGGED_OUT",
-        "message": "Session authentication has been cleared.",
+        "message": "Demo session authentication has been cleared.",
         "session": session,
     }
 
@@ -247,14 +314,18 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
             detail="Message cannot be empty.",
         )
 
-    session_id = (
-        request.session_id.strip()
-        if request.session_id
-        else ""
-    )
+    issued_session_token: Optional[str] = None
+    session_id = request.session_id.strip() if request.session_id else ""
 
-    if not session_id:
+    if session_id and not _demo_session_auth_enabled():
+        if not _valid_session_capability(session_id, request.session_token):
+            raise HTTPException(
+                status_code=401,
+                detail="A valid server-issued session_token is required for an existing session.",
+            )
+    elif not session_id:
         session_id = f"session-{uuid4().hex}"
+        issued_session_token = _issue_session_capability(session_id)
 
     try:
         result = get_orchestrator().handle_message(
@@ -279,10 +350,22 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
             detail="FinAI request processing failed.",
         ) from exc
 
+    # Keep rejected/incomplete provider text internal. Ordinary chat clients
+    # receive only the approved response and verification metadata.
+    public_result = dict(result)
+    generation = public_result.get("response_generation")
+    if isinstance(generation, dict):
+        public_generation = dict(generation)
+        public_generation.pop("original_response", None)
+        public_result["response_generation"] = public_generation
+    public_result.pop("original_response", None)
+    public_result.pop("trace_path", None)
+
     return {
         "service": "FinAI",
         "session_id": session_id,
-        **result,
+        **({"session_token": issued_session_token} if issued_session_token else {}),
+        **public_result,
     }
 
 

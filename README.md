@@ -40,11 +40,20 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 The main API is available at `http://127.0.0.1:8000`.
 
-The XAI trace API can be run separately:
+For multi-turn chat, start by sending a request without `session_id`. The server returns a generated `session_id` and an opaque `session_token`; clients must send both on subsequent turns. The token is a session capability, not proof of real-world identity. The mock authentication flow remains disabled unless explicitly enabled for an isolated local demo, and must not be used for real financial actions.
+
+The XAI trace API is disabled by default because traces can contain financial and personal context. To expose trace endpoints for a controlled local review, configure a strong bearer token and explicitly opt in:
 
 ```powershell
+$env:FINAI_API_AUTH_MODE = "bearer"
+$env:FINAI_API_BEARER_TOKEN = "<use-a-long-random-secret-of-at-least-32-characters>"
+$env:FINAI_ENABLE_XAI_TRACE_API = "true"
 uvicorn app.xai_api:app --host 127.0.0.1 --port 8001
 ```
+
+Use the same settings for the mounted /api/v1/xai/traces routes. A shared bearer token is not per-user authorization; do not expose trace access to multiple users until a verified identity gateway and principal-level access policy are configured. Trace content is minimized by default, with seven-day automatic expiry. Do not set FINAI_TRACE_STORE_CONTENTS=true without a documented privacy review.
+
+The mock session authentication endpoint and phrase-only authentication are disabled by default. For an isolated local demo only, set FINAI_ENABLE_DEMO_SESSION_AUTH=true while FINAI_ENV is not production. This is not real identity, OTP, or bank authentication and must never be used for real financial operations.
 
 ## Frontend
 
@@ -91,6 +100,14 @@ Then build the semantic index:
 ```powershell
 python scripts/build_rag_faiss.py
 ```
+
+Before using or evaluating the index, copy `configs/rag-artifact-manifest.example.json` to `configs/rag-artifact-manifest.json` and fill in the approved source licenses, retrieval timestamps, source hashes, chunking settings, embedding model revision/dimension, and generated-artifact hashes. Verify the completed manifest with:
+
+```powershell
+python scripts/verify_rag_manifest.py --manifest configs/rag-artifact-manifest.json
+```
+
+The verifier fails closed when metadata is missing, paths escape the repository, files are absent, or SHA-256 fingerprints differ. The template is intentionally incomplete until the owner supplies the real source and artifact provenance.
 
 The current builders expect the domain chunk files under `data/domain_chunks/`. Those source datasets must be obtained or generated separately. A fresh clone therefore does not contain a ready-to-query production RAG index until these assets are prepared.
 

@@ -15,14 +15,14 @@ def capable_gpu():
 
 def test_router_prefers_high_priority_default_model():
     router = ModelRouter()
-    result = router.route("response_generation", risk_level="low")
+    result = router.route("response_generation", risk_level="low", data_sensitivity="standard")
     assert result.selected_model == "gemini-cloud"
     assert result.policy == "heuristic"
 
 
 def test_router_is_risk_aware():
     router = ModelRouter()
-    result = router.route("financial_qa", risk_level="critical")
+    result = router.route("financial_qa", risk_level="critical", data_sensitivity="standard")
     assert result.reason == "risk_aware_policy_heuristic"
     assert result.fallback_chain[0] == result.selected_model
 
@@ -65,7 +65,7 @@ def test_critical_risk_can_promote_high_reasoning_cloud(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
     router = ModelRouter()
-    result = router.route("financial_qa", risk_level="critical")
+    result = router.route("financial_qa", risk_level="critical", data_sensitivity="standard")
 
     assert result.selected_model == "anthropic-claude"
     assert result.provider == "anthropic"
@@ -150,6 +150,7 @@ def test_insufficient_local_resources_are_pruned_from_online_candidates(monkeypa
     result = ModelRouter().route(
         "financial_qa",
         network_mode="online",
+        data_sensitivity="standard",
         hardware=hardware,
     )
     assert result.provider == "gemini"
@@ -175,3 +176,10 @@ def test_offline_fails_when_no_local_model_fits():
         assert "No enabled model" in str(exc)
         return
     raise AssertionError("Offline routing unexpectedly selected an unfit model.")
+
+
+def test_router_defaults_to_restricted_data_sensitivity():
+    result = ModelRouter().route("financial_qa", hardware=capable_gpu())
+    assert result.data_sensitivity == "restricted"
+    assert result.provider == "local"
+    assert "restricted_data_local_only" in result.constraints_applied

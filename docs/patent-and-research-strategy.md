@@ -266,3 +266,26 @@ Keep the inventive implementation and experimental records versioned and timesta
 8. Quantify computational savings and valid-scenario recall.
 9. Conduct a broader patent-family and non-patent-literature search around the exact mechanism.
 10. Prepare an invention disclosure for review by a qualified patent professional.
+
+## Preliminary public prior-art sweep — 2026-10-21
+
+This is an engineering research note, not a legal opinion, exhaustive search, novelty conclusion, or freedom-to-operate assessment. It records relevant results found during a first-pass public search; the exact claims and family/legal status must be checked by patent counsel.
+
+| Public source | Relevant overlap to investigate | Why this is not a patentability conclusion |
+|---|---|---|
+| CN121146937A, *A method and apparatus for financial stress testing based on generative artificial intelligence* (published 2025-12-16), https://patents.google.com/patent/CN121146937A/en | Generative-AI financial stress testing; heterogeneous data; portfolio relationship graph; hierarchical Bayesian parameters; conditional graph generator; Monte Carlo scenario distributions and tail-risk metrics. | Claim-by-claim mapping, family status, jurisdictional scope, and priority dates require professional review. |
+| Karanjai et al., *CausalGraphX: A Counterfactual Graph Neural Network Framework for Explainable Systemic Risk Assessment* (arXiv:2607.14416, 2026-07-15), https://arxiv.org/abs/2607.14416 | Causal graph attention, counterfactual reasoning, systemic-risk assessment, and interpretable risk propagation. | A paper is non-patent literature; it does not itself resolve patent eligibility, novelty, or inventive step. |
+| Thumm and Ontaneda Mijares, *Towards Causal Market Simulators* (arXiv:2511.04469, 2025-11-06), https://arxiv.org/abs/2511.04469 | Temporal neural causal models and structural causal models for counterfactual financial time-series generation. | Relevant conceptual overlap; exact methods, claims, and implementation details must be compared against the proposed claim language. |
+| Soleimani, *LLM-Generated Counterfactual Stress Scenarios for Portfolio Risk Simulation via Hybrid Prompt-RAG Pipeline* (arXiv:2512.07867, 2025-11-26), https://arxiv.org/abs/2512.07867 | LLM-generated counterfactual macro-financial stress scenarios, optional retrieval, risk measurement, diagnostics, and hash-verified reproducibility. | Strong reason to investigate the proposed RAG/evidence and scenario-generation combination carefully; no legal conclusion follows from title/abstract comparison. |
+| *Causal data science for financial stress testing* (Decision Support Systems), https://www.sciencedirect.com/science/article/pii/S1877750317311377 | Causal Bayesian networks and algorithmically constructed adverse financial scenarios. | Establishes that causal financial stress testing is not itself a new idea; novelty must be in a specific, non-obvious technical mechanism and claim. |
+| Baes and Schaanning, *Reverse stress testing: Scenario design for macroprudential stress tests* (Mathematical Finance, 2023), https://onlinelibrary.wiley.com/doi/full/10.1111/mafi.12373 | Algorithmic worst-case scenario design, portfolio vulnerabilities, contagion, and scenario clustering. | Relevant background on scenario selection and systemic stress; the detailed claim comparison remains open. |
+
+### Immediate implications
+
+1. Do not claim that combining causal graphs, counterfactuals, GNNs, LLMs, RAG, or stress testing is novel by itself.
+2. The potentially differentiating claim should be stated as a precise mechanism—for example, how evidence requirements, feasibility certificates, and safe rejection/retention decisions interact with counterfactual scenario search—not as a list of model families.
+3. Preserve dated source code, experiment configurations, hashes, failed cases, and measured false-pruning/high-risk recall.
+4. Complete a search by claim elements across Google Patents, WIPO PATENTSCOPE, Espacenet, USPTO, and the relevant Indian records; inspect priority families, citations, prosecution/legal status, and non-patent literature.
+5. Obtain counsel's advice on claim scope, inventorship, filing sequence, disclosure timing, and freedom to operate before public disclosure or filing.
+
+This sweep raises material overlap to investigate and does not establish that FinAI's evidence-gated feasibility mechanism is anticipated—or that it is novel. Both conclusions require the claim-focused review.

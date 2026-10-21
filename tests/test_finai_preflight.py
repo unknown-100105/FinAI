@@ -14,7 +14,7 @@ def test_preflight_reports_missing_router_and_rag_assets_without_network_calls(t
     monkeypatch.setenv("FINAI_COLIBRI_API_KEY", "local-api-secret")
     report = audit(tmp_path)
 
-    assert report["scope"] == "local_presence_check_only_no_network_calls"
+    assert report["scope"] == "local_presence_and_manifest_hash_check_only_no_network_calls"
     assert report["artifacts"]["router_model_present"] is False
     assert len(report["artifacts"]["rag_source_chunks_missing"]) == 2
     assert len(report["artifacts"]["rag_assets_missing"]) == 3

@@ -1,7 +1,17 @@
 ﻿from dataclasses import dataclass
-from math import pow
+from math import isfinite, pow
 from statistics import mean
 from typing import Dict, List
+
+
+def _require_finite_parameters(**values) -> None:
+    for name, value in values.items():
+        try:
+            finite = isfinite(float(value))
+        except (TypeError, ValueError, OverflowError):
+            finite = False
+        if not finite:
+            raise ValueError(f"{name} must be a finite numeric value.")
 
 
 @dataclass
@@ -47,6 +57,11 @@ class FinanceEngine:
         tenure_months: int,
     ) -> EMIResult:
 
+        _require_finite_parameters(
+            principal=principal, annual_rate=annual_rate, tenure_months=tenure_months
+        )
+        if not float(tenure_months).is_integer():
+            raise ValueError("Tenure must be a whole number of months.")
         if principal <= 0:
             raise ValueError("Principal must be greater than zero.")
 
@@ -61,10 +76,13 @@ class FinanceEngine:
         if monthly_rate == 0:
             emi = principal / tenure_months
         else:
-            factor = pow(
-                1 + monthly_rate,
-                tenure_months
-            )
+            try:
+                factor = pow(
+                    1 + monthly_rate,
+                    tenure_months
+                )
+            except OverflowError as exc:
+                raise ValueError("EMI inputs exceed the supported numeric range.") from exc
 
             emi = (
                 principal
@@ -75,6 +93,11 @@ class FinanceEngine:
 
         total_payment = emi * tenure_months
         total_interest = total_payment - principal
+        _require_finite_parameters(
+            monthly_emi=emi,
+            total_payment=total_payment,
+            total_interest=total_interest,
+        )
 
         return EMIResult(
             principal=round(principal, 2),
@@ -96,6 +119,13 @@ class FinanceEngine:
         years: int,
     ) -> SIPResult:
 
+        _require_finite_parameters(
+            monthly_investment=monthly_investment,
+            annual_return=annual_return,
+            years=years,
+        )
+        if not float(years).is_integer():
+            raise ValueError("Investment period must be a whole number of years.")
         if monthly_investment <= 0:
             raise ValueError(
                 "Monthly investment must be greater than zero."
@@ -120,16 +150,24 @@ class FinanceEngine:
         if monthly_rate == 0:
             estimated_value = total_invested
         else:
-            estimated_value = (
-                monthly_investment
-                * (
-                    ((1 + monthly_rate) ** months - 1)
-                    / monthly_rate
+            try:
+                estimated_value = (
+                    monthly_investment
+                    * (
+                        ((1 + monthly_rate) ** months - 1)
+                        / monthly_rate
+                    )
                 )
-            )
+            except OverflowError as exc:
+                raise ValueError("SIP inputs exceed the supported numeric range.") from exc
 
         estimated_profit = (
             estimated_value - total_invested
+        )
+        _require_finite_parameters(
+            total_invested=total_invested,
+            estimated_value=estimated_value,
+            estimated_profit=estimated_profit,
         )
 
         return SIPResult(
@@ -153,6 +191,17 @@ class FinanceEngine:
         compounding_frequency: int = 12,
     ) -> CompoundInterestResult:
 
+        _require_finite_parameters(
+            principal=principal,
+            annual_rate=annual_rate,
+            years=years,
+            compounding_frequency=compounding_frequency,
+        )
+        if not float(years).is_integer():
+            raise ValueError("Investment period must be a whole number of years.")
+        if not float(compounding_frequency).is_integer():
+            raise ValueError("Compounding frequency must be a whole number.")
+
         if principal <= 0:
             raise ValueError("Principal must be greater than zero.")
 
@@ -169,18 +218,25 @@ class FinanceEngine:
                 "Compounding frequency must be greater than zero."
             )
 
-        final_amount = (
-            principal
-            * (
-                1 + annual_rate / 100
-                / compounding_frequency
+        try:
+            final_amount = (
+                principal
+                * (
+                    1 + annual_rate / 100
+                    / compounding_frequency
+                )
+                ** (
+                    compounding_frequency * years
+                )
             )
-            ** (
-                compounding_frequency * years
-            )
-        )
+        except OverflowError as exc:
+            raise ValueError("Compound-interest inputs exceed the supported numeric range.") from exc
 
         total_interest = final_amount - principal
+        _require_finite_parameters(
+            final_amount=final_amount,
+            total_interest=total_interest,
+        )
 
         return CompoundInterestResult(
             principal=round(principal, 2),

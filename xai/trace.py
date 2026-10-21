@@ -1,21 +1,39 @@
-﻿import json
+﻿import copy
+import hashlib
+import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
+from uuid import uuid4
 
 
-TRACE_DIR = Path("xai/traces")
+TRACE_DIR = Path(
+    os.getenv("FINAI_TRACE_DIR")
+    or str(Path(__file__).resolve().parent / "traces")
+).expanduser().resolve()
+_DEFAULT_TRACE_RETENTION_DAYS = 7
+
+
+def _env_enabled(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().casefold() in {"1", "true", "yes", "on"}
 
 
 class XAITrace:
 
     def __init__(self, session_id: str):
-        self.session_id = session_id
+        self.session_id = str(session_id)
         self.started_at = datetime.now().isoformat()
+        session_fingerprint = hashlib.sha256(
+            self.session_id.encode("utf-8")
+        ).hexdigest()[:16]
 
         self.data = {
             "trace_id": self._make_trace_id(),
-            "session_id": session_id,
+            "session_id": f"session-ref-{session_fingerprint}",
             "started_at": self.started_at,
             "completed_at": None,
 
@@ -111,10 +129,8 @@ class XAITrace:
         }
 
     def _make_trace_id(self) -> str:
-        return (
-            f"{self.session_id}-"
-            f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
-        )
+        # Never derive filesystem names from caller-controlled session IDs.
+        return f"trace-{uuid4().hex}"
 
     def set_user_input(self, text: str):
         self.data["user_input"] = str(text)
@@ -553,31 +569,65 @@ class XAITrace:
         self.data["completed_at"] = datetime.now().isoformat()
 
     def save(self) -> Path:
+        """Persist a minimized, private trace with a generated safe filename.
 
+        Raw prompts, tool payloads, retrieved text, and claim text are omitted by
+        default. Set FINAI_TRACE_STORE_CONTENTS=true only in a controlled,
+        access-restricted environment after a privacy review.
+        """
         self.complete()
-
-        TRACE_DIR.mkdir(
-            parents=True,
-            exist_ok=True
-        )
-
+        TRACE_DIR.mkdir(parents=True, exist_ok=True)
+        trace_root = TRACE_DIR.resolve()
         trace_id = str(self.data["trace_id"])
 
-        path = TRACE_DIR / f"{trace_id}.json"
+        # Defense in depth: generated trace IDs must remain safe and contained.
+        if not trace_id.startswith("trace-") or not trace_id.replace("-", "").isalnum():
+            raise ValueError("Unsafe generated trace ID.")
+        path = (trace_root / f"{trace_id}.json").resolve()
+        if not path.is_relative_to(trace_root):
+            raise ValueError("Trace path escapes the configured trace directory.")
 
-        with open(
-            path,
-            "w",
-            encoding="utf-8"
-        ) as f:
+        payload = copy.deepcopy(self.data)
+        if not _env_enabled("FINAI_TRACE_STORE_CONTENTS", default=False):
+            payload["user_input"] = None
+            payload["tool"]["message"] = None
+            payload["tool"]["data"] = {}
+            payload["final"]["message"] = None
+            payload["rag"]["query"] = None
+            payload["rag"]["documents"] = []
+            payload["claims"]["items"] = []
+            if isinstance(payload["claims"].get("verification"), dict):
+                payload["claims"]["verification"]["report"] = {}
+            payload["verification"]["response"] = {}
+            payload["verification"]["claims"] = {}
+            payload["rag"]["error"] = None
+            payload["session"]["pending_intent"] = None
+            payload["session"]["pending_tool"] = None
 
-            json.dump(
-                self.data,
-                f,
-                indent=2,
-                ensure_ascii=False
-            )
+        # Retain traces for a bounded period by default. A value <= 0 disables
+        # automatic expiry; deployments should configure this intentionally.
+        try:
+            retention_days = int(os.getenv(
+                "FINAI_TRACE_RETENTION_DAYS",
+                str(_DEFAULT_TRACE_RETENTION_DAYS),
+            ))
+        except ValueError:
+            retention_days = _DEFAULT_TRACE_RETENTION_DAYS
+        if retention_days > 0:
+            cutoff = datetime.now().timestamp() - retention_days * 86400
+            for old_path in trace_root.glob("*.json"):
+                try:
+                    if old_path.stat().st_mtime < cutoff:
+                        old_path.unlink()
+                except OSError:
+                    # A stale trace must not prevent a new request from completing.
+                    continue
 
+        # Exclusive creation prevents accidental overwrite. Restrictive mode is
+        # applied on POSIX; Windows uses its platform ACLs.
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
         return path
 
     @staticmethod
@@ -606,10 +656,20 @@ class XAITrace:
             return None
 
         if isinstance(value, dict):
-            return {
-                str(k): cls._clean_value(v)
-                for k, v in value.items()
-            }
+            cleaned = {}
+            sensitive_fragments = (
+                "account", "card", "phone", "email", "token",
+                "password", "secret", "authorization", "upi",
+                "ifsc", "pan", "aadhaar", "ssn", "date_of_birth",
+                "address", "customer_id", "balance",
+            )
+            for key, item in value.items():
+                key_text = str(key)
+                if any(fragment in key_text.casefold() for fragment in sensitive_fragments):
+                    cleaned[key_text] = "[REDACTED]"
+                else:
+                    cleaned[key_text] = cls._clean_value(item)
+            return cleaned
 
         if isinstance(value, (list, tuple)):
             return [

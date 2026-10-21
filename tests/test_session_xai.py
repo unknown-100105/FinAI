@@ -207,3 +207,21 @@ def test_session_trace_records_authority_and_execution():
     )
     assert trace["execution"]["execution_class"] == "COMPUTE"
     assert trace["execution"]["capability"] == "finance_engine"
+
+
+def test_phrase_authentication_is_disabled_without_demo_opt_in(monkeypatch):
+    monkeypatch.setenv("FINAI_ENV", "development")
+    monkeypatch.delenv("FINAI_ENABLE_DEMO_SESSION_AUTH", raising=False)
+    assert XAISessionOrchestrator._is_authentication("authenticated") is False
+
+
+def test_phrase_authentication_is_never_enabled_in_production(monkeypatch):
+    monkeypatch.setenv("FINAI_ENV", "production")
+    monkeypatch.setenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "true")
+    assert XAISessionOrchestrator._is_authentication("otp verified") is False
+
+
+def test_phrase_authentication_requires_explicit_demo_opt_in(monkeypatch):
+    monkeypatch.setenv("FINAI_ENV", "development")
+    monkeypatch.setenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "true")
+    assert XAISessionOrchestrator._is_authentication("authenticated") is True

@@ -4,6 +4,7 @@
 export type ChatRequest = {
   message: string;
   session_id?: string;
+  session_token?: string;
   language?: string;
   persona?: string;
   generate_response?: boolean;
