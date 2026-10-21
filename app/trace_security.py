@@ -10,7 +10,6 @@ def require_trace_api_enabled() -> None:
     """Only expose trace APIs when explicitly enabled behind bearer auth."""
     enabled = os.getenv("FINAI_ENABLE_XAI_TRACE_API", "").strip().casefold()
     mode = os.getenv("FINAI_API_AUTH_MODE", "development").strip().casefold()
-    environment = os.getenv("FINAI_ENV", "development").strip().casefold()
 
     if enabled not in {"1", "true", "yes", "on"}:
         raise HTTPException(status_code=404, detail="XAI trace API is disabled.")
