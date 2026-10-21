@@ -451,7 +451,7 @@ class ResponseService:
         if intent == "EMI_QUERY":
             result = self.response_verifier.verify_emi(
                 response=response,
-                verified_result=provider_context,
+                verified_result=verified_result,
             )
             return {
                 "applicable": True,
@@ -464,7 +464,7 @@ class ResponseService:
             if required.issubset(verified_result):
                 result = self.response_verifier.verify_compound_interest(
                     response=response,
-                    verified_result=provider_context,
+                    verified_result=verified_result,
                 )
                 return {
                     "applicable": True,
