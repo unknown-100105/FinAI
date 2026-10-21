@@ -199,7 +199,7 @@ def audit(root: Path = ROOT) -> dict[str, Any]:
 
     return {
         "schema_version": "1.0",
-        "scope": "local_presence_check_only_no_network_calls",
+        "scope": "local_presence_and_manifest_hash_check_only_no_network_calls",
         "checkout": {
             "root": str(root),
             "python_version": platform.python_version(),
