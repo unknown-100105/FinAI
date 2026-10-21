@@ -568,9 +568,9 @@ class ResponseService:
                 )
 
             retried = adapter.generate(
-                user_text=user_text,
+                user_text=self._minimize_provider_prompt(intent, user_text),
                 intent=intent,
-                verified_result=verified_result,
+                verified_result=self._minimize_provider_context(intent, verified_result),
                 source=source,
                 language=language,
                 persona=persona,
