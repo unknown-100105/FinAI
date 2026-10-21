@@ -233,6 +233,10 @@ class FinanceEngine:
             raise ValueError("Compound-interest inputs exceed the supported numeric range.") from exc
 
         total_interest = final_amount - principal
+        _require_finite_parameters(
+            final_amount=final_amount,
+            total_interest=total_interest,
+        )
 
         return CompoundInterestResult(
             principal=round(principal, 2),
