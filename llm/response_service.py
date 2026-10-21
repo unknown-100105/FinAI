@@ -292,7 +292,7 @@ class ResponseService:
         )
         provider_user_text = self._minimize_provider_prompt(
             intent=intent,
-            user_text=provider_user_text,
+            user_text=user_text,
         )
 
         try:
