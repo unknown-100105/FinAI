@@ -86,10 +86,13 @@ class FinanceEngine:
         if monthly_rate == 0:
             emi = principal / tenure_months
         else:
-            factor = pow(
-                1 + monthly_rate,
-                tenure_months
-            )
+            try:
+                factor = pow(
+                    1 + monthly_rate,
+                    tenure_months
+                )
+            except OverflowError as exc:
+                raise ValueError("EMI inputs exceed the supported numeric range.") from exc
 
             emi = (
                 principal
@@ -152,13 +155,16 @@ class FinanceEngine:
         if monthly_rate == 0:
             estimated_value = total_invested
         else:
-            estimated_value = (
-                monthly_investment
-                * (
-                    ((1 + monthly_rate) ** months - 1)
-                    / monthly_rate
+            try:
+                estimated_value = (
+                    monthly_investment
+                    * (
+                        ((1 + monthly_rate) ** months - 1)
+                        / monthly_rate
+                    )
                 )
-            )
+            except OverflowError as exc:
+                raise ValueError("SIP inputs exceed the supported numeric range.") from exc
 
         estimated_profit = (
             estimated_value - total_invested
@@ -201,16 +207,19 @@ class FinanceEngine:
                 "Compounding frequency must be greater than zero."
             )
 
-        final_amount = (
-            principal
-            * (
-                1 + annual_rate / 100
-                / compounding_frequency
+        try:
+            final_amount = (
+                principal
+                * (
+                    1 + annual_rate / 100
+                    / compounding_frequency
+                )
+                ** (
+                    compounding_frequency * years
+                )
             )
-            ** (
-                compounding_frequency * years
-            )
-        )
+        except OverflowError as exc:
+            raise ValueError("Compound-interest inputs exceed the supported numeric range.") from exc
 
         total_interest = final_amount - principal
 
