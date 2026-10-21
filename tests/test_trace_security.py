@@ -1,4 +1,6 @@
 import json
+import os
+import time
 from pathlib import Path
 
 from xai import trace as trace_module
@@ -52,3 +54,18 @@ def test_explicit_trace_content_storage_still_redacts_sensitive_fields(tmp_path,
     assert persisted["tool"]["data"]["account_id"] == "[REDACTED]"
     assert persisted["tool"]["data"]["balance"] == "[REDACTED]"
     assert persisted["tool"]["data"]["currency"] == "INR"
+
+
+def test_trace_retention_removes_expired_files(tmp_path, monkeypatch):
+    monkeypatch.setattr(trace_module, "TRACE_DIR", tmp_path)
+    monkeypatch.setenv("FINAI_TRACE_RETENTION_DAYS", "7")
+    monkeypatch.delenv("FINAI_TRACE_STORE_CONTENTS", raising=False)
+
+    expired = tmp_path / "trace-expired.json"
+    expired.write_text("{}", encoding="utf-8")
+    old_time = time.time() - 9 * 86400
+    os.utime(expired, (old_time, old_time))
+
+    XAITrace("session-retention-test").save()
+
+    assert not expired.exists()
