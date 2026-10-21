@@ -184,6 +184,57 @@ class ResponseService:
         self._fallback_adapters[model_id] = adapter
         return adapter
 
+    @staticmethod
+    def _minimize_provider_context(
+        intent: str,
+        context: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Remove irrelevant and sensitive fields before any provider call."""
+        if not isinstance(context, dict):
+            return {}
+
+        allowlists = {
+            "EMI_QUERY": {
+                "principal", "annual_rate", "tenure_months",
+                "monthly_emi", "total_payment", "total_interest",
+            },
+            "INTEREST_QUERY": {
+                "principal", "annual_rate", "years",
+                "compounding_frequency", "final_amount", "total_interest",
+            },
+        }
+        allowed_fields = allowlists.get(intent)
+        if allowed_fields is not None:
+            return {
+                key: context[key]
+                for key in allowed_fields
+                if key in context
+            }
+
+        sensitive_fragments = (
+            "account_id", "account_number", "balance", "card_number",
+            "phone", "email", "token", "password", "secret",
+            "authorization", "upi", "ifsc", "pan", "aadhaar",
+            "ssn", "date_of_birth", "customer_id",
+        )
+
+        def clean(value: Any) -> Any:
+            if isinstance(value, dict):
+                result = {}
+                for key, item in value.items():
+                    key_text = str(key)
+                    if any(fragment in key_text.casefold() for fragment in sensitive_fragments):
+                        continue
+                    result[key_text] = clean(item)
+                return result
+            if isinstance(value, (list, tuple)):
+                return [clean(item) for item in value]
+            if value is None or isinstance(value, (str, int, float, bool)):
+                return value
+            return str(value)
+
+        return clean(context)
+
     def _generate_with_provider_fallback(
         self,
         selected_model: str,
@@ -200,13 +251,17 @@ class ResponseService:
         data_sensitivity: str = "restricted",
         allowed_providers: Optional[tuple[str, ...]] = None,
     ) -> Dict[str, Any]:
-        """Generate with fallbacks constrained by the request's network policy."""
+        """Generate with fallbacks constrained by network and data policy."""
+        provider_context = self._minimize_provider_context(
+            intent=intent,
+            context=verified_result,
+        )
 
         try:
             result = self.gateway.generate(
                 user_text=user_text,
                 intent=intent,
-                verified_result=verified_result,
+                verified_result=provider_context,
                 source=source,
                 language=language,
                 persona=persona,
@@ -292,7 +347,7 @@ class ResponseService:
                     fallback_result = adapter.generate(
                         user_text=user_text,
                         intent=intent,
-                        verified_result=verified_result,
+                        verified_result=provider_context,
                         source=source,
                         language=language,
                         persona=persona,
@@ -353,7 +408,7 @@ class ResponseService:
         if intent == "EMI_QUERY":
             result = self.response_verifier.verify_emi(
                 response=response,
-                verified_result=verified_result,
+                verified_result=provider_context,
             )
             return {
                 "applicable": True,
@@ -366,7 +421,7 @@ class ResponseService:
             if required.issubset(verified_result):
                 result = self.response_verifier.verify_compound_interest(
                     response=response,
-                    verified_result=verified_result,
+                    verified_result=provider_context,
                 )
                 return {
                     "applicable": True,
