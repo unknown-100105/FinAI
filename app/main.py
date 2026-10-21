@@ -1,4 +1,8 @@
-﻿import os
+﻿import hashlib
+import hmac
+import os
+import secrets
+import time
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
@@ -83,6 +87,8 @@ if os.getenv("FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS", "").strip().casefold() in
 
 _orchestrator: Optional[XAISessionOrchestrator] = None
 _market_data_service: Optional[MarketDataService] = None
+_SESSION_CAPABILITY_TTL_SECONDS = 3600
+_SESSION_CAPABILITIES: dict[str, tuple[str, float]] = {}
 
 
 def get_market_data_service() -> MarketDataService:
@@ -135,6 +141,13 @@ class ChatRequest(BaseModel):
         min_length=1,
         max_length=4000,
         description="User's financial request.",
+    )
+
+    session_token: Optional[str] = Field(
+        default=None,
+        min_length=32,
+        max_length=128,
+        description="Opaque session capability returned by the server.",
     )
 
     session_id: Optional[str] = Field(
@@ -208,6 +221,39 @@ def api_info() -> Dict[str, Any]:
     }
 
 
+def _issue_session_capability(session_id: str) -> str:
+    now = time.time()
+    expired = [
+        key for key, (_, expiry) in _SESSION_CAPABILITIES.items()
+        if expiry <= now
+    ]
+    for key in expired:
+        _SESSION_CAPABILITIES.pop(key, None)
+    if len(_SESSION_CAPABILITIES) >= 10000:
+        raise HTTPException(status_code=503, detail="Session capacity reached; retry later.")
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    _SESSION_CAPABILITIES[session_id] = (
+        token_hash,
+        now + _SESSION_CAPABILITY_TTL_SECONDS,
+    )
+    return token
+
+
+def _valid_session_capability(session_id: str, token: Optional[str]) -> bool:
+    if not token:
+        return False
+    record = _SESSION_CAPABILITIES.get(session_id)
+    if record is None:
+        return False
+    expected_hash, expiry = record
+    if expiry <= time.time():
+        _SESSION_CAPABILITIES.pop(session_id, None)
+        return False
+    supplied_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    return hmac.compare_digest(supplied_hash, expected_hash)
+
+
 def _demo_session_auth_enabled() -> bool:
     """Allow mock session auth only when explicitly enabled outside production."""
     enabled = os.getenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "").strip().casefold()
@@ -268,14 +314,18 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
             detail="Message cannot be empty.",
         )
 
-    session_id = (
-        request.session_id.strip()
-        if request.session_id
-        else ""
-    )
+    issued_session_token: Optional[str] = None
+    session_id = request.session_id.strip() if request.session_id else ""
 
-    if not session_id:
+    if session_id and not _demo_session_auth_enabled():
+        if not _valid_session_capability(session_id, request.session_token):
+            raise HTTPException(
+                status_code=401,
+                detail="A valid server-issued session_token is required for an existing session.",
+            )
+    elif not session_id:
         session_id = f"session-{uuid4().hex}"
+        issued_session_token = _issue_session_capability(session_id)
 
     try:
         result = get_orchestrator().handle_message(
@@ -313,6 +363,7 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
     return {
         "service": "FinAI",
         "session_id": session_id,
+        **({"session_token": issued_session_token} if issued_session_token else {}),
         **public_result,
     }
 
