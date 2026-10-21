@@ -198,3 +198,30 @@ def test_chat_confirmation_cannot_bypass_authentication():
     assert executed["status"] == "TOOL_EXECUTED"
     assert executed["tool"]["success"] is True
     assert executed["session"]["awaiting_confirmation"] is False
+
+
+def test_chat_api_does_not_expose_rejected_model_output(monkeypatch):
+    class FakeOrchestrator:
+        def handle_message(self, **kwargs):
+            return {
+                "status": "VERIFICATION_FAILED",
+                "message": "Safe public message",
+                "response_generation": {
+                    "status": "VERIFICATION_FAILED",
+                    "response": "Safe public message",
+                    "original_response": "Private rejected text with account 123456",
+                },
+                "original_response": "Top-level rejected text",
+            }
+
+    monkeypatch.setattr("app.main.get_orchestrator", lambda: FakeOrchestrator())
+    response = client.post(
+        "/api/v1/chat",
+        json={"message": "Explain this finance result"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "original_response" not in data
+    assert "original_response" not in data["response_generation"]
+    assert data["response_generation"]["response"] == "Safe public message"
