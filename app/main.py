@@ -359,6 +359,7 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
         public_generation.pop("original_response", None)
         public_result["response_generation"] = public_generation
     public_result.pop("original_response", None)
+    public_result.pop("trace_path", None)
 
     return {
         "service": "FinAI",
