@@ -65,7 +65,7 @@ def test_critical_risk_can_promote_high_reasoning_cloud(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
     router = ModelRouter()
-    result = router.route("financial_qa", risk_level="critical")
+    result = router.route("financial_qa", risk_level="critical", data_sensitivity="standard")
 
     assert result.selected_model == "anthropic-claude"
     assert result.provider == "anthropic"
