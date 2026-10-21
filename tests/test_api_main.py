@@ -10,6 +10,8 @@ client = TestClient(app)
 @pytest.fixture(autouse=True)
 def enable_isolated_demo_auth(monkeypatch):
     monkeypatch.setenv("FINAI_ENV", "development")
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
+    monkeypatch.delenv("FINAI_API_BEARER_TOKEN", raising=False)
     monkeypatch.setenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "true")
 
 
