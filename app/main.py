@@ -300,10 +300,20 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
             detail="FinAI request processing failed.",
         ) from exc
 
+    # Keep rejected/incomplete provider text internal. Ordinary chat clients
+    # receive only the approved response and verification metadata.
+    public_result = dict(result)
+    generation = public_result.get("response_generation")
+    if isinstance(generation, dict):
+        public_generation = dict(generation)
+        public_generation.pop("original_response", None)
+        public_result["response_generation"] = public_generation
+    public_result.pop("original_response", None)
+
     return {
         "service": "FinAI",
         "session_id": session_id,
-        **result,
+        **public_result,
     }
 
 
