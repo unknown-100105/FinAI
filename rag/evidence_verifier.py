@@ -3,11 +3,11 @@ from typing import Any, Dict, Iterable, List, Set
 
 
 class RAGEvidenceVerifier:
-    """Deterministic lexical verifier for retrieval-grounded responses.
+    """Deterministic lexical-overlap support check for retrieval-grounded responses.
 
     The verifier treats retrieved documents as the only authority. It does
-    not call an LLM and does not attempt to prove factual correctness beyond
-    overlap with the supplied evidence.
+    not call an LLM and does not prove factual correctness, semantic entailment, or truth; it only
+    measures lexical overlap with supplied evidence.
     """
 
     DEFAULT_OVERLAP_THRESHOLD = 0.35
@@ -149,7 +149,7 @@ class RAGEvidenceVerifier:
             return {
                 "applicable": True,
                 "passed": False,
-                "mode": "EVIDENCE_SUPPORT",
+                "mode": "LEXICAL_OVERLAP_SUPPORT",
                 "evidence_count": len(documents),
                 "supported_claims": [],
                 "unsupported_claims": [
