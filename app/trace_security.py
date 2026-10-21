@@ -22,3 +22,13 @@ def require_trace_api_enabled() -> None:
             status_code=404,
             detail="XAI trace API requires FINAI_API_AUTH_MODE=bearer and a verified identity gateway for multi-user deployments.",
         )
+
+def require_trace_details_enabled() -> None:
+    """Require a second explicit opt-in for full trace contents and deletion."""
+    require_trace_api_enabled()
+    enabled = os.getenv("FINAI_ENABLE_XAI_TRACE_DETAILS", "").strip().casefold()
+    if enabled not in {"1", "true", "yes", "on"}:
+        raise HTTPException(
+            status_code=404,
+            detail="Full XAI trace details are disabled.",
+        )
