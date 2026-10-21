@@ -13,6 +13,7 @@ def configure_trace_access(monkeypatch):
     monkeypatch.setenv("FINAI_API_AUTH_MODE", "bearer")
     monkeypatch.setenv("FINAI_API_BEARER_TOKEN", TRACE_TOKEN)
     monkeypatch.setenv("FINAI_ENABLE_XAI_TRACE_API", "true")
+    monkeypatch.setenv("FINAI_ENABLE_XAI_TRACE_DETAILS", "true")
     return {"Authorization": f"Bearer {TRACE_TOKEN}"}
 
 
@@ -90,3 +91,17 @@ def test_trace_can_be_deleted_with_authorized_opt_in(tmp_path, monkeypatch):
     assert response.status_code == 200
     assert response.json() == {"status": "DELETED", "trace_id": trace_id}
     assert not trace_path.exists()
+
+
+def test_full_trace_details_require_separate_opt_in(monkeypatch):
+    monkeypatch.setenv("FINAI_ENV", "development")
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "bearer")
+    monkeypatch.setenv("FINAI_API_BEARER_TOKEN", TRACE_TOKEN)
+    monkeypatch.setenv("FINAI_ENABLE_XAI_TRACE_API", "true")
+    monkeypatch.delenv("FINAI_ENABLE_XAI_TRACE_DETAILS", raising=False)
+
+    response = client.get(
+        "/api/v1/xai/traces/nonexistent-trace-000",
+        headers={"Authorization": f"Bearer {TRACE_TOKEN}"},
+    )
+    assert response.status_code == 404
