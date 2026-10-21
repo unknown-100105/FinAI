@@ -5,6 +5,8 @@ from app.main import app
 
 def test_demo_authentication_is_disabled_by_default(monkeypatch):
     monkeypatch.setenv("FINAI_ENV", "development")
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
+    monkeypatch.delenv("FINAI_API_BEARER_TOKEN", raising=False)
     monkeypatch.delenv("FINAI_ENABLE_DEMO_SESSION_AUTH", raising=False)
     client = TestClient(app)
 
@@ -18,6 +20,8 @@ def test_demo_authentication_is_disabled_by_default(monkeypatch):
 
 def test_demo_authentication_requires_explicit_nonproduction_opt_in(monkeypatch):
     monkeypatch.setenv("FINAI_ENV", "development")
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
+    monkeypatch.delenv("FINAI_API_BEARER_TOKEN", raising=False)
     monkeypatch.setenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "true")
     client = TestClient(app)
 
@@ -51,6 +55,8 @@ def test_demo_authentication_is_disabled_in_production(monkeypatch):
 
 def test_logout_clears_demo_session_authentication(monkeypatch):
     monkeypatch.setenv("FINAI_ENV", "development")
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
+    monkeypatch.delenv("FINAI_API_BEARER_TOKEN", raising=False)
     monkeypatch.setenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "true")
     client = TestClient(app)
 
@@ -70,6 +76,8 @@ def test_logout_clears_demo_session_authentication(monkeypatch):
 
 def test_session_id_rejects_path_separators(monkeypatch):
     monkeypatch.setenv("FINAI_ENV", "development")
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
+    monkeypatch.delenv("FINAI_API_BEARER_TOKEN", raising=False)
     monkeypatch.setenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "true")
     client = TestClient(app)
 
