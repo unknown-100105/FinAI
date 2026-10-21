@@ -1,4 +1,5 @@
 ﻿from llm.response_service import ResponseService
+from llm.response_verifier import FinancialResponseVerifier
 
 
 VERIFIED = {
@@ -161,3 +162,37 @@ def test_rllm_model_id_is_preserved_in_verified_result():
     assert result["model_id"] == "rllm-finqa-4b"
     assert result["selection"]["model_id"] == "rllm-finqa-4b"
     assert result["selection"]["capability"] == "financial_qa"
+
+
+def test_compound_interest_verifier_checks_deterministic_values_and_labels():
+    verifier = FinancialResponseVerifier()
+    verified = {
+        "principal": 100_000.00,
+        "final_amount": 148_984.57,
+        "total_interest": 48_984.57,
+    }
+    good = (
+        "Final amount: ₹148,984.57. "
+        "Total interest: ₹48,984.57. "
+        "Principal: ₹100,000.00."
+    )
+    result = verifier.verify_compound_interest(good, verified)
+    assert result["passed"] is True
+    assert result["missing_values"] == []
+    assert result["semantic_errors"] == []
+
+
+def test_compound_interest_verifier_rejects_wrong_amount_and_missing_labels():
+    verifier = FinancialResponseVerifier()
+    verified = {
+        "principal": 100_000.00,
+        "final_amount": 148_984.57,
+        "total_interest": 48_984.57,
+    }
+    bad = "Your investment grows to ₹160,000.00."
+    result = verifier.verify_compound_interest(bad, verified)
+    assert result["passed"] is False
+    assert {item["field"] for item in result["missing_values"]} == {
+        "final_amount", "total_interest", "principal"
+    }
+    assert result["semantic_errors"]
