@@ -18,8 +18,8 @@ def require_trace_api_enabled() -> None:
     # A shared bearer is only a deployment boundary, not per-user identity.
     # Do not allow trace APIs in open development mode; use a verified identity
     # gateway/principal-aware authorization before exposing traces to multiple users.
-    if mode != "bearer" and environment not in {"prod", "production"}:
+    if mode != "bearer":
         raise HTTPException(
             status_code=404,
-            detail="XAI trace API requires bearer mode or a production identity gateway.",
+            detail="XAI trace API requires FINAI_API_AUTH_MODE=bearer and a verified identity gateway for multi-user deployments.",
         )
