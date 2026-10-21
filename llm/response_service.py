@@ -73,6 +73,10 @@ class ResponseService:
             "total_payment",
             "total_interest",
         ),
+        "INTEREST_QUERY": (
+            "final_amount",
+            "total_interest",
+        ),
     }
 
     def __init__(
@@ -347,16 +351,28 @@ class ResponseService:
             )
 
         if intent == "EMI_QUERY":
-
             result = self.response_verifier.verify_emi(
                 response=response,
                 verified_result=verified_result,
             )
-
             return {
                 "applicable": True,
+                "mode": "DETERMINISTIC_FINANCIAL_VALUES",
                 **result,
             }
+
+        if intent == "INTEREST_QUERY":
+            required = {"final_amount", "total_interest"}
+            if required.issubset(verified_result):
+                result = self.response_verifier.verify_compound_interest(
+                    response=response,
+                    verified_result=verified_result,
+                )
+                return {
+                    "applicable": True,
+                    "mode": "DETERMINISTIC_FINANCIAL_VALUES",
+                    **result,
+                }
 
         return {
             "applicable": False,
