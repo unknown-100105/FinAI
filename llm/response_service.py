@@ -1,4 +1,5 @@
 from typing import Any, Dict, Optional
+import time
 
 from llm.model_gateway import ModelGateway
 from llm.model_registry import enabled_models, provider_configured, get_model_spec
@@ -17,6 +18,8 @@ from llm.cloud.openrouter_adapter import OpenRouterResponseAdapter
 from llm.cloud.anthropic_adapter import AnthropicResponseAdapter
 from llm.cloud.mistral_adapter import MistralResponseAdapter
 from llm.model_router import ModelRouter, provider_for
+from llm.task_aware_router import TaskAwareModelRouter
+from llm.verifier_gated_escalation import verifier_gated_escalate
 from llm.cloud.openai_adapter import OpenAIAstraResponseAdapter, OpenAISolResponseAdapter, OpenAIResponseAdapter
 
 
@@ -65,6 +68,33 @@ class ResponseService:
             "rllm-finqa-4b",
             "colibri-local",
         ),
+        # Reasoning fallbacks must themselves advertise financial_reasoning.
+        # General cloud models are intentionally excluded from this profile.
+        "financial_reasoning": (
+            "gemini-pro-cloud",
+            "openai-astra",
+            "openai-sol",
+            "openai-luna",
+            "anthropic-claude",
+            "mistral-large",
+            "rllm-finqa-4b",
+        ),
+        # These task profiles use the same eligible provider fallback family;
+        # the selected capability is still enforced by the primary ModelRouter.
+        "tool_assisted_qa": (
+            "gemini-cloud",
+            "openrouter-cloud",
+            "anthropic-claude",
+            "mistral-large",
+            "colibri-local",
+        ),
+        "financial_explanation": (
+            "gemini-cloud",
+            "openrouter-cloud",
+            "anthropic-claude",
+            "mistral-large",
+            "colibri-local",
+        ),
     }
 
     REQUIRED_CLAIM_FIELDS = {
@@ -78,6 +108,9 @@ class ResponseService:
     def __init__(
         self,
         gateway: Optional[ModelGateway] = None,
+        *,
+        evidence_retriever: Any = None,
+        max_verifier_escalations: int = 1,
     ):
         self.gateway = (
             gateway
@@ -104,6 +137,9 @@ class ResponseService:
         # automatic model selection.
         self._fallback_adapters: Dict[str, Any] = {}
         self.model_router = ModelRouter()
+        self.task_router = TaskAwareModelRouter(self.model_router)
+        self.evidence_retriever = evidence_retriever
+        self.max_verifier_escalations = max(0, min(int(max_verifier_escalations), 2))
 
         if gateway is None:
             self._register_enabled_models()
@@ -143,18 +179,36 @@ class ResponseService:
         risk_level: str = "low",
         language: str = "English",
         explicit_model: Optional[str] = None,
+        user_text: str = "",
+        source: str = "",
+        network_mode: str = "online",
+        data_sensitivity: str = "standard",
+        allowed_providers: Optional[list[str]] = None,
     ) -> str:
-        capability = self.CAPABILITY_BY_INTENT.get(
+        base_capability = self.CAPABILITY_BY_INTENT.get(
             intent,
             "response_generation",
         )
-        route = self.model_router.route(
-            capability=capability,
+        task_route = self.task_router.route(
+            intent=intent,
+            user_text=user_text,
+            source=source,
+            base_capability=base_capability,
             risk_level=risk_level,
             language=language,
             explicit_model=explicit_model,
+            network_mode=network_mode,
+            data_sensitivity=data_sensitivity,
+            allowed_providers=allowed_providers,
         )
-        return route.selected_model
+        return task_route.route.selected_model
+
+    def _available_gateway_models(self) -> set[str]:
+        """Read registered model IDs while tolerating lightweight test gateways."""
+        try:
+            return {str(item).strip().lower() for item in self.gateway.available_models()}
+        except Exception:
+            return set()
 
     def _get_fallback_adapter(
         self,
@@ -167,7 +221,7 @@ class ResponseService:
         if model_id in self._fallback_adapters:
             return self._fallback_adapters[model_id]
 
-        if model_id in self.gateway.available_models():
+        if model_id in self._available_gateway_models():
             adapter = self.gateway.get_adapter(model_id)
         else:
             adapter_class = self.ADAPTERS.get(model_id)
@@ -246,6 +300,11 @@ class ResponseService:
                     fallback_provider = provider_for(spec)
                 except (KeyError, ValueError):
                     attempted.append(fallback_id)
+                    continue
+
+                # A fallback must satisfy the requested task capability too;
+                # provider availability alone is not sufficient.
+                if capability not in spec.capabilities:
                     continue
 
                 # Offline and restricted-data policies are hard constraints:
@@ -540,6 +599,237 @@ class ResponseService:
             "claim_verification": claim_verification,
         }
 
+    @staticmethod
+    def _verification_passed(
+        verification: Dict[str, Any],
+        claim_verification: Dict[str, Any],
+    ) -> bool:
+        return not (
+            (verification.get("applicable") and not verification.get("passed"))
+            or (
+                claim_verification.get("applicable")
+                and not claim_verification.get("passed")
+            )
+        )
+
+    def _try_verifier_escalation(
+        self,
+        *,
+        selected_model: str,
+        explicit_model: bool,
+        route: Any,
+        capability: str,
+        user_text: str,
+        intent: str,
+        verified_result: Dict[str, Any],
+        source: str,
+        language: str,
+        persona: str,
+        max_new_tokens: int,
+        initial_response: str,
+        verification: Dict[str, Any],
+        claim_verification: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Retry failed answers using only policy-eligible configured models."""
+        failed = (
+            (verification.get("applicable") and not verification.get("passed"))
+            or (
+                claim_verification.get("applicable")
+                and not claim_verification.get("passed")
+            )
+        )
+        if not failed:
+            return None
+
+        working_result = dict(verified_result)
+        retrieval_attempted = False
+        retrieval_error_type = None
+        retrieval_latency_ms = None
+        if source == "retrieval_evidence" and callable(self.evidence_retriever):
+            retrieval_attempted = True
+            retrieval_started = time.perf_counter()
+            try:
+                documents = self.evidence_retriever(
+                    user_text, intent, list(working_result.get("documents") or [])
+                )
+                if documents is not None:
+                    working_result["documents"] = list(documents)
+                    refreshed_verification, refreshed_claims = (
+                        self._verify_response(
+                            initial_response, intent, working_result, source
+                        ),
+                        self._verify_claims(
+                            initial_response, intent, working_result, source
+                        ),
+                    )
+                    refreshed_passed = (
+                        not refreshed_verification.get("applicable")
+                        or refreshed_verification.get("passed")
+                    ) and (
+                        not refreshed_claims.get("applicable")
+                        or refreshed_claims.get("passed")
+                    )
+                    if refreshed_passed:
+                        retrieval_latency_ms = round(
+                            (time.perf_counter() - retrieval_started) * 1000.0, 3
+                        )
+                        return {
+                            "status": "GENERATED_VERIFIED_AFTER_RETRIEVAL",
+                            "model_id": selected_model,
+                            "response": initial_response,
+                            "verification": refreshed_verification,
+                            "claim_verification": refreshed_claims,
+                            "verification_escalation": {
+                                "attempted": True,
+                                "accepted": True,
+                                "action": "retrieve_more_evidence",
+                                "from_model": selected_model,
+                                "attempt_count": 0,
+                                "evidence_retrieval_attempted": True,
+                                "evidence_retrieval_latency_ms": retrieval_latency_ms,
+                                "evidence_document_count": len(working_result.get("documents") or []),
+                                "evidence_document_ids": [
+                                    str(item.get("document_id"))
+                                    for item in (working_result.get("documents") or [])
+                                    if isinstance(item, dict) and item.get("document_id") is not None
+                                ],
+                            },
+                        }
+            except Exception as exc:
+                retrieval_error_type = type(exc).__name__
+            finally:
+                retrieval_latency_ms = round(
+                    (time.perf_counter() - retrieval_started) * 1000.0, 3
+                )
+
+        if explicit_model or self.max_verifier_escalations <= 0:
+            if not retrieval_attempted:
+                return None
+            return {
+                "verification_escalation": {
+                    "attempted": True,
+                    "accepted": False,
+                    "reason": (
+                        "explicit model selection prevents model escalation"
+                        if explicit_model
+                        else "model escalation attempt budget is zero"
+                    ),
+                    "evidence_retrieval_attempted": True,
+                    "evidence_retrieval_latency_ms": retrieval_latency_ms,
+                    "evidence_document_count": len(working_result.get("documents") or []),
+                    "evidence_document_ids": [
+                        str(item.get("document_id"))
+                        for item in (working_result.get("documents") or [])
+                        if isinstance(item, dict) and item.get("document_id") is not None
+                    ],
+                }
+            }
+
+        candidates = []
+        gateway_models = self._available_gateway_models()
+        allowed = set(route.allowed_providers)
+        try:
+            selected_quality = int(getattr(get_model_spec(selected_model), "quality_tier", 0))
+        except (KeyError, ValueError):
+            selected_quality = 0
+        for candidate in route.fallback_chain:
+            if candidate in {selected_model, route.selected_model} or candidate in candidates:
+                continue
+            try:
+                spec = get_model_spec(candidate)
+                provider = provider_for(spec)
+            except (KeyError, ValueError):
+                continue
+            if capability not in spec.capabilities:
+                continue
+            # Escalation means a strictly higher registry quality tier, not
+            # merely another provider. Registry tiers are policy metadata,
+            # not an empirical quality guarantee.
+            if int(getattr(spec, "quality_tier", 0)) <= selected_quality:
+                continue
+            if route.network_mode == "offline" and provider != "local":
+                continue
+            if route.data_sensitivity == "restricted" and provider != "local":
+                continue
+            if allowed and provider not in allowed:
+                continue
+            # Never initialize a large local model solely for an escalation.
+            if provider == "local":
+                configured = (
+                    candidate in gateway_models
+                    or candidate in self._fallback_adapters
+                )
+            else:
+                configured = (
+                    candidate in gateway_models
+                    or candidate in self._fallback_adapters
+                    or provider_configured(spec.provider)
+                )
+            if configured:
+                candidates.append(candidate)
+
+        def generate_candidate(candidate: str) -> Dict[str, Any]:
+            adapter = self._get_fallback_adapter(candidate)
+            if adapter is None:
+                raise RuntimeError("No configured adapter for candidate")
+            return adapter.generate(
+                user_text=user_text,
+                intent=intent,
+                verified_result=working_result,
+                source=source,
+                language=language,
+                persona=persona,
+                max_new_tokens=max_new_tokens,
+            )
+
+        def verify_candidate(response_text: str):
+            return (
+                self._verify_response(
+                    response_text, intent, working_result, source
+                ),
+                self._verify_claims(
+                    response_text, intent, working_result, source
+                ),
+            )
+
+        result = verifier_gated_escalate(
+            candidates=candidates,
+            generate=generate_candidate,
+            verify=verify_candidate,
+            max_attempts=self.max_verifier_escalations,
+        )
+        escalation_metadata = result.get("verification_escalation", {})
+        for trace_item in escalation_metadata.get("trace", []):
+            try:
+                model_spec = get_model_spec(trace_item.get("model_id", ""))
+                trace_item["registry_quality_tier"] = int(model_spec.quality_tier)
+                trace_item["registry_cost_tier"] = int(model_spec.cost_tier)
+                trace_item["registry_latency_tier"] = int(model_spec.latency_tier)
+            except (KeyError, ValueError, TypeError):
+                continue
+        if result.get("status") != "GENERATED_VERIFIED_ESCALATED":
+            metadata = result.get("verification_escalation", {})
+            metadata["evidence_retrieval_attempted"] = retrieval_attempted
+            metadata["evidence_retrieval_latency_ms"] = retrieval_latency_ms
+            if retrieval_error_type:
+                metadata["evidence_retrieval_error_type"] = retrieval_error_type
+            result["verification_escalation"] = metadata
+            return result if metadata.get("attempted") or retrieval_attempted else None
+        result["verification_escalation"]["from_model"] = selected_model
+        result["verification_escalation"]["evidence_retrieval_attempted"] = retrieval_attempted
+        result["verification_escalation"]["evidence_retrieval_latency_ms"] = retrieval_latency_ms
+        result["verification_escalation"]["evidence_document_count"] = len(
+            working_result.get("documents") or []
+        )
+        result["verification_escalation"]["evidence_document_ids"] = [
+            str(item.get("document_id"))
+            for item in (working_result.get("documents") or [])
+            if isinstance(item, dict) and item.get("document_id") is not None
+        ]
+        if retrieval_error_type:
+            result["verification_escalation"]["evidence_retrieval_error_type"] = retrieval_error_type
+        return result
+
     def generate(
         self,
         user_text: str,
@@ -581,8 +871,11 @@ class ResponseService:
                 if item.strip()
             ]
         )
-        route = self.model_router.route(
-            capability=capability,
+        task_route = self.task_router.route(
+            intent=intent,
+            user_text=user_text,
+            source=source,
+            base_capability=capability,
             risk_level=risk_level,
             language=language,
             explicit_model=model_id,
@@ -590,12 +883,9 @@ class ResponseService:
             data_sensitivity=runtime_data_sensitivity,
             allowed_providers=runtime_allowed_providers,
         )
+        route = task_route.route
+        capability = task_route.capability
         selected_model = route.selected_model
-
-        capability = self.CAPABILITY_BY_INTENT.get(
-            intent,
-            "response_generation",
-        )
 
         result = self._generate_with_provider_fallback(
             selected_model=selected_model,
@@ -655,6 +945,7 @@ class ResponseService:
                     "report": None,
                     "claims": [],
                 },
+                "task_routing": task_route.to_dict(),
                 "selection": {
                     "capability": capability,
                     "model_id": selected_model,
@@ -662,6 +953,8 @@ class ResponseService:
                     "fallback_used": bool(
                         result.get("fallback_used", False)
                     ),
+                    "task_type": task_route.task_type,
+                    "selection_reason": task_route.selection_reason,
                 },
             }
 
@@ -706,18 +999,65 @@ class ResponseService:
 
         if response_failed or claims_failed:
 
+            escalation = self._try_verifier_escalation(
+                selected_model=actual_model_id,
+                explicit_model=model_id is not None,
+                route=route,
+                capability=capability,
+                user_text=user_text,
+                intent=intent,
+                verified_result=verified_result,
+                source=source,
+                language=language,
+                persona=persona,
+                max_new_tokens=max_new_tokens,
+                initial_response=response,
+                verification=verification,
+                claim_verification=claim_verification,
+            )
+            if escalation and escalation.get("status") in {
+                "GENERATED_VERIFIED_ESCALATED",
+                "GENERATED_VERIFIED_AFTER_RETRIEVAL",
+            }:
+                escalation["task_routing"] = task_route.to_dict()
+                escalation["selection"] = {
+                    "capability": capability,
+                    "model_id": selected_model,
+                    "actual_model_id": escalation.get("model_id", selected_model),
+                    "fallback_used": escalation.get("status") == "GENERATED_VERIFIED_ESCALATED",
+                    "task_type": task_route.task_type,
+                    "selection_reason": task_route.selection_reason,
+                    "verification_escalation": True,
+                }
+                return escalation
+
             if source == "retrieval_evidence":
                 return {
                     **result,
                     "status": "VERIFICATION_FAILED",
                     "model_id": actual_model_id,
                     "response": (
-                        "I couldn't verify the generated explanation "
-                        "against the retrieved evidence."
+                        "I couldn't verify the generated explanation against the available "
+                        "evidence. Please clarify the relevant jurisdiction, institution, "
+                        "or time period, or provide the authoritative source you want used."
+                    ),
+                    "recommended_next_action": "clarify_or_provide_source",
+                    "clarification_prompt": (
+                        "Which jurisdiction, institution, and effective date should I use, "
+                        "or can you provide the source document?"
                     ),
                     "original_response": response,
                     "verification": verification,
                     "claim_verification": claim_verification,
+                    "verification_escalation": (
+                        escalation.get("verification_escalation")
+                        if escalation else {
+                            "attempted": False,
+                            "accepted": False,
+                            "reason": "no eligible configured candidate",
+                        }
+                    ),
+                    "task_routing": task_route.to_dict(),
                     "selection": {
                         "capability": capability,
                         "model_id": selected_model,
@@ -727,6 +1067,8 @@ class ResponseService:
                         "route_policy": route.policy,
                         "route_risk_level": route.risk_level,
                         "route_fallback_candidates": list(route.fallback_chain),
+                        "task_type": task_route.task_type,
+                        "selection_reason": task_route.selection_reason,
                     },
                 }
 
@@ -737,6 +1079,33 @@ class ResponseService:
                 source=source,
                 persona=persona,
             )
+
+            fallback_passed = self._verification_passed(
+                fallback["verification"],
+                fallback["claim_verification"],
+            )
+            if not fallback_passed:
+                return {
+                    "status": "CLARIFICATION_REQUIRED",
+                    "model_id": selected_model,
+                    "source": source,
+                    "language": language,
+                    "persona": persona,
+                    "response": (
+                        "I couldn't verify the answer against the available financial data. "
+                        "Please confirm the missing inputs or provide an authoritative source."
+                    ),
+                    "recommended_next_action": "clarify_or_provide_source",
+                    "verification": verification,
+                    "claim_verification": claim_verification,
+                    "fallback_verification": fallback["verification"],
+                    "fallback_claim_verification": fallback["claim_verification"],
+                    "original_response": response,
+                    "task_routing": task_route.to_dict(),
+                    "verification_escalation": (
+                        escalation.get("verification_escalation") if escalation else None
+                    ),
+                }
 
             return {
                 "status": "FALLBACK_VERIFIED",
@@ -754,6 +1123,15 @@ class ResponseService:
                     fallback["claim_verification"]
                 ),
                 "original_response": response,
+                "verification_escalation": (
+                    escalation.get("verification_escalation")
+                    if escalation else {
+                        "attempted": False,
+                        "accepted": False,
+                        "reason": "no eligible configured candidate",
+                    }
+                ),
+                "task_routing": task_route.to_dict(),
                 "selection": {
                     "capability": capability,
                     "model_id": selected_model,
@@ -761,6 +1139,8 @@ class ResponseService:
                     "route_policy": route.policy,
                     "route_risk_level": route.risk_level,
                     "route_fallback_candidates": list(route.fallback_chain),
+                    "task_type": task_route.task_type,
+                    "selection_reason": task_route.selection_reason,
                 },
             }
 
@@ -783,6 +1163,7 @@ class ResponseService:
             "model_id": actual_model_id,
             "verification": verification,
             "claim_verification": claim_verification,
+            "task_routing": task_route.to_dict(),
             "selection": {
                 "capability": capability,
                 "model_id": selected_model,
@@ -793,5 +1174,7 @@ class ResponseService:
                         False,
                     )
                 ),
+                "task_type": task_route.task_type,
+                "selection_reason": task_route.selection_reason,
             },
         }

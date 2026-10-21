@@ -89,7 +89,6 @@ class RAGEvidenceVerifier:
         return chunks
 
     @classmethod
-    @classmethod
     def _qualifier_supported(
         cls,
         claim_tokens: Set[str],

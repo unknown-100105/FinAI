@@ -1,6 +1,7 @@
 import pytest
 
 from llm.model_gateway import ModelGateway
+from llm.model_registry import get_model_spec
 from llm.response_service import ResponseService
 
 
@@ -327,3 +328,24 @@ def test_offline_or_restricted_policy_never_uses_cloud_fallbacks(
     assert len(local.calls) == 1
     assert gemini.calls == []
     assert openrouter.calls == []
+
+
+
+def test_fallback_candidates_all_advertise_the_requested_capability():
+    for capability, model_ids in ResponseService.FALLBACK_MODEL_IDS_BY_CAPABILITY.items():
+        for model_id in model_ids:
+            spec = get_model_spec(model_id)
+            assert capability in spec.capabilities, (
+                f"{model_id} is configured as a {capability} fallback "
+                "but does not advertise that capability"
+            )
+
+
+def test_financial_reasoning_has_specialist_fallback_candidates():
+    candidates = ResponseService.FALLBACK_MODEL_IDS_BY_CAPABILITY[
+        "financial_reasoning"
+    ]
+    assert candidates
+    assert "gemini-pro-cloud" in candidates
+    assert "rllm-finqa-4b" in candidates
+    assert "gemini-cloud" not in candidates

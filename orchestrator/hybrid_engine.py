@@ -102,6 +102,27 @@ class FinAIHybridEngine:
             for doc in documents
         ]
 
+    def _retrieve_more_evidence(self, user_text, intent, existing_documents):
+        """Retrieve a wider evidence set for one bounded verifier retry."""
+        retriever = self._get_rag_retriever()
+        query = f"{user_text} {str(intent).replace('_', ' ')}".strip()
+        retrieved = self._format_rag_documents(
+            retriever.retrieve(query, top_k=10)
+        )
+        existing = list(existing_documents or [])
+        seen_ids = {
+            str(item.get("document_id"))
+            for item in existing
+            if isinstance(item, dict) and item.get("document_id") is not None
+        }
+        new_items = [
+            item for item in retrieved
+            if str(item.get("document_id")) not in seen_ids
+        ]
+        # Put newly retrieved evidence first, retain the original evidence,
+        # and cap the total payload to keep retries bounded.
+        return (new_items + existing)[:15]
+
     def _plan_to_dict(self, plan):
         return {
             "intent": plan.intent,
@@ -942,8 +963,14 @@ class FinAIHybridEngine:
 
                 service = (
                     self.response_service
-                    or ResponseService()
+                    or ResponseService(evidence_retriever=self._retrieve_more_evidence)
                 )
+                if (
+                    self.response_service is not None
+                    and hasattr(service, "evidence_retriever")
+                    and getattr(service, "evidence_retriever", None) is None
+                ):
+                    service.evidence_retriever = self._retrieve_more_evidence
 
                 verified_evidence = {
                     "query": user_text,
