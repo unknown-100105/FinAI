@@ -1,9 +1,16 @@
-﻿from fastapi.testclient import TestClient
+﻿import pytest
+from fastapi.testclient import TestClient
 
 from app.main import app
 
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def enable_isolated_demo_auth(monkeypatch):
+    monkeypatch.setenv("FINAI_ENV", "development")
+    monkeypatch.setenv("FINAI_ENABLE_DEMO_SESSION_AUTH", "true")
 
 
 def test_health():
