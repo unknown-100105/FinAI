@@ -6,6 +6,7 @@ fastapi
 uvicorn
 pydantic
 requests
+longbridge>=4.0.5,<5
 
 numpy
 pandas
