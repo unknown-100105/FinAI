@@ -66,7 +66,18 @@ class LongbridgeClient:
             ) from exc
 
         try:
-            config = self.config or Config.from_env()
+            if self.config is not None:
+                config = self.config
+            else:
+                config_factory = (
+                    getattr(Config, "from_apikey_env", None)
+                    or getattr(Config, "from_env", None)
+                )
+                if not callable(config_factory):
+                    raise RuntimeError(
+                        "Installed Longbridge SDK has no environment config constructor."
+                    )
+                config = config_factory()
         except Exception as exc:
             raise LongbridgeIntegrationError(
                 "Could not initialize Longbridge. Configure "
