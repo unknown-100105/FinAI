@@ -234,6 +234,7 @@ class CompletionCollator:
 def load_and_prepare(
     tokenizer,
     smoke=False,
+    extra_train_files=None,
 ):
 
     # IMPORTANT:
@@ -260,6 +261,72 @@ def load_and_prepare(
         lambda x:
         x.get("eval_split") == "validation"
     )
+
+    # Normalize all training data to prompt/completion before concatenation.
+    train_ds = train_ds.map(
+        lambda x: {
+            "prompt": str(x.get("prompt", x.get("user", ""))),
+            "completion": str(x.get("completion", x.get("assistant", ""))),
+        },
+        remove_columns=train_ds.column_names,
+        desc="Normalizing base training schema",
+    ).filter(
+        lambda x: bool(x["prompt"].strip()) and bool(x["completion"].strip())
+    )
+
+    extra_count = 0
+    extra_datasets = []
+    for extra_file in extra_train_files or []:
+        extra_path = Path(extra_file)
+        if not extra_path.is_file():
+            raise FileNotFoundError(
+                f"Additional training file not found: {extra_path}"
+            )
+        extra_ds = load_dataset(
+            "json",
+            data_files=str(extra_path),
+        )["train"]
+        columns = set(extra_ds.column_names)
+        if {"prompt", "completion"}.issubset(columns):
+            extra_ds = extra_ds.map(
+                lambda x: {
+                    "prompt": str(x.get("prompt", "")),
+                    "completion": str(x.get("completion", "")),
+                },
+                remove_columns=extra_ds.column_names,
+                desc=f"Normalizing {extra_path.name}",
+            )
+        elif {"user", "assistant"}.issubset(columns):
+            extra_ds = extra_ds.map(
+                lambda x: {
+                    "prompt": str(x.get("user", "")),
+                    "completion": str(x.get("assistant", "")),
+                },
+                remove_columns=extra_ds.column_names,
+                desc=f"Normalizing {extra_path.name}",
+            )
+        else:
+            raise ValueError(
+                f"{extra_path} must contain prompt/completion or user/assistant columns."
+            )
+        extra_ds = extra_ds.filter(
+            lambda x: bool(x["prompt"].strip()) and bool(x["completion"].strip())
+        )
+        extra_count += len(extra_ds)
+        extra_datasets.append(extra_ds)
+
+    # Keep the base and provider datasets separate so a smoke run can guarantee
+    # that a bounded sample of the new examples is actually exercised.
+    base_train_ds = train_ds
+    extra_train_ds = (
+        concatenate_datasets(extra_datasets)
+        if extra_datasets
+        else None
+    )
+    if extra_train_ds is not None:
+        train_ds = concatenate_datasets([base_train_ds, extra_train_ds])
+
+    print("ADDITIONAL TRAIN RECORDS:", extra_count)
 
     print()
     print("RAW TRAIN RECORDS:", len(train_ds))
@@ -296,11 +363,24 @@ def load_and_prepare(
     # Smoke-test subsets.
     if smoke:
 
-        train_ds = train_ds.select(
-            range(
-                min(500, len(train_ds))
+        if extra_train_ds is not None:
+            # Keep up to 50 provider examples in the smoke subset while retaining
+            # base-corpus examples; this makes the added path testable in practice.
+            extra_sample_count = min(50, len(extra_train_ds), 500)
+            base_sample_count = min(500 - extra_sample_count, len(base_train_ds))
+            base_sample = base_train_ds.shuffle(seed=42).select(
+                range(base_sample_count)
             )
-        )
+            extra_sample = extra_train_ds.shuffle(seed=43).select(
+                range(extra_sample_count)
+            )
+            train_ds = concatenate_datasets(
+                [base_sample, extra_sample]
+            ).shuffle(seed=44)
+        else:
+            train_ds = base_train_ds.shuffle(seed=42).select(
+                range(min(500, len(base_train_ds)))
+            )
 
         normal_eval = normal_eval.select(
             range(
@@ -432,6 +512,13 @@ def main():
         help="Run full training",
     )
 
+    parser.add_argument(
+        "--extra-train-file",
+        action="append",
+        default=[],
+        help="Optional JSONL training file (prompt/completion or user/assistant); repeat to add multiple files.",
+    )
+
     args = parser.parse_args()
 
     if not args.smoke and not args.full:
@@ -489,6 +576,12 @@ def main():
             ROUTER_EVAL_FILE
         )
 
+    for extra_file in args.extra_train_file:
+        if not Path(extra_file).is_file():
+            raise FileNotFoundError(
+                f"Additional training file not found: {extra_file}"
+            )
+
     print()
     print("Loading tokenizer...")
 
@@ -512,6 +605,7 @@ def main():
         load_and_prepare(
             tokenizer,
             smoke=smoke,
+            extra_train_files=args.extra_train_file,
         )
     )
 
