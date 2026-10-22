@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 import re
 from typing import Any, Dict, Iterable, List, Optional
@@ -12,6 +12,8 @@ from typing import Any, Dict, Iterable, List, Optional
 _METRIC_ALIASES = {
     "revenue": "revenue",
     "total_rev": "revenue",
+    "total_revenue": "revenue",
+    "revenue_total": "revenue",
     "rev": "revenue",
     "operating_revenue": "revenue",
     "operatingrevenue": "revenue",
@@ -19,10 +21,15 @@ _METRIC_ALIASES = {
     "营业收入usd": "revenue",
     "net_income": "net_income",
     "net_profit": "net_income",
+    "net_income_loss": "net_income",
     "net_profit_common_stock": "net_income",
     "netprofit": "net_income",
     "净利润": "net_income",
     "eps": "eps",
+    "earnings_per_share": "eps",
+    "earnings_per_share_diluted": "eps",
+    "basic_eps": "eps",
+    "diluted_eps": "eps",
     "每股收益": "eps",
     "roe": "roe",
     "roedf": "roe",
@@ -179,6 +186,30 @@ def normalize_statement_kind(name: Any) -> str:
     return "financial_statement"
 
 
+def _normalize_report_date(value: Any) -> Optional[str]:
+    """Convert Unix seconds/milliseconds or ISO dates to a stable YYYY-MM-DD."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, (int, float)) or (
+        isinstance(value, str) and value.strip().isdigit()
+    ):
+        try:
+            number = float(value)
+            if number > 10_000_000_000:
+                number /= 1000.0
+            return datetime.fromtimestamp(number, tz=timezone.utc).date().isoformat()
+        except (OverflowError, OSError, ValueError):
+            return None
+    text = str(value).strip()
+    try:
+        return date.fromisoformat(text[:10]).isoformat()
+    except ValueError:
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date().isoformat()
+        except ValueError:
+            return text or None
+
+
 def normalize_longbridge_financial_reports(
     payload: Any,
     ticker: str,
@@ -230,7 +261,7 @@ def normalize_longbridge_financial_reports(
                                     "ticker": str(ticker),
                                     "statement_type": statement_type,
                                     "period": str(period),
-                                    "report_period": item.get("fp_end") or item.get("report_period"),
+                                    "report_period": _normalize_report_date(item.get("fp_end") or item.get("report_period")),
                                     "fiscal_year": year,
                                     "currency": currency,
                                     "fetched_at": fetched_at,
