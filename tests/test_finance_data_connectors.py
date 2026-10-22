@@ -50,10 +50,33 @@ def test_financial_datasets_sends_auth_and_query_params():
     assert kwargs["params"] == {
         "ticker": "AAPL",
         "interval": "day",
+        "interval_multiplier": 1,
         "start_date": "2025-01-01",
         "end_date": "2025-01-31",
+        "limit": 5000,
     }
 
+
+
+def test_financial_datasets_uses_documented_statement_endpoints():
+    session = Mock()
+    session.get.side_effect = [
+        FakeResponse(payload={"income_statements": [{"revenue": 12}]}),
+        FakeResponse(payload={"balance_sheets": [{"total_assets": 34}]}),
+        FakeResponse(payload={"cash_flow_statements": [{"free_cash_flow": 5}]}),
+    ]
+    client = FinancialDatasetsClient(api_key="test-key", session=session)
+
+    payload = client.get_financials("AAPL", period="annual")
+
+    assert payload["income_statements"][0]["revenue"] == 12
+    assert payload["balance_sheets"][0]["total_assets"] == 34
+    assert payload["cash_flow_statements"][0]["free_cash_flow"] == 5
+    assert [call.args[0].rsplit("/", 1)[-1] for call in session.get.call_args_list] == [
+        "income-statements",
+        "balance-sheets",
+        "cash-flow-statements",
+    ]
 
 def test_financial_datasets_surfaces_credit_or_http_error_without_silencing():
     session = Mock()
