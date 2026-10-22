@@ -73,7 +73,7 @@ class LongbridgeMarketDataProvider(MarketDataProvider):
             open=to_number(row.get("open")),
             high=to_number(row.get("high")),
             low=to_number(row.get("low")),
-            close=to_number(row.get("prev_close")),
+            close=to_number(row.get("prev_close_price", row.get("prev_close"))),
             volume=to_number(row.get("volume")),
             currency=(
                 str(row.get("currency")).upper()
