@@ -97,15 +97,25 @@ class FinancialDatasetsClient:
         start_date: str,
         end_date: str,
         interval: str = "day",
+        interval_multiplier: int = 1,
+        limit: int = 5000,
     ) -> Dict[str, Any]:
         """Fetch historical OHLCV prices for one ticker."""
+        if interval not in {"day", "week", "month", "year"}:
+            raise ValueError("interval must be day, week, month or year.")
+        if interval_multiplier < 1:
+            raise ValueError("interval_multiplier must be at least 1.")
+        if limit < 1 or limit > 5000:
+            raise ValueError("limit must be between 1 and 5000.")
         return self._get(
             "/prices",
             {
                 "ticker": ticker,
                 "interval": interval,
+                "interval_multiplier": int(interval_multiplier),
                 "start_date": start_date,
                 "end_date": end_date,
+                "limit": int(limit),
             },
         )
 
@@ -113,22 +123,53 @@ class FinancialDatasetsClient:
         self,
         ticker: str,
         period: str = "annual",
+        limit: int = 10,
     ) -> Dict[str, Any]:
-        """Fetch normalized income, balance-sheet and cash-flow statements."""
-        return self._get(
-            "/financials",
-            {"ticker": ticker, "period": period},
+        """Fetch income, balance-sheet and cash-flow statements from documented endpoints."""
+        if period not in {"annual", "quarterly", "ttm"}:
+            raise ValueError("period must be annual, quarterly or ttm.")
+        if limit < 1 or limit > 100:
+            raise ValueError("limit must be between 1 and 100.")
+        statements = {}
+        endpoints = (
+            ("income_statements", "/financials/income-statements"),
+            ("balance_sheets", "/financials/balance-sheets"),
+            ("cash_flow_statements", "/financials/cash-flow-statements"),
         )
+        # Keep the output combined for downstream normalization. Errors remain
+        # explicit; callers can record a failed request in the ingestion manifest.
+        for key, path in endpoints:
+            payload = self._get(
+                path,
+                {"ticker": ticker, "period": period, "limit": int(limit)},
+            )
+            rows = payload.get(key)
+            if not isinstance(rows, list):
+                raise FinancialDatasetsError(
+                    f"Financial Datasets {path} returned no '{key}' list."
+                )
+            statements[key] = rows
+        return statements
 
     def get_news(
         self,
         ticker: str,
         limit: int = 20,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Fetch news metadata available for a company."""
         if limit < 1 or limit > 100:
             raise ValueError("limit must be between 1 and 100.")
-        return self._get("/news", {"ticker": ticker, "limit": int(limit)})
+        return self._get(
+            "/news",
+            {
+                "ticker": ticker,
+                "limit": int(limit),
+                "start_date": start_date,
+                "end_date": end_date,
+            },
+        )
 
     def get_company_facts(self, ticker: str) -> Dict[str, Any]:
         """Fetch high-level company facts."""
