@@ -154,3 +154,29 @@ The registry includes major markets across North America, Europe, Asia-Pacific, 
 Investment knowledge API endpoints:
 - `/api/v1/investments/scope`
 - `/api/v1/investments/global-markets`
+
+
+## Financial API ingestion and finance SFT
+
+FinAI can ingest historical prices and statements from Financial Datasets and Longbridge OpenAPI. Provider responses are normalized into an attributed local JSONL corpus; curated historical-statement QA examples can then be passed into the existing Sarvam-1 QLoRA trainer. Provider data is not pulled into model weights automatically.
+
+1. Install dependencies and configure credentials in a local .env file or the shell. Do not commit .env.
+   - Financial Datasets: FINANCIAL_DATASETS_API_KEY
+   - Longbridge OpenAPI: LONGBRIDGE_APP_KEY, LONGBRIDGE_APP_SECRET, LONGBRIDGE_ACCESS_TOKEN
+2. Ingest a small test universe first:
+
+        python scripts/ingest_finance_api_data.py --tickers AAPL.US,NVDA.US --include-news
+
+   The script writes data/raw/finance_api/records.jsonl and manifest.json. Missing credentials or per-provider API failures are recorded in the manifest; one failing provider does not prevent the other from running.
+3. Build period-grounded supervised fine-tuning examples:
+
+        python scripts/build_finance_api_sft.py
+
+   Output is data/sft_v3_work/provider_finance/finance_sft.jsonl. The builder excludes facts where sources conflict for the same ticker, statement, period and metric. It intentionally does not train on live quote snapshots or news headlines as timeless facts.
+4. Run a smoke test that samples the base dataset and the added provider examples together:
+
+        python scripts/train_finai_v3_final.py --smoke --extra-train-file data/sft_v3_work/provider_finance/finance_sft.jsonl
+
+   Use --full instead of --smoke only after reviewing the SFT manifest and evaluating for ticker/period leakage. You can repeat --extra-train-file to add more curated JSONL files. Provider examples join the training set only; they are not silently added to validation.
+
+The API credentials must have read-only scopes for this workflow. Review the current provider terms, licensing, redistribution, and model-training permissions before training or serving the resulting data. The raw data directory should stay local and out of Git. Treat the provider-SFT benchmark separately from the pre-existing normal and router validation metrics.
