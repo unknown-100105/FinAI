@@ -20,6 +20,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from dotenv import load_dotenv
+
+# Local secrets stay in .env (excluded from Git). Existing shell variables win.
+load_dotenv(ROOT / ".env", override=False)
+
 from finance_engine.data_sources.financial_datasets import (
     FinancialDatasetsClient,
     FinancialDatasetsError,
