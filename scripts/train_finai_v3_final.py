@@ -275,6 +275,7 @@ def load_and_prepare(
     )
 
     extra_count = 0
+    extra_datasets = []
     for extra_file in extra_train_files or []:
         extra_path = Path(extra_file)
         if not extra_path.is_file():
@@ -312,7 +313,18 @@ def load_and_prepare(
             lambda x: bool(x["prompt"].strip()) and bool(x["completion"].strip())
         )
         extra_count += len(extra_ds)
-        train_ds = concatenate_datasets([train_ds, extra_ds])
+        extra_datasets.append(extra_ds)
+
+    # Keep the base and provider datasets separate so a smoke run can guarantee
+    # that a bounded sample of the new examples is actually exercised.
+    base_train_ds = train_ds
+    extra_train_ds = (
+        concatenate_datasets(extra_datasets)
+        if extra_datasets
+        else None
+    )
+    if extra_train_ds is not None:
+        train_ds = concatenate_datasets([base_train_ds, extra_train_ds])
 
     print("ADDITIONAL TRAIN RECORDS:", extra_count)
 
@@ -351,11 +363,24 @@ def load_and_prepare(
     # Smoke-test subsets.
     if smoke:
 
-        # Shuffle before sampling so explicitly supplied provider examples can
-        # participate in the smoke run instead of always being left at the end.
-        train_ds = train_ds.shuffle(seed=42).select(
-            range(min(500, len(train_ds)))
-        )
+        if extra_train_ds is not None:
+            # Keep up to 50 provider examples in the smoke subset while retaining
+            # base-corpus examples; this makes the added path testable in practice.
+            extra_sample_count = min(50, len(extra_train_ds), 500)
+            base_sample_count = min(500 - extra_sample_count, len(base_train_ds))
+            base_sample = base_train_ds.shuffle(seed=42).select(
+                range(base_sample_count)
+            )
+            extra_sample = extra_train_ds.shuffle(seed=43).select(
+                range(extra_sample_count)
+            )
+            train_ds = concatenate_datasets(
+                [base_sample, extra_sample]
+            ).shuffle(seed=44)
+        else:
+            train_ds = base_train_ds.shuffle(seed=42).select(
+                range(min(500, len(base_train_ds)))
+            )
 
         normal_eval = normal_eval.select(
             range(
