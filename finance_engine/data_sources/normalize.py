@@ -14,6 +14,7 @@ _METRIC_ALIASES = {
     "total_rev": "revenue",
     "rev": "revenue",
     "operating_revenue": "revenue",
+    "operatingrevenue": "revenue",
     "营业收入": "revenue",
     "营业收入usd": "revenue",
     "net_income": "net_income",
