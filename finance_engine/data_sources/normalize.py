@@ -92,7 +92,7 @@ def json_safe(value: Any) -> Any:
 
     # Some SDK response objects expose fields as properties/slots.
     candidate_names = (
-        "symbol", "last_done", "prev_close", "open", "high", "low",
+        "symbol", "last_done", "prev_close", "prev_close_price", "open", "high", "low",
         "close", "volume", "timestamp", "turnover", "currency", "list",
         "id", "title", "description", "url", "published_at", "datetime",
         "report_period", "fiscal_period", "year", "value", "yoy",
