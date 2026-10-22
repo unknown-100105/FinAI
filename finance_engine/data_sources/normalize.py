@@ -231,13 +231,21 @@ def normalize_longbridge_financial_reports(
                     if not isinstance(indicator, dict):
                         continue
                     raw_metric = indicator.get("field") or indicator.get("indicator_name") or indicator.get("title") or indicator.get("name")
-                    metric = normalize_metric_name(raw_metric)
                     accounts = indicator.get("accounts", [])
                     if not isinstance(accounts, list):
                         continue
                     for account in accounts:
                         if not isinstance(account, dict):
                             continue
+                        # Longbridge places the canonical financial field on
+                        # each account, while the parent indicator title may be
+                        # a display group (for example, "profitability").
+                        account_metric = (
+                            account.get("field")
+                            or account.get("name")
+                            or raw_metric
+                        )
+                        metric = normalize_metric_name(account_metric)
                         currency = account.get("currency") or indicator.get("currency")
                         values = account.get("values", [])
                         if not isinstance(values, list):
