@@ -131,7 +131,7 @@ def test_sft_builder_deduplicates_agreeing_sources_and_excludes_conflicts():
     assert len(examples) == 1
     assert not conflicts
     assert examples[0]["prompt"].startswith("For AAPL.US")
-    assert "416,161,000,000 USD" in examples[0]["completion"]
+    assert "USD 416,161,000,000" in examples[0]["completion"]
     assert len(examples[0]["provider_sources"]) == 2
 
     disagreement = [
