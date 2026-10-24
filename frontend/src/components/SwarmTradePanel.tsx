@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { BrainCircuit, LoaderCircle, ShieldAlert, ShieldCheck } from "lucide-react";
 import type { MarketBar } from "../api/market";
 import { createSwarmTradePlan, type SwarmTradePlan } from "../api/swarmtrade";
@@ -73,13 +73,17 @@ export function SwarmTradePanel({ symbol, currentPrice, bars }: Props) {
   const [result, setResult] = useState<SwarmTradePlan | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const lastSymbol = useRef(symbol);
 
   useEffect(() => {
+    const symbolChanged = lastSymbol.current !== symbol;
+    lastSymbol.current = symbol;
     setSelectedSymbol(symbol);
-    setFields((previous) => ({
-      ...previous,
-      entry: currentPrice == null ? previous.entry : String(currentPrice),
-    }));
+    setFields((previous) => {
+      if (symbolChanged) return { ...previous, entry: "" };
+      if (previous.entry.trim() || currentPrice == null) return previous;
+      return { ...previous, entry: String(currentPrice) };
+    });
   }, [symbol, currentPrice]);
 
   useEffect(() => {
@@ -174,7 +178,7 @@ export function SwarmTradePanel({ symbol, currentPrice, bars }: Props) {
           <label>Logical agents (max 500)<input type="number" min="1" max="500" step="1" required value={fields.agents} onChange={(event) => update("agents", event.target.value)} /></label>
           <label>Current daily loss %<input type="number" min="0" max="20" step="0.1" required value={fields.dailyLoss} onChange={(event) => update("dailyLoss", event.target.value)} /></label>
           <label>Open-position risk %<input type="number" min="0" max="3" step="0.1" required value={fields.openRisk} onChange={(event) => update("openRisk", event.target.value)} /></label>
-          <label>Margin rate (0.01–1)<input type="number" min="0.01" max="1" step="0.01" required value={fields.marginRate} onChange={(event) => update("marginRate", event.target.value)} /></label>
+          {(assetClass === "equity" || assetClass === "crypto" || assetClass === "option") && <label>Margin rate (0.01–1)<input type="number" min="0.01" max="1" step="0.01" required value={fields.marginRate} onChange={(event) => update("marginRate", event.target.value)} /></label>
           <label>Max leverage (1–30)<input type="number" min="1" max="30" step="0.5" required value={fields.leverage} onChange={(event) => update("leverage", event.target.value)} /></label>
           <label>Contract / unit multiplier<input type="number" min="0.0000001" step="any" required value={fields.multiplier} onChange={(event) => update("multiplier", event.target.value)} /></label>
           <label>Quantity step<input type="number" min="0.0000001" step="any" required value={fields.unitStep} onChange={(event) => update("unitStep", event.target.value)} /></label>
