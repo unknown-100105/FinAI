@@ -54,3 +54,34 @@ Pattern labels are descriptive candidates only. They are not trade signals, fore
 8. Verify the explanation does not generate an order, recommend a trade, or describe a pattern as a guaranteed reversal.
 
 These checks must be run against the current checkout; adding the panel is not evidence that browser QA has passed.
+
+
+## TradingView-style chart controls
+
+The Market Terminal now includes client-side chart overlays and drawing annotations in addition to the OHLC candle inspection panel.
+
+### Indicators
+- SMA 20 and EMA 20 overlays, calculated from the returned close series.
+- Bollinger Bands (20-period mean with two standard deviations).
+- Volume histogram can be toggled without changing the underlying market-data request.
+- Vertical and horizontal hover crosshair guides, zoom, pan, reset and fullscreen.
+
+These calculations use only the historical bars returned by the selected provider/range. They do not guarantee exchange-grade data quality or predict future prices. EMA is initialized from the first available close; Bollinger/SMA values are shown only after 20 bars are available.
+
+### Drawing tools
+- **Horizontal level:** select the tool, then click/keyboard-select a candle; FinAI records its close as the level.
+- **Trendline:** select the tool, then select two candles to anchor the line between their close values.
+- Drawings are saved in browser local storage under an instrument-specific key. They are local to that browser and are not synchronized to a user account or server.
+- Individual drawings can be removed, or all drawings can be cleared. Use a consistent symbol when returning to saved levels; trendlines only render when both anchor timestamps exist in the currently loaded history.
+
+### Manual chart QA
+1. Load at least 30 valid OHLC bars; confirm SMA/EMA toggles turn overlays on/off and the price scale includes the active overlay values.
+2. Confirm Bollinger upper/lower bounds appear only when at least 20 valid closes exist; toggle volume and verify the price panel grows/shrinks without a network request.
+3. Hover over the plot and confirm vertical candle and horizontal price guides track the pointer.
+4. Select Horizontal level and select a candle; confirm the saved price equals that candle's close. Reload and confirm the level persists for the same symbol.
+5. Create a trendline using two different candles; confirm it links their close prices, survives reload, and can be individually removed.
+6. Change symbols and verify each symbol keeps its own drawings rather than inheriting another symbol's annotations.
+7. Test zoom, drag-to-pan, reset and fullscreen with mouse and keyboard; make sure the controls remain reachable on narrow/mobile widths.
+8. Test sparse/invalid provider data, missing volume, an unavailable API and long histories. Confirm the UI shows no-data/partial-feed states rather than reporting invented market values.
+
+The current chart overlay/drawing implementation still requires the frontend build, lint, and browser checklist to be executed against the checkout before merge.
