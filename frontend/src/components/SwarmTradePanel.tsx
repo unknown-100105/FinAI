@@ -10,7 +10,7 @@ const fieldDefaults = {
   entry: "", stop: "", target: "", capital: "100000", riskPct: "0.5",
   agents: "500", maxDailyLoss: "2", dailyLoss: "0", openRisk: "0",
   leverage: "1", marginRate: "1", multiplier: "1", unitStep: "1",
-  feeBps: "5", slippageBps: "5", maxLossPerUnit: "", tickSize: "", tickValue: "",
+  feeBps: "5", slippageBps: "5", maxLossPerUnit: "", optionStrike: "", tickSize: "", tickValue: "",
   pipSize: "", pipValue: "", marginPerUnit: "",
 };
 
@@ -69,6 +69,7 @@ export function SwarmTradePanel({ symbol, currentPrice, quoteCurrency, bars, isL
   const [selectedSymbol, setSelectedSymbol] = useState(symbol);
   const [assetClass, setAssetClass] = useState<"equity" | "option" | "future" | "crypto" | "forex">("equity");
   const [side, setSide] = useState<"auto" | "long" | "short">("auto");
+  const [optionType, setOptionType] = useState<"call" | "put">("call");
   const [fields, setFields] = useState({ ...fieldDefaults, entry: currentPrice == null ? "" : String(currentPrice) });
   const [signals, setSignals] = useState({ trend: "0", momentum: "0", mean_reversion: "0", breakout: "0", sentiment: "0" });
   const [result, setResult] = useState<SwarmTradePlan | null>(null);
@@ -145,9 +146,11 @@ export function SwarmTradePanel({ symbol, currentPrice, quoteCurrency, bars, isL
         slippage_bps: numberValue(fields.slippageBps),
         min_reward_risk: 1,
         agent_count: numberValue(fields.agents),
-        ...(assetClass === "option" && fields.maxLossPerUnit.trim()
-          ? { max_loss_per_unit: numberValue(fields.maxLossPerUnit) }
-          : {}),
+        ...(assetClass === "option" ? {
+          option_type: optionType,
+          option_strike: numberValue(fields.optionStrike),
+          ...(fields.maxLossPerUnit.trim() ? { max_loss_per_unit: numberValue(fields.maxLossPerUnit) } : {}),
+        } : {}),
         ...(assetClass === "future" ? {
           tick_size: numberValue(fields.tickSize),
           tick_value: numberValue(fields.tickValue),
@@ -205,7 +208,13 @@ export function SwarmTradePanel({ symbol, currentPrice, quoteCurrency, bars, isL
           <label>Max leverage (1–30)<input type="number" min="1" max="30" step="0.5" required value={fields.leverage} onChange={(event) => update("leverage", event.target.value)} /></label>
           <label>Contract / unit multiplier<input type="number" min="0.0000001" step="any" required value={fields.multiplier} onChange={(event) => update("multiplier", event.target.value)} /></label>
           <label>Quantity step<input type="number" min="0.0000001" step="any" required value={fields.unitStep} onChange={(event) => update("unitStep", event.target.value)} /></label>
-          {assetClass === "option" && <label>Max loss per contract<input type="number" min="0.0000001" step="any" required value={fields.maxLossPerUnit} onChange={(event) => update("maxLossPerUnit", event.target.value)} /></label>}
+          {assetClass === "option" && <>
+            <label>Option type<select value={optionType} onChange={(event) => { setOptionType(event.target.value as typeof optionType); setResult(null); setLastPlanRequest(null); }}>
+              <option value="call">Call</option><option value="put">Put</option>
+            </select></label>
+            <label>Option strike<input type="number" min="0.0000001" step="any" required value={fields.optionStrike} onChange={(event) => update("optionStrike", event.target.value)} /></label>
+            <label>Max loss per contract<input type="number" min="0.0000001" step="any" required value={fields.maxLossPerUnit} onChange={(event) => update("maxLossPerUnit", event.target.value)} /></label>
+          </>}
           {assetClass === "future" && <>
             <label>Tick size<input type="number" min="0.0000001" step="any" required value={fields.tickSize} onChange={(event) => update("tickSize", event.target.value)} /></label>
             <label>Tick value (account currency)<input type="number" min="0.0000001" step="any" required value={fields.tickValue} onChange={(event) => update("tickValue", event.target.value)} /></label>
