@@ -101,10 +101,26 @@ def get_market_data_service() -> MarketDataService:
     if _market_data_service is None:
         from market_data.providers.yfinance_provider import YFinanceProvider
 
+        providers = {
+            "yfinance": YFinanceProvider(),
+        }
+        # Optional, read-only Longbridge support. Credentials are checked before
+        # registering the provider; SDK initialization remains lazy until a quote
+        # or history request explicitly selects it.
+        longbridge_configured = all(
+            os.getenv(name, "").strip()
+            for name in (
+                "LONGBRIDGE_APP_KEY",
+                "LONGBRIDGE_APP_SECRET",
+                "LONGBRIDGE_ACCESS_TOKEN",
+            )
+        )
+        if longbridge_configured:
+            from market_data.providers.longbridge_provider import LongbridgeMarketDataProvider
+            providers["longbridge"] = LongbridgeMarketDataProvider()
+
         _market_data_service = MarketDataService(
-            providers={
-                "yfinance": YFinanceProvider(),
-            },
+            providers=providers,
             default_provider="yfinance",
         )
 
