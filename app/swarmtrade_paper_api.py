@@ -97,6 +97,21 @@ def get_paper_account(account_id: str) -> dict:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@router.get("/accounts/{account_id}/positions")
+def list_paper_positions(
+    account_id: str,
+    status: Literal["open", "closed", "all"] = "all",
+) -> dict:
+    try:
+        return _ledger().list_positions(account_id, status=status)
+    except HTTPException:
+        raise
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @router.post("/accounts/{account_id}/positions")
 def open_paper_position(account_id: str, request: OpenPaperPositionRequest) -> dict:
     if not request.acknowledge_simulation_only:
