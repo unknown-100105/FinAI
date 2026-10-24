@@ -94,3 +94,28 @@ def test_research_control_status_disclaims_trade_authority():
     result = client.get("/api/v1/causal-risk/research-control/status").json()
     assert result["can_authorize_trades"] is False
     assert result["evidence_is_independently_verified"] is False
+
+
+def test_research_control_rejects_far_future_evidence_timestamp():
+    future = datetime.now(timezone.utc).timestamp() + 3600
+    body = request_body(evidence=[
+        {"evidence_id": "future", "observed_at": future, "valid_for_seconds": 3600, "confidence": 0.99},
+    ])
+    response = client.post("/api/v1/causal-risk/research-control/evaluate", json=body)
+    assert response.status_code == 422
+    assert "future-dated" in response.json()["detail"]
+
+
+def test_research_control_rejects_oversized_state_payload():
+    response = client.post(
+        "/api/v1/causal-risk/research-control/evaluate",
+        json=request_body(state={"large": "x" * (33 * 1024)}),
+    )
+    assert response.status_code == 422
+    assert "state exceeds" in response.json()["detail"]
+
+
+def test_research_control_rejects_non_finite_metrics():
+    body = request_body(metrics={"metric": float("nan")})
+    response = client.post("/api/v1/causal-risk/research-control/evaluate", json=body)
+    assert response.status_code == 422
