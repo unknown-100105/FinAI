@@ -167,6 +167,15 @@ function runSmaCrossover(
     cash = equityCurve[equityCurve.length - 1] ?? initialCapital;
   }
 
+  // Recompute drawdown from the final marked/liquidated curve so the final
+  // bar's transaction costs are reflected in both equity and peak-to-trough loss.
+  peakEquity = initialCapital;
+  maxDrawdown = 0;
+  for (const equity of equityCurve) {
+    peakEquity = Math.max(peakEquity, equity);
+    if (peakEquity > 0) maxDrawdown = Math.min(maxDrawdown, equity / peakEquity - 1);
+  }
+
   const wins = trades.filter((trade) => trade.returnPct > 0).length;
   return {
     ...empty,
@@ -264,7 +273,7 @@ export function StrategyBacktestPanel({
             <div><span>Maximum drawdown</span><strong>{result.maxDrawdownPct.toFixed(2)}%</strong></div>
             <div><span>Closed trades</span><strong>{result.closedTrades}</strong></div>
             <div><span>Win rate</span><strong>{result.winRatePct === null ? "—" : result.winRatePct.toFixed(1) + "%"}</strong></div>
-            <div><span>Profit factor</span><strong>{result.profitFactor === null ? "—" : Number.isFinite(result.profitFactor) ? result.profitFactor.toFixed(2) : "—"}</strong></div>
+            <div><span>Profit factor</span><strong>{result.profitFactor === null || !Number.isFinite(result.profitFactor) ? "—" : result.profitFactor.toFixed(2)}</strong></div>
           </div>
           <div className="strategy-lab-equity">
             <div className="strategy-lab-trades-heading"><strong>Equity curve</strong><span>Marked to bar close; costs applied on entry/exit</span></div>
