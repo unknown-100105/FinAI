@@ -4,6 +4,19 @@ from llm.model_gateway import ModelGateway
 from llm.response_service import ResponseService
 
 
+@pytest.fixture(autouse=True)
+def configured_fallback_test_environment(monkeypatch, tmp_path):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
+    monkeypatch.setenv("FINAI_LLM_PREFERENCE", "gemini-cloud")
+    monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "empty-hf-cache"))
+    model_path = tmp_path / "rllm-model"
+    model_path.mkdir()
+    (model_path / "config.json").write_text("{}", encoding="utf-8")
+    (model_path / "model.safetensors").write_bytes(b"test-placeholder")
+    monkeypatch.setenv("FINAI_RLLM_MODEL_PATH", str(model_path))
+
+
 class FakeAdapter:
     def __init__(self, label, response=None, error=None):
         self.label = label
