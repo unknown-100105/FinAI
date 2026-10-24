@@ -175,7 +175,7 @@ export function SwarmTradePanel({ symbol, currentPrice, bars }: Props) {
           <label>Target price<input type="number" min="0.0000001" step="any" required value={fields.target} onChange={(event) => update("target", event.target.value)} /></label>
           <label>Capital<input type="number" min="1" step="any" required value={fields.capital} onChange={(event) => update("capital", event.target.value)} /></label>
           <label>Requested risk %<input type="number" min="0.01" max="5" step="0.05" required value={fields.riskPct} onChange={(event) => update("riskPct", event.target.value)} /></label>
-          <label>Logical agents (max 500)<input type="number" min="1" max="500" step="1" required value={fields.agents} onChange={(event) => update("agents", event.target.value)} /></label>
+          <label>Logical agents (max 500)<input type="number" min="5" max="500" step="5" required value={fields.agents} onChange={(event) => update("agents", event.target.value)} /></label>
           <label>Current daily loss %<input type="number" min="0" max="20" step="0.1" required value={fields.dailyLoss} onChange={(event) => update("dailyLoss", event.target.value)} /></label>
           <label>Open-position risk %<input type="number" min="0" max="3" step="0.1" required value={fields.openRisk} onChange={(event) => update("openRisk", event.target.value)} /></label>
           {(assetClass === "equity" || assetClass === "crypto" || assetClass === "option") && <label>Margin rate (0.01–1)<input type="number" min="0.01" max="1" step="0.01" required value={fields.marginRate} onChange={(event) => update("marginRate", event.target.value)} /></label>
