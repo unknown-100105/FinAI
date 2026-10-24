@@ -6,7 +6,9 @@ import {
   getPaperAccount,
   getPaperLedgerStatus,
   listPaperPositions,
+  listPaperAccounts,
   openPaperPosition,
+  type PaperAccountOption,
   type PaperAccountSnapshot,
   type PaperPosition,
   type SwarmTradePlan,
@@ -19,6 +21,7 @@ const ACCOUNT_STORAGE_KEY = "finai_swarmtrade_paper_account_id";
 type Props = {
   symbol: string;
   currentPrice: number | null;
+  quoteCurrency: string;
   request: SwarmTradeRequest | null;
   plan: SwarmTradePlan | null;
 };
@@ -39,10 +42,13 @@ function fmt(value: number | null | undefined, currency?: string): string {
   }).format(value);
 }
 
-export function PaperTradingPanel({ symbol, currentPrice, request, plan }: Props) {
+export function PaperTradingPanel({ symbol, currentPrice, quoteCurrency, request, plan }: Props) {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [account, setAccount] = useState<PaperAccountSnapshot | null>(null);
   const [positions, setPositions] = useState<PaperPosition[]>([]);
+  const [availableAccounts, setAvailableAccounts] = useState<PaperAccountOption[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState("");
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [label, setLabel] = useState("FinAI paper account");
   const [currency, setCurrency] = useState("INR");
   const [initialCapital, setInitialCapital] = useState("100000");
@@ -71,14 +77,19 @@ export function PaperTradingPanel({ symbol, currentPrice, request, plan }: Props
         if (!active) return;
         setEnabled(status.enabled);
         if (!status.enabled) return;
+        const accountList = await listPaperAccounts();
+        if (!active) return;
+        setAvailableAccounts(accountList.accounts);
         const savedId = window.localStorage.getItem(ACCOUNT_STORAGE_KEY);
-        if (savedId) {
-          try {
-            await refreshAccount(savedId);
-          } catch {
-            window.localStorage.removeItem(ACCOUNT_STORAGE_KEY);
-            if (active) setNotice("Saved paper account could not be loaded. Create a new local account.");
-          }
+        const preferred = accountList.accounts.find((item) => item.account_id === savedId);
+        const selected = preferred ?? accountList.accounts[0];
+        if (selected) {
+          setSelectedAccountId(selected.account_id);
+          window.localStorage.setItem(ACCOUNT_STORAGE_KEY, selected.account_id);
+          await refreshAccount(selected.account_id);
+        } else if (savedId) {
+          window.localStorage.removeItem(ACCOUNT_STORAGE_KEY);
+          if (active) setNotice("Saved paper account was not found. Create a new local account.");
         }
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : "Unable to read paper ledger status.");
@@ -87,6 +98,12 @@ export function PaperTradingPanel({ symbol, currentPrice, request, plan }: Props
     void initialize();
     return () => { active = false; };
   }, [refreshAccount]);
+
+  useEffect(() => {
+    if (!account && quoteCurrency.trim().length === 3) {
+      setCurrency(quoteCurrency.toUpperCase());
+    }
+  }, [quoteCurrency, account]);
 
   const refresh = async () => {
     if (!account) return;
@@ -102,6 +119,25 @@ export function PaperTradingPanel({ symbol, currentPrice, request, plan }: Props
     }
   };
 
+  async function switchAccount(accountId: string) {
+    if (!accountId || accountId === account?.account_id) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await refreshAccount(accountId);
+      setSelectedAccountId(accountId);
+      window.localStorage.setItem(ACCOUNT_STORAGE_KEY, accountId);
+      setShowCreateAccount(false);
+      const found = availableAccounts.find((item) => item.account_id === accountId);
+      if (found) setCurrency(found.currency);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to switch paper account.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function createAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -115,7 +151,15 @@ export function PaperTradingPanel({ symbol, currentPrice, request, plan }: Props
       });
       window.localStorage.setItem(ACCOUNT_STORAGE_KEY, created.account_id);
       setAccount(created);
+      setSelectedAccountId(created.account_id);
+      setShowCreateAccount(false);
       setPositions([]);
+      setAvailableAccounts((previous) => [
+        { account_id: created.account_id, label: created.label, currency: created.currency,
+          initial_capital: created.initial_capital, equity_excluding_unrealized_pnl: created.equity_excluding_unrealized_pnl,
+          realized_pnl: created.realized_pnl, open_position_count: created.open_position_count },
+        ...previous,
+      ]);
       setNotice("Paper account created locally. No brokerage account was connected.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to create paper account.");
@@ -181,6 +225,7 @@ export function PaperTradingPanel({ symbol, currentPrice, request, plan }: Props
     request && plan?.status === "APPROVED_FOR_SIMULATION"
     && request.symbol.toUpperCase() === symbol.toUpperCase(),
   );
+  const matchesCurrency = Boolean(account && account.currency === quoteCurrency.toUpperCase());
 
   return (
     <section className="paper-ledger-panel">
@@ -205,18 +250,30 @@ export function PaperTradingPanel({ symbol, currentPrice, request, plan }: Props
         </div>
       ) : enabled === null ? (
         <p className="paper-ledger-muted">Checking local API configuration…</p>
-      ) : !account ? (
+      ) : (!account || showCreateAccount) ? (
+        <>
+          {availableAccounts.length > 0 && (
+            <div className="paper-ledger-account-picker">
+              <label>Existing local account<select value={selectedAccountId} onChange={(event) => setSelectedAccountId(event.target.value)}>
+                {availableAccounts.map((item) => <option value={item.account_id} key={item.account_id}>{item.label} · {item.currency} · {item.account_id.slice(0, 8)}</option>)}
+              </select></label>
+              <button type="button" onClick={() => void switchAccount(selectedAccountId)} disabled={busy || !selectedAccountId}>Load selected account</button>
+              {account && <button type="button" onClick={() => setShowCreateAccount(false)}>Cancel</button>}
+            </div>
+          )}
         <form className="paper-ledger-create" onSubmit={createAccount}>
           <label>Account label<input value={label} maxLength={100} required onChange={(event) => setLabel(event.target.value)} /></label>
-          <label>Currency<select value={currency} onChange={(event) => setCurrency(event.target.value)}>
-            <option value="INR">INR — Indian rupee</option><option value="USD">USD — US dollar</option><option value="EUR">EUR — euro</option><option value="GBP">GBP — pound sterling</option><option value="SGD">SGD — Singapore dollar</option><option value="JPY">JPY — Japanese yen</option>
+          <label>Account currency<select value={currency} onChange={(event) => setCurrency(event.target.value)}>
+            <option value="INR">INR — Indian rupee</option><option value="USD">USD — US dollar</option><option value="EUR">EUR — euro</option><option value="GBP">GBP — pound sterling</option><option value="SGD">SGD — Singapore dollar</option><option value="JPY">JPY — Japanese yen</option><option value="AUD">AUD — Australian dollar</option><option value="CAD">CAD — Canadian dollar</option>
           </select></label>
+          <small className="paper-ledger-currency-hint">Selected instrument quote currency: <strong>{quoteCurrency.toUpperCase()}</strong>. Paper entries require the account currency to match; no FX conversion is available.</small>
           <label>Starting capital<input type="number" min="1" step="any" value={initialCapital} required onChange={(event) => setInitialCapital(event.target.value)} /></label>
           <button type="submit" disabled={busy || Number(initialCapital) <= 0}>
             {busy ? <LoaderCircle className="paper-ledger-spin" size={14} /> : <Wallet size={14} />}
             Create paper account
           </button>
         </form>
+        </>
       ) : (
         <>
           <div className="paper-ledger-account-head">
@@ -231,10 +288,11 @@ export function PaperTradingPanel({ symbol, currentPrice, request, plan }: Props
           </div>
           <p className="paper-ledger-footnote">*Equity excludes unrealized P&L. Daily loss is based on realized paper exits only. Simulated fills/prices are supplied by you, not confirmed by a market or broker.</p>
 
+          {!matchesCurrency && <div className="paper-ledger-currency-warning"><CircleAlert size={14} /><span>Paper account currency {account.currency} does not match selected instrument quote currency {quoteCurrency.toUpperCase()}. Create or switch to an account in {quoteCurrency.toUpperCase()} before recording new positions. P&amp;L is not currency-converted.</span></div>}
           <div className="paper-ledger-entry">
             <div className="paper-ledger-entry-title"><ShieldCheck size={15} /><strong>Approved plan to paper position</strong></div>
             <p>{approvedForCurrentSymbol ? `${request?.symbol} · ${plan?.direction.toUpperCase()} · ${plan?.agent_count} logical votes` : "Run a successful risk-gated plan for the currently selected symbol. Any input or quote change invalidates the candidate."}</p>
-            <button type="button" onClick={recordPaperEntry} disabled={busy || !approvedForCurrentSymbol}>
+            <button type="button" onClick={recordPaperEntry} disabled={busy || !approvedForCurrentSymbol || !matchesCurrency}>
               {busy ? <LoaderCircle size={14} className="paper-ledger-spin" /> : <Activity size={14} />}
               Record approved plan as paper entry
             </button>
