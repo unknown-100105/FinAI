@@ -134,3 +134,16 @@ This is a software simulation; the frontend build, lint and browser checklist re
 6. Select futures and omit tick metadata, then provide valid tick size/tick value/margin; confirm the endpoint requires all three. Repeat with forex pip/margin fields.
 7. Select options and verify maximum loss per contract is required.
 8. Inspect the JSON response and confirm `order_submitted` and `fill_claimed` remain false.
+
+
+## Persistent paper accounts (opt-in)
+
+Set `FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER=1` in `.env` only for a trusted local environment. The ledger is otherwise disabled and returns HTTP 503.
+
+- Create a paper account: `POST /api/v1/swarmtrade/paper/accounts`.
+- Inspect account/open risk: `GET /api/v1/swarmtrade/paper/accounts/{account_id}`.
+- List closed/open position history: `GET /api/v1/swarmtrade/paper/accounts/{account_id}/positions?status=all`.
+- Record a simulation-only entry: `POST /api/v1/swarmtrade/paper/accounts/{account_id}/positions` with an approved plan, an idempotency key and `acknowledge_simulation_only: true`.
+- Record a simulated exit: `POST /api/v1/swarmtrade/paper/accounts/{account_id}/positions/{position_id}/close` with exit price and reason.
+
+The account-state path ignores caller-supplied capital/open-risk values when sizing, and checks the aggregate open-risk cap again in a serialized SQLite transaction. Repeating an identical mutation with the same idempotency key replays the original response. Unrealized P&L is not included in equity/daily loss, and no automatic stop execution is simulated. Do not expose this local tool publicly without authentication and access controls. Full notes: [SWARMTRADE_PAPER_LEDGER.md](SWARMTRADE_PAPER_LEDGER.md).
