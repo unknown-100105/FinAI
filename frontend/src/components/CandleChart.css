@@ -40,3 +40,5 @@
 .candle-chart:fullscreen .candle-scroll,.candle-chart-fullscreen .candle-scroll{height:calc(100vh - 250px);min-height:280px}
 .candle-chart:fullscreen .candle-scroll>svg,.candle-chart-fullscreen .candle-scroll>svg{height:calc(100vh - 250px);min-height:340px}
 @media(max-width:650px){.candle-tools{gap:4px;padding:6px}.candle-tools button{font-size:8px;padding:5px 6px}.candle-drawing-prompt{width:100%}.candle-tools-divider{display:none}}
+
+.candle-crosshair-horizontal{stroke:#92a8c3;stroke-width:1;stroke-dasharray:3 3;opacity:.5;pointer-events:none}
