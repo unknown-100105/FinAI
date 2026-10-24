@@ -35,11 +35,15 @@ function makeKey(): string {
 
 function fmt(value: number | null | undefined, currency?: string): string {
   if (typeof value !== "number" || !Number.isFinite(value)) return "—";
-  return new Intl.NumberFormat("en-IN", {
-    style: currency ? "currency" : "decimal",
-    currency: currency || undefined,
-    maximumFractionDigits: 2,
-  }).format(value);
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: currency ? "currency" : "decimal",
+      currency: currency || undefined,
+      maximumFractionDigits: 2,
+    }).format(value);
+  } catch {
+    return `${value.toFixed(2)}${currency ? ` ${currency}` : ""}`;
+  }
 }
 
 export function PaperTradingPanel({ symbol, currentPrice, quoteCurrency, request, plan }: Props) {
@@ -283,7 +287,7 @@ export function PaperTradingPanel({ symbol, currentPrice, quoteCurrency, request
               {availableAccounts.length > 1 && <label className="paper-ledger-select-account"><span>Switch account</span><select value={selectedAccountId} onChange={(event) => void switchAccount(event.target.value)} disabled={busy}>
                 {availableAccounts.map((item) => <option value={item.account_id} key={item.account_id}>{item.label} · {item.currency}</option>)}
               </select></label>}
-              <button type="button" onClick={() => { setShowCreateAccount(true); setCurrency(quoteCurrency.toUpperCase()); }} disabled={busy}><Wallet size={13} /> New account</button>
+              <button type="button" onClick={() => { setShowCreateAccount(true); setCurrency(quoteCurrency.trim().length === 3 ? quoteCurrency.toUpperCase() : "INR"); }} disabled={busy}><Wallet size={13} /> New account</button>
               <button type="button" onClick={refresh} disabled={busy}><RefreshCw size={13} className={busy ? "paper-ledger-spin" : ""} /> Refresh</button>
             </div>
           </div>
