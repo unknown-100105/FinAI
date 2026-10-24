@@ -6,6 +6,7 @@ import json
 import math
 import os
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
@@ -62,8 +63,16 @@ class PaperLedger:
         connection.execute("PRAGMA journal_mode = WAL")
         return connection
 
+    @contextmanager
+    def _connection(self):
+        connection = self._connect()
+        try:
+            yield connection
+        finally:
+            connection.close()
+
     def initialize(self) -> None:
-        with self._connect() as connection:
+        with self._connection() as connection:
             connection.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS paper_accounts (
@@ -217,6 +226,16 @@ class PaperLedger:
         response["idempotent_replay"] = True
         return response
 
+    def replay_if_exists(
+        self, *, account_id: str, idempotency_key: str, event_type: str, request_digest: str
+    ) -> dict[str, Any] | None:
+        if not idempotency_key.strip() or len(idempotency_key) > 160:
+            raise ValueError("idempotency_key must be between 1 and 160 characters")
+        self.initialize()
+        with self._connection() as connection:
+            self._require_account(connection, account_id)
+            return self._event_replay(connection, account_id, idempotency_key, event_type, request_digest)
+
     @staticmethod
     def _save_event(
         connection: sqlite3.Connection,
@@ -264,10 +283,13 @@ class PaperLedger:
                     connection.commit()
                     return replay
                 snapshot = self._account_snapshot(connection, account_id)
+                equity = max(float(snapshot["equity_excluding_unrealized_pnl"]), 1e-9)
                 if snapshot["daily_realized_loss_pct"] >= float(risk["daily_loss_limit_pct"]):
                     raise ValueError("paper account daily realized-loss gate is active")
+                if float(risk["estimated_total_risk"]) > equity * 0.01 + 1e-8:
+                    raise ValueError("paper account single-position risk would exceed 1% of current equity")
                 combined_risk = float(snapshot["open_position_risk"]) + float(risk["estimated_total_risk"])
-                combined_pct = combined_risk / max(float(snapshot["equity_excluding_unrealized_pnl"]), 1e-9) * 100.0
+                combined_pct = combined_risk / equity * 100.0
                 if combined_pct > 3.0 + 1e-8:
                     raise ValueError("paper account aggregate open-position risk would exceed 3% of equity")
                 connection.execute(
