@@ -45,7 +45,7 @@ def test_paper_ledger_open_close_and_idempotent_replay(monkeypatch, tmp_path):
     body = {
         "idempotency_key": "open-001",
         "acknowledge_simulation_only": True,
-            "quote_currency": "USD",
+        "quote_currency": "USD",
         "plan": approved_plan_request(),
     }
     opened = client.post(f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions", json=body)
@@ -89,7 +89,7 @@ def test_paper_ledger_open_close_and_idempotent_replay(monkeypatch, tmp_path):
 def test_paper_ledger_requires_explicit_confirmation(monkeypatch, tmp_path):
     monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
     monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
-    account = client.post("/api/v1/swarmtrade/paper/accounts", json={"initial_capital": 10000}).json()
+    account = client.post("/api/v1/swarmtrade/paper/accounts", json={"currency": "USD", "initial_capital": 10000}).json()
     response = client.post(
         f"/api/v1/swarmtrade/paper/accounts/{account['account_id']}/positions",
         json={"idempotency_key": "open", "acknowledge_simulation_only": False,
@@ -107,6 +107,7 @@ def test_paper_ledger_blocks_aggregate_risk_after_three_one_percent_positions(mo
         open_body = {
             "idempotency_key": f"open-{index}",
             "acknowledge_simulation_only": True,
+            "quote_currency": "USD",
             "plan": approved_plan_request(risk_pct=1.0, fee_bps=0, slippage_bps=0),
         }
         opened = client.post(f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions", json=open_body)
@@ -117,6 +118,7 @@ def test_paper_ledger_blocks_aggregate_risk_after_three_one_percent_positions(mo
         json={
             "idempotency_key": "open-4",
             "acknowledge_simulation_only": True,
+            "quote_currency": "USD",
             "plan": approved_plan_request(risk_pct=1.0, fee_bps=0, slippage_bps=0),
         },
     )
@@ -134,6 +136,7 @@ def test_paper_ledger_blocks_position_after_realized_daily_loss_limit(monkeypatc
         json={
             "idempotency_key": "open-loss",
             "acknowledge_simulation_only": True,
+            "quote_currency": "USD",
             "plan": approved_plan_request(risk_pct=1.0, fee_bps=0, slippage_bps=0),
         },
     )
@@ -151,6 +154,7 @@ def test_paper_ledger_blocks_position_after_realized_daily_loss_limit(monkeypatc
         json={
             "idempotency_key": "next-open",
             "acknowledge_simulation_only": True,
+            "quote_currency": "USD",
             "plan": approved_plan_request(risk_pct=1.0, fee_bps=0, slippage_bps=0),
         },
     )
@@ -160,13 +164,14 @@ def test_paper_ledger_blocks_position_after_realized_daily_loss_limit(monkeypatc
 def test_paper_ledger_does_not_accept_stop_close_before_stop_price(monkeypatch, tmp_path):
     monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
     monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
-    account = client.post("/api/v1/swarmtrade/paper/accounts", json={"initial_capital": 100000}).json()
+    account = client.post("/api/v1/swarmtrade/paper/accounts", json={"currency": "USD", "initial_capital": 100000}).json()
     account_id = account["account_id"]
     opened = client.post(
         f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
         json={
             "idempotency_key": "open-stop-check",
             "acknowledge_simulation_only": True,
+            "quote_currency": "USD",
             "plan": approved_plan_request(),
         },
     )
