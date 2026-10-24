@@ -40,7 +40,7 @@ Routes:
 - Aggregate open-position risk is limited to 3% of capital; current daily loss is checked against a configurable daily stop whose accepted maximum is 5%.
 - A protective stop and target are required; invalid long/short price ordering is rejected.
 - Fees and slippage are included as caller-provided assumptions. Sizing is also bounded by supplied margin and leverage assumptions.
-- Options require explicit `max_loss_per_unit` per contract; the conservative proxy is not a full option payoff or Greeks model. Futures require venue-verified tick size, tick value and margin per contract. Forex requires pip size, pip value in the account currency, and margin per configured unit/lot. Contract multiplier, unit step, conversion currency, margin and costs must be checked for the venue.
+- Options require `option_type`, `option_strike`, and explicit `max_loss_per_unit` per contract. The planner rejects naked short calls (theoretical loss unbounded) and checks the configured max loss against vanilla long-option premium risk or short-put expiry loss. Defined-risk spreads, assignment, early exercise and Greeks are not modeled. Futures require venue-verified tick size, tick value and margin per contract. Forex requires pip size, pip value in the account currency, and margin per configured unit/lot. Contract multiplier, unit step, conversion currency, margin and costs must be checked for the venue.
 - Every response clearly reports that no order was submitted and no fill is claimed.
 
 ## Important limitations
