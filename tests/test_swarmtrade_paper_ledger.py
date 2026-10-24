@@ -29,7 +29,7 @@ def approved_plan_request(**overrides):
 def test_paper_ledger_is_disabled_by_default(monkeypatch):
     monkeypatch.delenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", raising=False)
     assert client.get("/api/v1/swarmtrade/paper/status").json()["enabled"] is False
-    response = client.post("/api/v1/swarmtrade/paper/accounts", json={"initial_capital": 10000})
+    response = client.post("/api/v1/swarmtrade/paper/accounts", json={"currency": "USD", "initial_capital": 10000})
     assert response.status_code == 503
 
 
@@ -45,6 +45,7 @@ def test_paper_ledger_open_close_and_idempotent_replay(monkeypatch, tmp_path):
     body = {
         "idempotency_key": "open-001",
         "acknowledge_simulation_only": True,
+            "quote_currency": "USD",
         "plan": approved_plan_request(),
     }
     opened = client.post(f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions", json=body)
@@ -91,7 +92,8 @@ def test_paper_ledger_requires_explicit_confirmation(monkeypatch, tmp_path):
     account = client.post("/api/v1/swarmtrade/paper/accounts", json={"initial_capital": 10000}).json()
     response = client.post(
         f"/api/v1/swarmtrade/paper/accounts/{account['account_id']}/positions",
-        json={"idempotency_key": "open", "acknowledge_simulation_only": False, "plan": approved_plan_request()},
+        json={"idempotency_key": "open", "acknowledge_simulation_only": False,
+        "quote_currency": "USD", "plan": approved_plan_request()},
     )
     assert response.status_code == 422
 
@@ -99,7 +101,7 @@ def test_paper_ledger_requires_explicit_confirmation(monkeypatch, tmp_path):
 def test_paper_ledger_blocks_aggregate_risk_after_three_one_percent_positions(monkeypatch, tmp_path):
     monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
     monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
-    account = client.post("/api/v1/swarmtrade/paper/accounts", json={"initial_capital": 100000}).json()
+    account = client.post("/api/v1/swarmtrade/paper/accounts", json={"currency": "USD", "initial_capital": 100000}).json()
     account_id = account["account_id"]
     for index in range(3):
         open_body = {
