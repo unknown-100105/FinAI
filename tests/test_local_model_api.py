@@ -48,7 +48,7 @@ def test_local_model_probe_matches_configured_model_id(monkeypatch):
 
     result = client.get("/api/v1/system/local-model-status?probe=true").json()
 
-    assert result["status"] == "ready_for_inference"
+    assert result["status"] == "model_listed_not_inference_verified"
     assert result["reachable"] is True
     assert result["model_available"] is True
     _, kwargs = get.call_args
