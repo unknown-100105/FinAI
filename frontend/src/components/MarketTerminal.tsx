@@ -272,7 +272,7 @@ export function MarketTerminal() {
               <div className="chart-badge"><Activity size={13} /> {quote?.source ?? "market feed"}</div>
             </div>
             <div className="chart-wrap chart-grid">
-              {loading ? <div className="chart-empty">Loading OHLC candles…</div> : <CandleChart bars={bars} height={310} showVolume={true} />}
+              {loading ? <div className="chart-empty">Loading OHLC candles…</div> : <CandleChart key={instrument} bars={bars} symbol={instrument} height={310} showVolume={true} />}
             </div>
             <div className="chart-footer">
               <span>{bars[0]?.timestamp ? new Date(bars[0].timestamp).toLocaleString() : "—"}</span>
