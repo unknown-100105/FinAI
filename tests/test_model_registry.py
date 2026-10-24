@@ -38,6 +38,7 @@ def test_unconfigured_models_are_not_routable(monkeypatch, tmp_path):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.delenv("FINAI_RLLM_MODEL_PATH", raising=False)
     monkeypatch.delenv("FINAI_EMBEDDING_MODEL_PATH", raising=False)
+    monkeypatch.delenv("FINAI_COLIBRI_BASE_URL", raising=False)
     monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "empty-hf-cache"))
 
     candidates = {model.model_id for model in enabled_models()}
