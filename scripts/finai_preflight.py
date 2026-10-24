@@ -39,6 +39,9 @@ REQUIRED_PACKAGES = (
     "faiss",
     "sentence_transformers",
     "openai",
+    "dotenv",
+    "longbridge",
+    "datasets",
 )
 PROVIDER_KEY_NAMES = (
     "GEMINI_API_KEY",
