@@ -4,7 +4,7 @@ import type { MarketBar } from "../api/market";
 import { createSwarmTradePlan, type SwarmTradePlan, type SwarmTradeRequest } from "../api/swarmtrade";
 import { PaperTradingPanel } from "./PaperTradingPanel";
 
-type Props = { symbol: string; currentPrice: number | null; bars: MarketBar[]; isLoading: boolean };
+type Props = { symbol: string; currentPrice: number | null; currency: string; bars: MarketBar[]; isLoading: boolean };
 
 const fieldDefaults = {
   entry: "", stop: "", target: "", capital: "100000", riskPct: "0.5",
@@ -65,7 +65,7 @@ function fmt(value: number | undefined): string {
     : "—";
 }
 
-export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props) {
+export function SwarmTradePanel({ symbol, currentPrice, currency, bars, isLoading }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState(symbol);
   const [assetClass, setAssetClass] = useState<"equity" | "option" | "future" | "crypto" | "forex">("equity");
   const [side, setSide] = useState<"auto" | "long" | "short">("auto");
@@ -256,7 +256,7 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
           </div>
         </div>
       )}
-      <PaperTradingPanel symbol={selectedSymbol} currentPrice={currentPrice} request={lastPlanRequest} plan={result} />
+      <PaperTradingPanel symbol={selectedSymbol} currentPrice={currentPrice} quoteCurrency={currency} request={lastPlanRequest} plan={result} />
     </section>
   );
 }
