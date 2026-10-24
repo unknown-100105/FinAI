@@ -54,3 +54,60 @@ Pattern labels are descriptive candidates only. They are not trade signals, fore
 8. Verify the explanation does not generate an order, recommend a trade, or describe a pattern as a guaranteed reversal.
 
 These checks must be run against the current checkout; adding the panel is not evidence that browser QA has passed.
+
+
+## TradingView-style chart controls
+
+The Market Terminal now includes client-side chart overlays and drawing annotations in addition to the OHLC candle inspection panel.
+
+### Indicators
+- SMA 20 and EMA 20 overlays, calculated from the returned close series.
+- Bollinger Bands (20-period mean with two standard deviations).
+- Volume histogram can be toggled without changing the underlying market-data request.
+- Vertical and horizontal hover crosshair guides, zoom, pan, reset and fullscreen.
+
+These calculations use only the historical bars returned by the selected provider/range. They do not guarantee exchange-grade data quality or predict future prices. EMA is initialized from the first available close; Bollinger/SMA values are shown only after 20 bars are available.
+
+### Drawing tools
+- **Horizontal level:** select the tool, then click/keyboard-select a candle; FinAI records its close as the level.
+- **Trendline:** select the tool, then select two candles to anchor the line between their close values.
+- Drawings are saved in browser local storage under an instrument-specific key. They are local to that browser and are not synchronized to a user account or server.
+- Individual drawings can be removed, or all drawings can be cleared. Use a consistent symbol when returning to saved levels; trendlines only render when both anchor timestamps exist in the currently loaded history.
+
+### Manual chart QA
+1. Load at least 30 valid OHLC bars; confirm SMA/EMA toggles turn overlays on/off and the price scale includes the active overlay values.
+2. Confirm Bollinger upper/lower bounds appear only when at least 20 valid closes exist; toggle volume and verify the price panel grows/shrinks without a network request.
+3. Hover over the plot and confirm vertical candle and horizontal price guides track the pointer.
+4. Select Horizontal level and select a candle; confirm the saved price equals that candle's close. Reload and confirm the level persists for the same symbol.
+5. Create a trendline using two different candles; confirm it links their close prices, survives reload, and can be individually removed.
+6. Change symbols and verify each symbol keeps its own drawings rather than inheriting another symbol's annotations.
+7. Test zoom, drag-to-pan, reset and fullscreen with mouse and keyboard; make sure the controls remain reachable on narrow/mobile widths.
+8. Test sparse/invalid provider data, missing volume, an unavailable API and long histories. Confirm the UI shows no-data/partial-feed states rather than reporting invented market values.
+
+The current chart overlay/drawing implementation still requires the frontend build, lint, and browser checklist to be executed against the checkout before merge.
+
+
+## Historical SMA crossover backtest lab
+
+The Market Terminal includes a long-only SMA crossover simulation over the currently loaded bars.
+
+- The short and long moving-average windows, starting capital, fee basis points per side, and slippage basis points per side are user-configurable.
+- A signal is computed at the prior candle's close and executed at the next candle's open. The final open position is liquidated at the final close.
+- The UI reports an equity curve, final equity, net return, buy-and-hold return, maximum drawdown, closed trade count, win rate, profit factor where defined, and recent completed trades.
+- The buy-and-hold comparison uses the same execution window and fee/slippage assumption as the strategy.
+- Trades are all-in long/flat simulations with fractional units. There is no brokerage connection, order execution or portfolio persistence.
+
+### Backtest limitations and checks
+
+The lab excludes tax, spread beyond the configured slippage, market impact, liquidity constraints, dividends/corporate actions, lot sizes, margin/funding, short selling and derivatives contract mechanics. The strategy is a simple illustrative baseline and is not suitable as an F&O or crypto-arbitrage simulator. Prices and timestamps depend on the selected provider and may be delayed or incomplete.
+
+Manual QA:
+1. Enter an invalid moving-average period and confirm a clear validation message.
+2. Use fewer bars than the long SMA window; confirm no metrics are fabricated.
+3. Verify that the first possible execution occurs at the bar after the signal window, not on the signal candle itself.
+4. Set fees and slippage to zero, then to non-zero values; confirm final equity changes consistently with transaction costs.
+5. Verify that a loss-making strategy can report negative returns and that drawdown is non-negative.
+6. Compare strategy and buy-and-hold over the same execution start bar; do not interpret historical outperformance as a future guarantee.
+7. Confirm the panel never invokes broker APIs or submits orders.
+
+This is a software simulation; the frontend build, lint and browser checklist remain required before merge.

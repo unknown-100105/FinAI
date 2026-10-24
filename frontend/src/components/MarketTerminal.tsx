@@ -11,6 +11,7 @@ import {
 import { MarketSearchBox } from "./MarketSearchBox";
 import { CandleChart } from "./CandleChart";
 import { TradeToolsPanel } from "./TradeToolsPanel";
+import { StrategyBacktestPanel } from "./StrategyBacktestPanel";
 import "./MarketTerminal.css";
 
 const ranges = [
@@ -272,7 +273,7 @@ export function MarketTerminal() {
               <div className="chart-badge"><Activity size={13} /> {quote?.source ?? "market feed"}</div>
             </div>
             <div className="chart-wrap chart-grid">
-              {loading ? <div className="chart-empty">Loading OHLC candles…</div> : <CandleChart bars={bars} height={310} showVolume={true} />}
+              {loading ? <div className="chart-empty">Loading OHLC candles…</div> : <CandleChart key={instrument} bars={bars} symbol={instrument} height={310} showVolume={true} />}
             </div>
             <div className="chart-footer">
               <span>{bars[0]?.timestamp ? new Date(bars[0].timestamp).toLocaleString() : "—"}</span>
@@ -294,6 +295,8 @@ export function MarketTerminal() {
               <div className="analytics-card" key={label}><span>{label}</span><strong>{value}</strong><small>Calculated from selected bars</small></div>
             ))}
           </div>
+
+          <StrategyBacktestPanel bars={bars} symbol={instrument} currency={currency} />
         </div>
 
         <aside className="market-side">

@@ -16,3 +16,29 @@
 .candle-hover-details{position:absolute;right:12px;top:46px;z-index:8;display:grid;grid-template-columns:auto auto;gap:3px 9px;min-width:205px;padding:9px;border:1px solid rgba(146,174,208,.16);border-radius:10px;background:rgba(7,14,25,.94);box-shadow:0 14px 32px rgba(0,0,0,.34);font-size:8px;color:#8396ad;pointer-events:none}.candle-hover-details strong{grid-column:1 / -1;color:#d9e4f2;font-size:8px;margin-bottom:2px}.candle-hover-details span:nth-child(odd){color:#657991}.candle-hover-details span{color:#b2c0d1}
 .candle-explanation{padding:12px;border-top:1px solid rgba(146,174,208,.12);background:rgba(7,14,25,.68);color:#b2c0d1}.candle-explanation-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}.candle-explanation-heading div{display:grid;gap:4px}.candle-explanation-heading span{font-size:9px;letter-spacing:.08em;color:#8195ad}.candle-explanation-heading strong{font-size:12px;color:#e1eaf5}.candle-explanation-heading b{font-size:10px;color:#9fb1c7}.candle-explanation-values{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.candle-explanation-values div{display:grid;gap:4px;padding:7px;border:1px solid rgba(146,174,208,.1);border-radius:7px;background:rgba(91,118,163,.045);min-width:0}.candle-explanation-values span{font-size:9px;color:#8195ad}.candle-explanation-values strong{font-size:11px;color:#e1eaf5;overflow-wrap:anywhere}.candle-explanation-notes{margin-top:10px;font-size:11px;line-height:1.5}.candle-explanation-notes p{margin:6px 0}.candle-explanation-caveat{color:#8396ad;font-size:10px}
 @media(max-width:650px){.candle-toolbar-hint{display:none}.candle-footer span:nth-child(2){display:none}.candle-explanation-values{grid-template-columns:repeat(2,minmax(0,1fr))}.candle-explanation-heading{flex-direction:column}}
+
+
+/* TradingView-style overlays and local drawing controls. */
+.candle-tools{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:8px;border-bottom:1px solid rgba(146,174,208,.09);background:rgba(7,14,25,.55)}
+.candle-tools button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:27px;padding:5px 8px;border:1px solid rgba(146,174,208,.12);border-radius:7px;background:rgba(91,118,163,.05);color:#899bb2;font-size:9px;cursor:pointer}
+.candle-tools button:hover,.candle-tools button.active{border-color:rgba(108,148,245,.38);background:rgba(76,108,190,.16);color:#dce7f7}
+.candle-tools button:disabled{opacity:.4;cursor:not-allowed}
+.candle-tool-label{display:inline-flex;align-items:center;gap:4px;color:#7185a0;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:0 3px}
+.candle-tools-divider{height:18px;border-left:1px solid rgba(146,174,208,.14);margin:0 3px}
+.candle-drawing-prompt{font-size:9px;color:#f0c67c;font-weight:700}
+.candle-indicator{fill:none;stroke-width:1.65;vector-effect:non-scaling-stroke;pointer-events:none}
+.candle-sma{stroke:#e7b65b}
+.candle-ema{stroke:#a68bff}
+.candle-bollinger{stroke:#68a9ef;stroke-width:1.2;stroke-dasharray:4 3;opacity:.9}
+.candle-drawing-line{stroke:#f0c67c;stroke-width:1.3;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;pointer-events:none}
+.candle-trendline{stroke:#8dc8f3;stroke-width:1.6}
+.candle-drawing-label{fill:#f0c67c;font-size:10px;font-weight:800;paint-order:stroke;stroke:rgba(5,12,22,.9);stroke-width:3px;stroke-linejoin:round}
+.candle-drawing-list{display:grid;gap:4px;padding:7px 9px;border-top:1px solid rgba(146,174,208,.09);background:rgba(5,12,22,.42)}
+.candle-drawing-list>div{display:flex;align-items:center;justify-content:space-between;gap:9px;color:#9eafc6;font-size:9px}
+.candle-drawing-list button{border:1px solid rgba(146,174,208,.13);border-radius:6px;padding:4px 7px;background:rgba(91,118,163,.06);color:#8fa5c2;font-size:9px;cursor:pointer}
+.candle-chart:fullscreen,.candle-chart-fullscreen{width:100vw;height:100vh;min-height:100vh;overflow:auto;padding:12px;box-sizing:border-box;background:#07101d;border-radius:0}
+.candle-chart:fullscreen .candle-scroll,.candle-chart-fullscreen .candle-scroll{height:calc(100vh - 250px);min-height:280px}
+.candle-chart:fullscreen .candle-scroll>svg,.candle-chart-fullscreen .candle-scroll>svg{height:calc(100vh - 250px);min-height:340px}
+@media(max-width:650px){.candle-tools{gap:4px;padding:6px}.candle-tools button{font-size:8px;padding:5px 6px}.candle-drawing-prompt{width:100%}.candle-tools-divider{display:none}}
+
+.candle-crosshair-horizontal{stroke:#92a8c3;stroke-width:1;stroke-dasharray:3 3;opacity:.5;pointer-events:none}
