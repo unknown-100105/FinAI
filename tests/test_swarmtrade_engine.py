@@ -57,10 +57,42 @@ def test_swarmtrade_requires_valid_protective_levels():
     assert "Long trade requires" in result["reason"]
 
 
-def test_swarmtrade_options_require_explicit_max_loss_per_contract():
-    result = build_swarm_plan(bullish_request(asset_class="option", multiplier=100))
+def test_swarmtrade_options_require_strike_and_explicit_max_loss_per_contract():
+    result = build_swarm_plan(bullish_request(
+        asset_class="option", multiplier=100, option_type="call", option_strike=100,
+    ))
     assert result["status"] == "REJECTED"
     assert "max_loss_per_unit" in result["reason"]
+
+
+def test_swarmtrade_option_rejects_max_loss_below_long_premium_risk():
+    result = build_swarm_plan(bullish_request(
+        asset_class="option", entry_price=2, stop_price=1, target_price=4.5,
+        multiplier=100, option_type="call", option_strike=3, max_loss_per_unit=50,
+    ))
+    assert result["status"] == "REJECTED"
+    assert "below the vanilla option payoff maximum loss" in result["reason"]
+
+
+def test_swarmtrade_blocks_theoretically_unbounded_naked_short_calls():
+    result = build_swarm_plan(bullish_request(
+        asset_class="option", side="auto", entry_price=2, stop_price=3, target_price=0.8,
+        multiplier=100, option_type="call", option_strike=3, max_loss_per_unit=1000,
+        signals={"trend": -0.9, "momentum": -0.8, "breakout": -0.8, "sentiment": -0.7, "mean_reversion": -0.1},
+    ))
+    assert result["status"] == "REJECTED"
+    assert "unbounded loss" in result["reason"]
+
+
+def test_swarmtrade_short_put_uses_bounded_expiry_loss():
+    request = bullish_request(
+        asset_class="option", side="auto", entry_price=2, stop_price=3, target_price=0.8,
+        multiplier=100, option_type="put", option_strike=3, max_loss_per_unit=100,
+        signals={"trend": -0.9, "momentum": -0.8, "breakout": -0.8, "sentiment": -0.7, "mean_reversion": -0.1},
+    )
+    result = build_swarm_plan(request)
+    assert result["status"] == "APPROVED_FOR_SIMULATION"
+    assert result["risk"]["risk_model"]["theoretical_max_loss_per_contract"] == 100.0
 
 
 def test_swarmtrade_no_signal_does_not_trade():
