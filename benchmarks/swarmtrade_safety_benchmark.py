@@ -121,6 +121,7 @@ def run_benchmark(case_count: int = CASE_COUNT) -> dict[str, Any]:
     determinism_failures = 0
     guardrail_violations = 0
     expected_control_rejections_missed = 0
+    expected_feasible_approval_missed = 0
     passed_cases = 0
     samples: list[dict[str, Any]] = []
 
@@ -138,8 +139,11 @@ def run_benchmark(case_count: int = CASE_COUNT) -> dict[str, Any]:
         if first["status"] == "APPROVED_FOR_SIMULATION":
             approved_counts[request["asset_class"]] += 1
         control_gate_missed = must_block and first["status"] == "APPROVED_FOR_SIMULATION"
+        feasible_approval_missed = not must_block and first["status"] != "APPROVED_FOR_SIMULATION"
         if control_gate_missed:
             expected_control_rejections_missed += 1
+        if feasible_approval_missed:
+            expected_feasible_approval_missed += 1
 
         safe = (
             first["execution"]["order_submitted"] is False
@@ -156,13 +160,18 @@ def run_benchmark(case_count: int = CASE_COUNT) -> dict[str, Any]:
             safe = safe and first["sizing"]["quantity"] > 0
         if not safe:
             guardrail_violations += 1
-        case_passed = repeatable and safe and not control_gate_missed
+        case_passed = repeatable and safe and not control_gate_missed and not feasible_approval_missed
         if case_passed:
             passed_cases += 1
         elif len(samples) < 10:
             samples.append({
                 "case": index,
-                "reason": "guardrail_violation" if not safe else "known_control_not_rejected" if control_gate_missed else "non_deterministic_result",
+                "reason": (
+                    "guardrail_violation" if not safe
+                    else "known_control_not_rejected" if control_gate_missed
+                    else "expected_feasible_plan_rejected" if feasible_approval_missed
+                    else "non_deterministic_result"
+                ),
                 "plan": first,
             })
 
@@ -179,6 +188,7 @@ def run_benchmark(case_count: int = CASE_COUNT) -> dict[str, Any]:
         "determinism_failures": determinism_failures,
         "guardrail_violations": guardrail_violations,
         "expected_control_rejections_missed": expected_control_rejections_missed,
+        "expected_feasible_approval_missed": expected_feasible_approval_missed,
         "failure_count": failures,
         "failure_samples": samples,
         "research_boundary": (
