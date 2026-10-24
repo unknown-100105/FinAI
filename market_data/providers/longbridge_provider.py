@@ -39,13 +39,17 @@ def _sdk_symbol(symbol: str, exchange: Optional[str]) -> str:
         raise ValueError("Market symbol must not be empty.")
     if "." in value or not exchange:
         return value
+    exchange_key = str(exchange).strip().upper()
     suffix = {
-        "US": "US", "NASDAQ": "US", "NYSE": "US",
-        "HK": "HK", "HKEX": "HK",
-        "SH": "SH", "SSE": "SH",
-        "SZ": "SZ", "SZSE": "SZ",
-        "SG": "SG", "SGX": "SG",
-    }.get(str(exchange).strip().upper())
+        "US": "US", "NASDAQ": "US", "NASDAQGS": "US", "NASDAQGM": "US",
+        "NASDAQCM": "US", "NMS": "US", "NGM": "US", "NCM": "US",
+        "NYSE": "US", "NYSEARCA": "US", "NYSEAMERICAN": "US",
+        "BATS": "US", "PCX": "US", "ASE": "US",
+        "HK": "HK", "HKEX": "HK", "HONG KONG": "HK",
+        "SH": "SH", "SSE": "SH", "SHANGHAI": "SH",
+        "SZ": "SZ", "SZSE": "SZ", "SHENZHEN": "SZ",
+        "SG": "SG", "SGX": "SG", "SINGAPORE": "SG",
+    }.get(exchange_key)
     return f"{value}.{suffix}" if suffix else value
 
 
