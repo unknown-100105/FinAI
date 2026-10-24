@@ -101,7 +101,7 @@ export function PaperTradingPanel({ symbol, currentPrice, quoteCurrency, request
 
   useEffect(() => {
     if (!account && quoteCurrency.trim().length === 3) {
-      setCurrency(quoteCurrency.toUpperCase());
+      setCurrency(quoteCurrency.trim().length === 3 ? quoteCurrency.toUpperCase() : "INR");
     }
   }, [quoteCurrency, account]);
 
@@ -226,7 +226,7 @@ export function PaperTradingPanel({ symbol, currentPrice, quoteCurrency, request
     request && plan?.status === "APPROVED_FOR_SIMULATION"
     && request.symbol.toUpperCase() === symbol.toUpperCase(),
   );
-  const matchesCurrency = Boolean(account && account.currency === quoteCurrency.toUpperCase());
+  const matchesCurrency = Boolean(account && quoteCurrency.trim().length === 3 && account.currency === quoteCurrency.toUpperCase());
 
   return (
     <section className="paper-ledger-panel">
@@ -267,7 +267,7 @@ export function PaperTradingPanel({ symbol, currentPrice, quoteCurrency, request
           <label>Account currency<select value={currency} onChange={(event) => setCurrency(event.target.value)}>
             <option value="INR">INR — Indian rupee</option><option value="USD">USD — US dollar</option><option value="EUR">EUR — euro</option><option value="GBP">GBP — pound sterling</option><option value="SGD">SGD — Singapore dollar</option><option value="JPY">JPY — Japanese yen</option><option value="AUD">AUD — Australian dollar</option><option value="CAD">CAD — Canadian dollar</option>
           </select></label>
-          <small className="paper-ledger-currency-hint">Selected instrument quote currency: <strong>{quoteCurrency.toUpperCase()}</strong>. Paper entries require the account currency to match; no FX conversion is available.</small>
+          <small className="paper-ledger-currency-hint">Selected instrument quote currency: <strong>{quoteCurrency.trim().length === 3 ? quoteCurrency.toUpperCase() : "unknown"}</strong>. Paper entries require the account currency to match; no FX conversion is available.</small>
           <label>Starting capital<input type="number" min="1" step="any" value={initialCapital} required onChange={(event) => setInitialCapital(event.target.value)} /></label>
           <button type="submit" disabled={busy || Number(initialCapital) <= 0}>
             {busy ? <LoaderCircle className="paper-ledger-spin" size={14} /> : <Wallet size={14} />}
@@ -295,7 +295,7 @@ export function PaperTradingPanel({ symbol, currentPrice, quoteCurrency, request
           </div>
           <p className="paper-ledger-footnote">*Equity excludes unrealized P&L. Daily loss is based on realized paper exits only. Simulated fills/prices are supplied by you, not confirmed by a market or broker.</p>
 
-          {!matchesCurrency && <div className="paper-ledger-currency-warning"><CircleAlert size={14} /><span>Paper account currency {account.currency} does not match selected instrument quote currency {quoteCurrency.toUpperCase()}. Create or switch to an account in {quoteCurrency.toUpperCase()} before recording new positions. P&amp;L is not currency-converted.</span></div>}
+          {!matchesCurrency && <div className="paper-ledger-currency-warning"><CircleAlert size={14} /><span>Paper account currency {account.currency} does not match selected instrument quote currency {quoteCurrency.trim().length === 3 ? quoteCurrency.toUpperCase() : "unknown"}. Confirm the instrument quote currency and select or create a matching account before recording new positions. P&amp;L is not currency-converted.</span></div>}
           <div className="paper-ledger-entry">
             <div className="paper-ledger-entry-title"><ShieldCheck size={15} /><strong>Approved plan to paper position</strong></div>
             <p>{approvedForCurrentSymbol ? `${request?.symbol} · ${plan?.direction.toUpperCase()} · ${plan?.agent_count} logical votes` : "Run a successful risk-gated plan for the currently selected symbol. Any input or quote change invalidates the candidate."}</p>
