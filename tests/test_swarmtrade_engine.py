@@ -85,3 +85,50 @@ def test_swarmtrade_api_rejects_agent_count_over_limit():
 def test_swarmtrade_api_rejects_unknown_signal_key():
     response = client.post("/api/v1/swarmtrade/plan", json=bullish_request(signals={"inside_info": 1}))
     assert response.status_code == 422
+
+
+def test_swarmtrade_futures_require_tick_value_and_margin_metadata():
+    result = build_swarm_plan(bullish_request(asset_class="future", multiplier=50))
+    assert result["status"] == "REJECTED"
+    assert "tick_size, tick_value, and margin_per_unit" in result["reason"]
+
+
+def test_swarmtrade_future_risk_uses_exchange_tick_value():
+    result = build_swarm_plan(bullish_request(
+        asset_class="future",
+        multiplier=50,
+        tick_size=0.25,
+        tick_value=12.5,
+        margin_per_unit=5000,
+    ))
+    assert result["status"] == "APPROVED_FOR_SIMULATION"
+    assert result["risk"]["risk_model"]["model"] == "futures_tick_value"
+    assert result["risk"]["risk_model"]["tick_size"] == 0.25
+    assert result["sizing"]["quantity"] >= 1
+
+
+def test_swarmtrade_forex_requires_account_currency_pip_metadata():
+    result = build_swarm_plan(bullish_request(asset_class="forex", multiplier=100000))
+    assert result["status"] == "REJECTED"
+    assert "pip_size, pip_value_per_unit, and margin_per_unit" in result["reason"]
+
+
+def test_swarmtrade_forex_risk_uses_pip_value_and_lot_margin():
+    result = build_swarm_plan(bullish_request(
+        asset_class="forex",
+        entry_price=1.1,
+        stop_price=1.095,
+        target_price=1.12,
+        capital=500000,
+        multiplier=100000,
+        unit_step=1,
+        pip_size=0.0001,
+        pip_value_per_unit=10,
+        margin_per_unit=2000,
+        margin_rate=0.05,
+        max_leverage=30,
+    ))
+    assert result["status"] == "APPROVED_FOR_SIMULATION"
+    assert result["risk"]["risk_model"]["model"] == "forex_pip_value"
+    assert result["risk"]["risk_model"]["pip_size"] == 0.0001
+    assert result["sizing"]["quantity"] >= 1
