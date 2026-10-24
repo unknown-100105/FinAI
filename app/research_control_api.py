@@ -6,6 +6,8 @@ authorization to place orders.
 """
 from __future__ import annotations
 
+import json
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
 from fastapi import APIRouter, HTTPException
@@ -23,6 +25,9 @@ from causal_risk.research_control_plane import (
 router = APIRouter(prefix="/api/v1/causal-risk/research-control", tags=["causal-risk-research-control"])
 MAX_EVIDENCE_ITEMS = 32
 MAX_OPERATIONS = 20
+MAX_STATE_BYTES = 32 * 1024
+MAX_METRICS_BYTES = 8 * 1024
+MAX_FUTURE_CLOCK_SKEW_SECONDS = 300.0
 ALLOWED_RESEARCH_OPERATIONS = {
     "run_counterfactual", "run_benchmark", "inspect_retrieval",
     "generate_report", "evaluate_model", "compare_models",
@@ -97,6 +102,24 @@ def evaluate_research_control(request: ResearchControlRequest) -> dict:
         if len(set(evidence_ids)) != len(evidence_ids):
             raise ValueError("evidence_id values must be unique")
 
+        # Bound canonicalized payloads before hashing or embedding them in proof output.
+        try:
+            state_json = json.dumps(request.state, sort_keys=True, separators=(",", ":"), allow_nan=False)
+            metrics_json = json.dumps(request.metrics, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        except (TypeError, ValueError, RecursionError) as exc:
+            raise ValueError("state and metrics must be finite JSON-compatible values") from exc
+        if len(state_json.encode("utf-8")) > MAX_STATE_BYTES:
+            raise ValueError(f"state exceeds the {MAX_STATE_BYTES}-byte research-control limit")
+        if len(metrics_json.encode("utf-8")) > MAX_METRICS_BYTES:
+            raise ValueError(f"metrics exceed the {MAX_METRICS_BYTES}-byte research-control limit")
+
+        now = datetime.now(timezone.utc).timestamp()
+        for item in request.evidence:
+            if item.observed_at > now + MAX_FUTURE_CLOCK_SKEW_SECONDS:
+                raise ValueError(
+                    f"evidence {item.evidence_id!r} is future-dated beyond the permitted clock skew"
+                )
+
         evidence_items = [
             EvidenceItem(
                 evidence_id=item.evidence_id,
@@ -108,6 +131,7 @@ def evaluate_research_control(request: ResearchControlRequest) -> dict:
         ]
         evidence = evaluate_evidence(
             evidence_items,
+            now=now,
             conflict_pairs=[tuple(pair) for pair in request.conflict_pairs],
         )
         capability = derive_research_capability(
@@ -123,12 +147,14 @@ def evaluate_research_control(request: ResearchControlRequest) -> dict:
             policy_version=request.policy_version,
             evidence_digest=evidence.evidence_digest,
             ttl_seconds=request.ttl_seconds,
+            issued_at=now,
         )
         lease_check = lease.validate(
             state=request.state,
             model_version=request.model_version,
             policy_version=request.policy_version,
             evidence_digest=evidence.evidence_digest,
+            now=now,
         )
         proof = build_experiment_proof(
             experiment_id=request.experiment_id,
