@@ -103,6 +103,14 @@ python scripts/finai_preflight.py --json
 
 See [Offline mode and preflight guide](docs/OFFLINE_AND_PREFLIGHT.md) for the network-policy contract, local model requirements, artifact prerequisites, and tests. Offline checks cover the currently guarded provider paths, not arbitrary direct network calls from future modules.
 
+## Retrieval Lab
+
+The interface includes a **Retrieval Lab** that compares the embedding-free SQLite FTS5/BM25 retriever with the existing FTS5 + FAISS hybrid path on the same query. It displays source text and provenance, per-mode availability, ranking diagnostics and latency. The lab retrieves evidence only; it does not generate answers, and scores are not probabilities or proof of correctness.
+
+API: `POST /api/v1/retrieval-lab/search` with `query`, `mode` (`vectorless`, `hybrid`, or `compare`) and optional `top_k` (1–10). Vectorless retrieval needs the SQLite database and FTS5 index; hybrid additionally needs the FAISS index, document-ID map and embedding runtime/model assets. Missing hybrid assets do not hide vectorless results in comparison mode.
+
+See [Retrieval Lab setup and evaluation guide](docs/RETRIEVAL_LAB.md) for build instructions, limitations, and a defensible Recall@k/MRR/latency benchmark protocol.
+
 ## Optional local Colibrì inference
 
 FinAI can optionally route response generation to a separately installed
