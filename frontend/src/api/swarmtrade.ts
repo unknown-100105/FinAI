@@ -147,6 +147,7 @@ export async function listPaperPositions(
 export async function openPaperPosition(request: {
   account_id: string;
   idempotency_key: string;
+  quote_currency: string;
   acknowledge_simulation_only: true;
   plan: SwarmTradeRequest;
 }): Promise<{
@@ -158,6 +159,7 @@ export async function openPaperPosition(request: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       idempotency_key: request.idempotency_key,
+      quote_currency: request.quote_currency,
       acknowledge_simulation_only: request.acknowledge_simulation_only,
       plan: request.plan,
     }),
