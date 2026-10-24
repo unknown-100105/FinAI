@@ -120,6 +120,18 @@ def evaluate_research_control(request: ResearchControlRequest) -> dict:
                     f"evidence {item.evidence_id!r} is future-dated beyond the permitted clock skew"
                 )
 
+        normalized_conflicts: list[tuple[str, str]] = []
+        seen_conflicts: set[tuple[str, str]] = set()
+        for left, right in request.conflict_pairs:
+            left, right = left.strip(), right.strip()
+            if not left or not right or left == right:
+                raise ValueError("each conflict pair must contain two distinct evidence IDs")
+            pair = tuple(sorted((left, right)))
+            if pair in seen_conflicts:
+                raise ValueError("conflict pairs must be unique regardless of ordering")
+            seen_conflicts.add(pair)
+            normalized_conflicts.append(pair)
+
         evidence_items = [
             EvidenceItem(
                 evidence_id=item.evidence_id,
@@ -132,7 +144,7 @@ def evaluate_research_control(request: ResearchControlRequest) -> dict:
         evidence = evaluate_evidence(
             evidence_items,
             now=now,
-            conflict_pairs=[tuple(pair) for pair in request.conflict_pairs],
+            conflict_pairs=normalized_conflicts,
         )
         capability = derive_research_capability(
             uncertainty=request.uncertainty,
