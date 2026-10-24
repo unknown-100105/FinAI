@@ -69,7 +69,7 @@ export function SwarmTradePanel({ symbol, currentPrice, bars }: Props) {
   const [assetClass, setAssetClass] = useState<"equity" | "option" | "future" | "crypto" | "forex">("equity");
   const [side, setSide] = useState<"auto" | "long" | "short">("auto");
   const [fields, setFields] = useState({ ...fieldDefaults, entry: currentPrice == null ? "" : String(currentPrice) });
-  const [signals, setSignals] = useState({ trend: "0.6", momentum: "0.6", mean_reversion: "0.1", breakout: "0.5", sentiment: "0.4" });
+  const [signals, setSignals] = useState({ trend: "0", momentum: "0", mean_reversion: "0", breakout: "0", sentiment: "0" });
   const [result, setResult] = useState<SwarmTradePlan | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
