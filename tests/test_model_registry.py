@@ -5,6 +5,7 @@
     models_for_capability,
     model_configured,
 )
+from llm.model_router import ModelRouter
 
 
 def test_registry_contains_expected_candidates():
@@ -27,7 +28,7 @@ def test_gemini_is_current_enabled_model(monkeypatch):
     assert get_model_spec("gemini-cloud").enabled is True
 
 
-def test_unconfigured_models_are_not_routable(monkeypatch, tmp_path):
+def test_unconfigured_models_are_registered_but_not_routable(monkeypatch, tmp_path):
     for name in (
         "OPENAI_API_KEY",
         "GEMINI_API_KEY",
@@ -41,12 +42,19 @@ def test_unconfigured_models_are_not_routable(monkeypatch, tmp_path):
     monkeypatch.delenv("FINAI_COLIBRI_BASE_URL", raising=False)
     monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "empty-hf-cache"))
 
-    candidates = {model.model_id for model in enabled_models()}
-
-    assert "gemini-cloud" not in candidates
-    assert "rllm-finqa-4b" not in candidates
+    # Registry presence is metadata; a missing key/path must still prevent routing.
+    registered = {model.model_id for model in enabled_models()}
+    assert "gemini-cloud" in registered
+    assert "rllm-finqa-4b" in registered
     assert model_configured(MODEL_REGISTRY["gemini-cloud"]) is False
     assert model_configured(MODEL_REGISTRY["rllm-finqa-4b"]) is False
+
+    try:
+        ModelRouter().route("financial_qa")
+    except RuntimeError as exc:
+        assert "No enabled model supports capability" in str(exc)
+    else:
+        raise AssertionError("Router selected an unconfigured model.")
 
 
 def test_local_model_requires_config_and_weight_files(monkeypatch, tmp_path):
