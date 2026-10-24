@@ -205,6 +205,31 @@ class PaperLedger:
         with self._connect() as connection:
             return self._account_snapshot(connection, account_id)
 
+    def list_positions(self, account_id: str, status: str = "all") -> dict[str, Any]:
+        normalized = str(status).strip().lower()
+        if normalized not in {"open", "closed", "all"}:
+            raise ValueError("status must be open, closed, or all")
+        self.initialize()
+        with self._connection() as connection:
+            self._require_account(connection, account_id)
+            if normalized == "all":
+                rows = connection.execute(
+                    "SELECT * FROM paper_positions WHERE account_id=? ORDER BY opened_at DESC, position_id",
+                    (account_id,),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM paper_positions WHERE account_id=? AND status=? ORDER BY opened_at DESC, position_id",
+                    (account_id, normalized.upper()),
+                ).fetchall()
+            positions = []
+            for row in rows:
+                item = dict(row)
+                item["risk_metadata"] = json.loads(item["risk_metadata"])
+                positions.append(item)
+            return {"account_id": account_id, "status_filter": normalized,
+                    "count": len(positions), "positions": positions, "paper_only": True}
+
     @staticmethod
     def _event_replay(
         connection: sqlite3.Connection,
@@ -362,6 +387,16 @@ class PaperLedger:
                     raise KeyError("Paper position not found")
                 if row["status"] != "OPEN":
                     raise ValueError("paper position is already closed")
+                if close_reason == "stop":
+                    stop_price = float(row["stop_price"])
+                    breached = exit_price <= stop_price if row["direction"] == "long" else exit_price >= stop_price
+                    if not breached:
+                        raise ValueError("stop close price has not reached or crossed the stored protective stop")
+                if close_reason == "target":
+                    target_price = float(row["target_price"])
+                    reached = exit_price >= target_price if row["direction"] == "long" else exit_price <= target_price
+                    if not reached:
+                        raise ValueError("target close price has not reached or crossed the stored target")
                 metadata = json.loads(row["risk_metadata"])
                 asset_class = str(row["asset_class"])
                 direction_sign = 1.0 if row["direction"] == "long" else -1.0
