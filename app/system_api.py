@@ -72,7 +72,9 @@ def brain_status() -> dict[str, Any]:
         "FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS", ""
     ).strip().casefold() in {"1", "true", "yes", "on"}
     network_mode = os.getenv("FINAI_NETWORK_MODE", "online").strip().lower()
-    colibri_configured = bool(os.getenv("FINAI_COLIBRI_BASE_URL", "").strip())
+    colibri_base_url = os.getenv("FINAI_COLIBRI_BASE_URL", "").strip()
+    colibri_configured = bool(colibri_base_url)
+    colibri_model_id = os.getenv("FINAI_COLIBRI_MODEL", "olmoe-colibri").strip()
 
     return {
         "schema_version": "1.0",
@@ -148,6 +150,14 @@ def brain_status() -> dict[str, Any]:
                 "secret_values_exposed": False,
                 "provider_reachability_verified": False,
                 "model_inference_verified": False,
+                "local_model": {
+                    "provider": "local_colibri",
+                    "configured": colibri_configured,
+                    "model_id": colibri_model_id if colibri_configured else None,
+                    "status_endpoint": "/api/v1/system/local-model-status",
+                    "reachability_verified": False,
+                    "inference_verified": False,
+                },
             },
             {
                 "id": "verification_xai",
@@ -197,6 +207,8 @@ def brain_status() -> dict[str, Any]:
                 "local_runtime_verified": False,
                 "model_weights_presence_verified": False,
                 "colibri_server_reachability_verified": False,
+                "local_model_status_endpoint": "/api/v1/system/local-model-status",
+                "local_model_probe_is_opt_in": True,
             },
             {
                 "id": "causal_risk_research",
