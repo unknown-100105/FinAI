@@ -340,7 +340,7 @@ export function MarketTerminal() {
           </div>
 
           <StrategyBacktestPanel bars={bars} symbol={instrument} currency={currency} />
-          <SwarmTradePanel symbol={instrument} currentPrice={finite(quote?.price)} />
+          <SwarmTradePanel symbol={instrument} currentPrice={finite(quote?.price)} bars={bars} />
         </div>
 
         <aside className="market-side">
