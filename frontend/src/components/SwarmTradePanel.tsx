@@ -9,7 +9,8 @@ const fieldDefaults = {
   entry: "", stop: "", target: "", capital: "100000", riskPct: "0.5",
   agents: "500", maxDailyLoss: "2", dailyLoss: "0", openRisk: "0",
   leverage: "1", marginRate: "1", multiplier: "1", unitStep: "1",
-  feeBps: "5", slippageBps: "5", maxLossPerUnit: "",
+  feeBps: "5", slippageBps: "5", maxLossPerUnit: "", tickSize: "", tickValue: "",
+  pipSize: "", pipValue: "", marginPerUnit: "",
 };
 
 function numberValue(value: string): number {
@@ -121,6 +122,16 @@ export function SwarmTradePanel({ symbol, currentPrice, bars }: Props) {
         ...(assetClass === "option" && fields.maxLossPerUnit.trim()
           ? { max_loss_per_unit: numberValue(fields.maxLossPerUnit) }
           : {}),
+        ...(assetClass === "future" ? {
+          tick_size: numberValue(fields.tickSize),
+          tick_value: numberValue(fields.tickValue),
+          margin_per_unit: numberValue(fields.marginPerUnit),
+        } : {}),
+        ...(assetClass === "forex" ? {
+          pip_size: numberValue(fields.pipSize),
+          pip_value_per_unit: numberValue(fields.pipValue),
+          margin_per_unit: numberValue(fields.marginPerUnit),
+        } : {}),
         signals: Object.fromEntries(
           Object.entries(signals).map(([key, value]) => [key, numberValue(value)]),
         ),
@@ -168,6 +179,16 @@ export function SwarmTradePanel({ symbol, currentPrice, bars }: Props) {
           <label>Contract / unit multiplier<input type="number" min="0.0000001" step="any" required value={fields.multiplier} onChange={(event) => update("multiplier", event.target.value)} /></label>
           <label>Quantity step<input type="number" min="0.0000001" step="any" required value={fields.unitStep} onChange={(event) => update("unitStep", event.target.value)} /></label>
           {assetClass === "option" && <label>Max loss per contract<input type="number" min="0.0000001" step="any" required value={fields.maxLossPerUnit} onChange={(event) => update("maxLossPerUnit", event.target.value)} /></label>}
+          {assetClass === "future" && <>
+            <label>Tick size<input type="number" min="0.0000001" step="any" required value={fields.tickSize} onChange={(event) => update("tickSize", event.target.value)} /></label>
+            <label>Tick value (account currency)<input type="number" min="0.0000001" step="any" required value={fields.tickValue} onChange={(event) => update("tickValue", event.target.value)} /></label>
+            <label>Margin per contract<input type="number" min="0.0000001" step="any" required value={fields.marginPerUnit} onChange={(event) => update("marginPerUnit", event.target.value)} /></label>
+          </>}
+          {assetClass === "forex" && <>
+            <label>Pip size<input type="number" min="0.0000001" step="any" required value={fields.pipSize} onChange={(event) => update("pipSize", event.target.value)} /></label>
+            <label>Pip value per unit (account currency)<input type="number" min="0.0000001" step="any" required value={fields.pipValue} onChange={(event) => update("pipValue", event.target.value)} /></label>
+            <label>Margin per lot / unit<input type="number" min="0.0000001" step="any" required value={fields.marginPerUnit} onChange={(event) => update("marginPerUnit", event.target.value)} /></label>
+          </>}
         </div>
         <div className="swarmtrade-signal-block">
           <strong>Directional input features <small>(-1.0 to +1.0; trend/momentum/reversion/breakout derive from chart bars)</small></strong>
