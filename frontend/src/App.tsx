@@ -27,6 +27,7 @@ import {
   WalletCards,
   Globe2,
   BrainCircuit,
+  Database,
 } from "lucide-react";
 import {
   authenticateSession,
@@ -50,6 +51,7 @@ import { MarketAnalystHub } from "./components/MarketAnalystHub";
 import GlobalInvestmentHub from "./components/GlobalInvestmentHub";
 import { XAIExplorerHub } from "./components/XAIExplorerHub";
 import CausalRiskLab from "./components/CausalRiskLab";
+import { RetrievalLab } from "./components/RetrievalLab";
 import { PlatformGuide } from "./components/PlatformGuide";
 import { AssistantResultCard } from "./components/AssistantResultCard";
 import ModelIntelligenceHub from "./components/ModelIntelligenceHub";
@@ -76,6 +78,7 @@ const navigation = [
   { id: "analyst", label: "Market Analyst", icon: Activity },
   { id: "global", label: "Global Markets", icon: Globe2 },
   { id: "causal", label: "Causal Risk Lab", icon: BrainCircuit },
+  { id: "retrieval", label: "Retrieval Lab", icon: Database },
   { id: "resources", label: "Schemes & Resources", icon: Landmark },
   { id: "study", label: "Study Centre", icon: GraduationCap },
   { id: "models", label: "Model Intelligence", icon: Cpu },
@@ -707,6 +710,7 @@ function App() {
     analyst: <MarketAnalystHub />,
     global: <GlobalInvestmentHub />,
     causal: <CausalRiskLab />,
+    retrieval: <RetrievalLab />,
     resources: <ResourcesHub />,
     study: <StudyHub />,
     models: <ModelIntelligenceHub />,
@@ -726,6 +730,7 @@ function App() {
     "news",
     "models",
     "causal",
+    "retrieval",
     "resources",
   ]);
 
@@ -733,6 +738,7 @@ function App() {
     overview: "Core",
     news: "Intelligence",
     causal: "Research",
+    retrieval: "",
     resources: "Tools",
     assistant: "",
     markets: "",
