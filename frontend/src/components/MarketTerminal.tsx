@@ -12,6 +12,7 @@ import { MarketSearchBox } from "./MarketSearchBox";
 import { CandleChart } from "./CandleChart";
 import { TradeToolsPanel } from "./TradeToolsPanel";
 import { StrategyBacktestPanel } from "./StrategyBacktestPanel";
+import { SwarmTradePanel } from "./SwarmTradePanel";
 import "./MarketTerminal.css";
 
 const ranges = [
@@ -339,6 +340,7 @@ export function MarketTerminal() {
           </div>
 
           <StrategyBacktestPanel bars={bars} symbol={instrument} currency={currency} />
+          <SwarmTradePanel symbol={instrument} currentPrice={finite(quote?.price)} />
         </div>
 
         <aside className="market-side">
