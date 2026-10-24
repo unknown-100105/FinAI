@@ -1,6 +1,14 @@
 ﻿import os
+from pathlib import Path
 from typing import Any, Dict, Optional
 from uuid import uuid4
+
+from dotenv import load_dotenv
+
+# Load developer-local environment values before importing routers that gate
+# optional providers or research features. Existing shell/CI values take priority.
+ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(ROOT / ".env", override=False)
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
