@@ -159,7 +159,7 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
           margin_per_unit: numberValue(fields.marginPerUnit),
         } : {}),
         signals: Object.fromEntries(
-          Object.entries(signals).map(([key, value]) => [key, numberValue(value)]),
+          Object.entries(signals).map(([key, value]) => [key, numberValue(value)] as const),
         ),
       };
       const plan = await createSwarmTradePlan(request);
