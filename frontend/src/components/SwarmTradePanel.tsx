@@ -178,7 +178,7 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
       </div>
       <form className="swarmtrade-form" onSubmit={submit}>
         <div className="swarmtrade-fields">
-          <label>Symbol<input value={selectedSymbol} maxLength={40} required onChange={(event) => { setSelectedSymbol(event.target.value); setResult(null); setLastPlanRequest(null); }} /></label>
+          <label>Symbol<input value={selectedSymbol} maxLength={40} required readOnly title="Select another instrument in the Market Terminal above" /></label>
           <label>Asset class<select value={assetClass} onChange={(event) => { setAssetClass(event.target.value as typeof assetClass); setResult(null); setLastPlanRequest(null); }}>
             <option value="equity">Equity</option><option value="option">Option</option><option value="future">Future</option><option value="crypto">Crypto</option><option value="forex">Forex</option>
           </select></label>
@@ -248,7 +248,7 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
           </div>
         </div>
       )}
-      <PaperTradingPanel symbol={selectedSymbol} currentPrice={finite(currentPrice)} request={lastPlanRequest} plan={result} />
+      <PaperTradingPanel symbol={selectedSymbol} currentPrice={currentPrice} request={lastPlanRequest} plan={result} />
     </section>
   );
 }
