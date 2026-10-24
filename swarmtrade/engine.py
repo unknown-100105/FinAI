@@ -144,16 +144,40 @@ def build_swarm_plan(request: Mapping[str, Any]) -> dict[str, Any]:
                        agent_count=agent_count, votes=votes, consensus_score=consensus_score, direction=dominant)
 
     max_loss_raw = request.get("max_loss_per_unit")
-    if asset_class == "option" and max_loss_raw is None:
-        return _reject("Options require a caller-supplied max_loss_per_unit per contract",
-                       agent_count=agent_count, votes=votes, consensus_score=consensus_score, direction=dominant)
-
     stop_risk_per_unit = abs(entry - stop) * multiplier
+    margin_per_unit_override: float | None = None
+    risk_model_details: dict[str, float | str] = {"model": "price_distance_times_multiplier"}
+
     if asset_class == "option":
+        if max_loss_raw is None:
+            return _reject("Options require a caller-supplied max_loss_per_unit per contract",
+                           agent_count=agent_count, votes=votes, consensus_score=consensus_score, direction=dominant)
         max_loss = _finite_number(max_loss_raw, "max_loss_per_unit", minimum=1e-12)
         gross_risk_per_unit = max(stop_risk_per_unit, max_loss)
+        risk_model_details = {"model": "conservative_option_max_loss", "max_loss_per_unit": max_loss}
+    elif asset_class == "future":
+        if any(request.get(name) is None for name in ("tick_size", "tick_value", "margin_per_unit")):
+            return _reject("Futures require venue-verified tick_size, tick_value, and margin_per_unit",
+                           agent_count=agent_count, votes=votes, consensus_score=consensus_score, direction=dominant)
+        tick_size = _finite_number(request.get("tick_size"), "tick_size", minimum=1e-12)
+        tick_value = _finite_number(request.get("tick_value"), "tick_value", minimum=1e-12)
+        margin_per_unit_override = _finite_number(request.get("margin_per_unit"), "margin_per_unit", minimum=1e-12)
+        gross_risk_per_unit = (abs(entry - stop) / tick_size) * tick_value
+        risk_model_details = {"model": "futures_tick_value", "tick_size": tick_size,
+                              "tick_value": tick_value, "margin_per_unit": margin_per_unit_override}
+    elif asset_class == "forex":
+        if any(request.get(name) is None for name in ("pip_size", "pip_value_per_unit", "margin_per_unit")):
+            return _reject("Forex requires account-currency-verified pip_size, pip_value_per_unit, and margin_per_unit",
+                           agent_count=agent_count, votes=votes, consensus_score=consensus_score, direction=dominant)
+        pip_size = _finite_number(request.get("pip_size"), "pip_size", minimum=1e-12)
+        pip_value = _finite_number(request.get("pip_value_per_unit"), "pip_value_per_unit", minimum=1e-12)
+        margin_per_unit_override = _finite_number(request.get("margin_per_unit"), "margin_per_unit", minimum=1e-12)
+        gross_risk_per_unit = (abs(entry - stop) / pip_size) * pip_value
+        risk_model_details = {"model": "forex_pip_value", "pip_size": pip_size,
+                              "pip_value_per_unit": pip_value, "margin_per_unit": margin_per_unit_override}
     else:
         gross_risk_per_unit = stop_risk_per_unit
+
     round_trip_cost_per_unit = entry * multiplier * (2 * (fee_bps + slippage_bps) / 10_000)
     risk_per_unit = gross_risk_per_unit + round_trip_cost_per_unit
     notional_per_unit = entry * multiplier
@@ -172,7 +196,8 @@ def build_swarm_plan(request: Mapping[str, Any]) -> dict[str, Any]:
                        votes=votes, consensus_score=consensus_score, direction=dominant)
 
     risk_limited_units = risk_budget / risk_per_unit
-    margin_limited_units = capital / (notional_per_unit * margin_rate)
+    margin_required_per_unit = margin_per_unit_override if margin_per_unit_override is not None else notional_per_unit * margin_rate
+    margin_limited_units = capital / margin_required_per_unit
     leverage_limited_units = (capital * max_leverage) / notional_per_unit
     raw_units = min(risk_limited_units, margin_limited_units, leverage_limited_units)
     quantity = math.floor((raw_units + 1e-12) / unit_step) * unit_step
@@ -212,6 +237,8 @@ def build_swarm_plan(request: Mapping[str, Any]) -> dict[str, Any]:
             "estimated_notional": round(estimated_notional, 8),
             "effective_leverage": round(effective_leverage, 6),
             "margin_rate_assumption": margin_rate,
+            "margin_required_per_unit_assumption": round(margin_required_per_unit, 8),
+            "risk_model": risk_model_details,
             "fee_bps_per_side_assumption": fee_bps,
             "slippage_bps_per_side_assumption": slippage_bps,
             "reward_risk_ratio_after_costs": round(reward_risk, 6),
