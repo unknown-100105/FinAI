@@ -43,6 +43,7 @@ def test_brain_status_reports_missing_assets_without_network_calls(tmp_path, mon
 
 def test_brain_status_never_exposes_provider_secrets_and_detects_local_assets(tmp_path, monkeypatch):
     monkeypatch.setattr(system_api, "ROOT", tmp_path)
+    monkeypatch.delenv("FINAI_COLIBRI_BASE_URL", raising=False)
     for key in (
         "OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY",
         "MISTRAL_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "SARVAM_API_KEY",
@@ -94,6 +95,7 @@ def test_brain_status_separates_offline_configuration_from_runtime_verification(
 
 def test_unregistered_key_aliases_do_not_claim_provider_configured(tmp_path, monkeypatch):
     monkeypatch.setattr(system_api, "ROOT", tmp_path)
+    monkeypatch.delenv("FINAI_COLIBRI_BASE_URL", raising=False)
     for key in (
         "OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY",
         "MISTRAL_API_KEY", "GEMINI_API_KEY", "SARVAM_API_KEY",
