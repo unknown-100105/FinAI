@@ -182,3 +182,23 @@ def test_paper_ledger_does_not_accept_stop_close_before_stop_price(monkeypatch, 
         json={"idempotency_key": "close-stop-too-early", "exit_price": 98, "reason": "stop"},
     )
     assert response.status_code == 409
+
+
+def test_paper_ledger_rejects_account_currency_mismatch(monkeypatch, tmp_path):
+    monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
+    account = client.post(
+        "/api/v1/swarmtrade/paper/accounts",
+        json={"currency": "INR", "initial_capital": 100000},
+    ).json()
+    response = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account['account_id']}/positions",
+        json={
+            "idempotency_key": "currency-mismatch",
+            "acknowledge_simulation_only": True,
+            "quote_currency": "USD",
+            "plan": approved_plan_request(),
+        },
+    )
+    assert response.status_code == 409
+    assert "does not match instrument quote currency" in response.json()["detail"]
