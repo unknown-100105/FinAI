@@ -118,6 +118,9 @@ export function CandleChart({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [inspectionIndex, setInspectionIndex] = useState<number | null>(null);
   const [dragStart, setDragStart] = useState<number | null>(null);
+  const [hoverY, setHoverY] = useState<number | null>(null);
+  const [volumeVisible, setVolumeVisible] = useState(showVolume);
+  const dragOriginRef = useRef<{ clientX: number; endIndex: number } | null>(null);
   const [indicators, setIndicators] = useState<Record<IndicatorName, boolean>>({
     sma20: true,
     ema20: true,
@@ -201,7 +204,7 @@ export function CandleChart({
     const maxPrice = Math.max(...validPrices);
     const minPrice = Math.min(...validPrices);
     const spread = maxPrice - minPrice || Math.max(Math.abs(maxPrice) * 0.01, 1);
-    const chartHeight = showVolume ? 245 : 310;
+    const chartHeight = volumeVisible ? 245 : 310;
     const chartWidth = Math.max(720, view.length * 6);
     const slot = chartWidth / view.length;
     const bodyWidth = Math.max(2.1, Math.min(8, slot * 0.72));
@@ -228,7 +231,7 @@ export function CandleChart({
       startIndex: view[0].originalIndex,
       yOf,
     };
-  }, [view, showVolume, indicatorSeries, indicators]);
+  }, [view, volumeVisible, indicatorSeries, indicators]);
 
   const zoom = (factor: number) => {
     setVisibleCount((current) => {
@@ -252,17 +255,22 @@ export function CandleChart({
     if ((event.target as HTMLElement).closest("button")) return;
     if (drawingMode) return;
     event.currentTarget.setPointerCapture(event.pointerId);
+    dragOriginRef.current = { clientX: event.clientX, endIndex };
     setDragStart(event.clientX);
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (dragStart === null || !view.length) return;
+    const origin = dragOriginRef.current;
+    if (dragStart === null || !origin || !view.length) return;
     const pxPerBar = Math.max(3, event.currentTarget.clientWidth / view.length);
-    const deltaBars = Math.round((dragStart - event.clientX) / pxPerBar);
-    setEndIndex(Math.max(visibleCount - 1, Math.min(bars.length - 1, endIndex + deltaBars)));
+    const deltaBars = Math.round((origin.clientX - event.clientX) / pxPerBar);
+    setEndIndex(Math.max(visibleCount - 1, Math.min(bars.length - 1, origin.endIndex + deltaBars)));
   };
 
-  const onPointerUp = () => setDragStart(null);
+  const onPointerUp = () => {
+    dragOriginRef.current = null;
+    setDragStart(null);
+  };
 
   const selectCandle = (index: number) => {
     const bar = bars[index];
@@ -352,6 +360,7 @@ export function CandleChart({
         <button type="button" className={indicators.sma20 ? "active" : ""} aria-pressed={indicators.sma20} onClick={() => toggleIndicator("sma20")}>SMA 20</button>
         <button type="button" className={indicators.ema20 ? "active" : ""} aria-pressed={indicators.ema20} onClick={() => toggleIndicator("ema20")}>EMA 20</button>
         <button type="button" className={indicators.bollinger ? "active" : ""} aria-pressed={indicators.bollinger} onClick={() => toggleIndicator("bollinger")}>Bollinger Bands</button>
+        <button type="button" className={volumeVisible ? "active" : ""} aria-pressed={volumeVisible} onClick={() => setVolumeVisible((value) => !value)}>Volume</button>
         <span className="candle-tools-divider" />
         <span className="candle-tool-label"><TrendingUp size={12}/> Draw</span>
         <button type="button" className={drawingMode === "horizontal" ? "active" : ""} aria-pressed={drawingMode === "horizontal"} onClick={() => { setDrawingMode(drawingMode === "horizontal" ? null : "horizontal"); setPendingAnchor(null); }}>Horizontal level</button>
@@ -372,6 +381,11 @@ export function CandleChart({
           height="340"
           role="group"
           aria-label="OHLC candlestick chart with selectable technical indicators and saved drawings."
+          onMouseMove={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect();
+            setHoverY(Math.max(0, Math.min(340, (event.clientY - rect.top) * 340 / Math.max(rect.height, 1))));
+          }}
+          onMouseLeave={() => setHoverY(null)}
         >
           <g className="candle-grid">
             {[0, 1, 2, 3, 4].map((line) => (
@@ -379,6 +393,9 @@ export function CandleChart({
             ))}
           </g>
 
+          {hoverY !== null && (
+            <line x1="0" x2={geometry.chartWidth} y1={hoverY} y2={hoverY} className="candle-crosshair-horizontal" vectorEffect="non-scaling-stroke" />
+          )}
           {indicators.bollinger && (
             <>
               <polyline points={overlayPoints(renderIndicatorValues("upper"))} className="candle-indicator candle-bollinger" fill="none" />
@@ -447,7 +464,7 @@ export function CandleChart({
               y1="0" y2="340" className="candle-hover-line" vectorEffect="non-scaling-stroke"
             />
           )}
-          {showVolume && view.map(({ bar }, index) => {
+          {volumeVisible && view.map(({ bar }, index) => {
             const slot = geometry.chartWidth / view.length;
             const width = Math.max(1.2, slot * 0.58);
             const value = Math.max(0, Number(bar.volume ?? 0));
