@@ -127,7 +127,6 @@ export function CandleChart({
     bollinger: false,
   });
   const [drawings, setDrawings] = useState<ChartDrawing[]>(() => readDrawings(symbol));
-  const [storedSymbol, setStoredSymbol] = useState(symbol.trim().toUpperCase());
   const [drawingMode, setDrawingMode] = useState<DrawingMode>(null);
   const [pendingAnchor, setPendingAnchor] = useState<Anchor | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
@@ -151,13 +150,6 @@ export function CandleChart({
   }, []);
 
   useEffect(() => {
-    if (storedSymbol !== symbolKey) {
-      setStoredSymbol(symbolKey);
-      setDrawings(readDrawings(symbolKey));
-      setDrawingMode(null);
-      setPendingAnchor(null);
-      return;
-    }
     try {
       if (typeof window !== "undefined") {
         window.localStorage.setItem(drawingStorageKey(symbolKey), JSON.stringify(drawings.slice(-40)));
@@ -165,7 +157,7 @@ export function CandleChart({
     } catch {
       // Browser storage may be disabled; drawing tools remain usable for this view.
     }
-  }, [symbolKey, storedSymbol, drawings]);
+  }, [symbolKey, drawings]);
 
   const view = useMemo(() => {
     if (!bars.length) return [];
