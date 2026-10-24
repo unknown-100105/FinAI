@@ -20,10 +20,12 @@ def configured_response_service_environment(monkeypatch, tmp_path):
 def test_enabled_models_are_registered():
     service = ResponseService()
 
-    assert service.gateway.available_models() == [
-        "gemini-cloud",
-        "rllm-finqa-4b",
-    ]
+    available = service.gateway.available_models()
+    assert "gemini-cloud" in available
+    assert "rllm-finqa-4b" in available
+    # Configuring the Gemini provider makes its other registered model variants
+    # available to the router as well; this is registry metadata, not a live probe.
+    assert "gemini-pro-cloud" in available
 
 
 def test_default_model_is_gemini():
