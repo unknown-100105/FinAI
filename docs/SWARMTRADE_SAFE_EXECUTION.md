@@ -35,7 +35,7 @@ Routes:
 
 ## Guardrails
 
-- Maximum 500 logical votes; the consensus is deterministic and replayable.
+- Between 5 and 500 logical votes, in multiples of five so each strategy role has equal representation; the consensus is deterministic and replayable.
 - New-trade risk is capped at 1% of capital, regardless of larger requested risk.
 - Aggregate open-position risk is limited to 3% of capital; current daily loss is checked against a configurable daily stop whose accepted maximum is 5%.
 - A protective stop and target are required; invalid long/short price ordering is rejected.
