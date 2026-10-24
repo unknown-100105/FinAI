@@ -109,7 +109,7 @@ def local_model_status(probe: bool = Query(default=False)) -> dict[str, Any]:
     }
     available = model_id in available_ids
     result.update(
-        status="ready_for_inference" if available else "model_not_found",
+        status="model_listed_not_inference_verified" if available else "model_not_found",
         reachable=True,
         model_available=available,
         message=(
