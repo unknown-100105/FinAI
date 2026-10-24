@@ -23,6 +23,7 @@ type BacktestResult = {
   winRatePct: number | null;
   profitFactor: number | null;
   trades: BacktestTrade[];
+  equityCurve: number[];
   dataBars: number;
   shortWindow: number;
   longWindow: number;
@@ -52,7 +53,7 @@ function runSmaCrossover(
   const empty: BacktestResult = {
     initialCapital, finalEquity: initialCapital, netReturnPct: 0,
     buyHoldReturnPct: 0, maxDrawdownPct: 0, closedTrades: 0,
-    wins: 0, winRatePct: null, profitFactor: null, trades: [],
+    wins: 0, winRatePct: null, profitFactor: null, trades: [], equityCurve: [initialCapital],
     dataBars: bars.length, shortWindow, longWindow, feeBps, slippageBps,
   };
   if (!Number.isInteger(shortWindow) || shortWindow < 2) {
@@ -178,6 +179,7 @@ function runSmaCrossover(
     winRatePct: trades.length ? (wins / trades.length) * 100 : null,
     profitFactor: negativePnl > 0 ? positivePnl / negativePnl : positivePnl > 0 ? null : 0,
     trades: trades.slice(-10).reverse(),
+    equityCurve,
   };
 }
 
@@ -219,6 +221,18 @@ export function StrategyBacktestPanel({
     Number(feeInput),
     Number(slippageInput),
   ), [bars, shortInput, longInput, capitalInput, feeInput, slippageInput]);
+  const equityPoints = useMemo(() => {
+    const values = result.equityCurve;
+    if (values.length < 2) return "";
+    const minimum = Math.min(...values);
+    const maximum = Math.max(...values);
+    const spread = maximum - minimum || 1;
+    return values.map((value, index) => {
+      const x = (index / (values.length - 1)) * 640;
+      const y = 128 - ((value - minimum) / spread) * 104;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(" ");
+  }, [result.equityCurve]);
 
   return (
     <section className="strategy-lab" aria-label="Historical strategy backtest">
@@ -250,6 +264,14 @@ export function StrategyBacktestPanel({
             <div><span>Maximum drawdown</span><strong>{result.maxDrawdownPct.toFixed(2)}%</strong></div>
             <div><span>Closed trades</span><strong>{result.closedTrades}</strong></div>
             <div><span>Win rate</span><strong>{result.winRatePct === null ? "—" : result.winRatePct.toFixed(1) + "%"}</strong></div>
+            <div><span>Profit factor</span><strong>{result.profitFactor === null ? "—" : Number.isFinite(result.profitFactor) ? result.profitFactor.toFixed(2) : "—"}</strong></div>
+          </div>
+          <div className="strategy-lab-equity">
+            <div className="strategy-lab-trades-heading"><strong>Equity curve</strong><span>Marked to bar close; costs applied on entry/exit</span></div>
+            <svg viewBox="0 0 640 145" role="img" aria-label="Historical strategy equity curve">
+              {[24, 76, 128].map((y) => <line key={y} x1="0" x2="640" y1={y} y2={y} className="strategy-equity-grid" />)}
+              {equityPoints && <polyline points={equityPoints} className="strategy-equity-line" fill="none" />}
+            </svg>
           </div>
           <div className="strategy-lab-trades">
             <div className="strategy-lab-trades-heading"><strong>Recent closed trades</strong><span>Showing up to 10</span></div>
