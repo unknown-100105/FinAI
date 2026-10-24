@@ -177,6 +177,7 @@ export function PaperTradingPanel({ symbol, currentPrice, quoteCurrency, request
       const opened = await openPaperPosition({
         account_id: account.account_id,
         idempotency_key: openKey,
+        quote_currency: quoteCurrency.toUpperCase(),
         acknowledge_simulation_only: true,
         plan: request,
       });
@@ -278,7 +279,13 @@ export function PaperTradingPanel({ symbol, currentPrice, quoteCurrency, request
         <>
           <div className="paper-ledger-account-head">
             <div><span>Account</span><strong>{account.label} · {account.currency}</strong><small>{account.account_id}</small></div>
-            <button type="button" onClick={refresh} disabled={busy}><RefreshCw size={13} className={busy ? "paper-ledger-spin" : ""} /> Refresh</button>
+            <div className="paper-ledger-account-actions">
+              {availableAccounts.length > 1 && <label className="paper-ledger-select-account"><span>Switch account</span><select value={selectedAccountId} onChange={(event) => void switchAccount(event.target.value)} disabled={busy}>
+                {availableAccounts.map((item) => <option value={item.account_id} key={item.account_id}>{item.label} · {item.currency}</option>)}
+              </select></label>}
+              <button type="button" onClick={() => { setShowCreateAccount(true); setCurrency(quoteCurrency.toUpperCase()); }} disabled={busy}><Wallet size={13} /> New account</button>
+              <button type="button" onClick={refresh} disabled={busy}><RefreshCw size={13} className={busy ? "paper-ledger-spin" : ""} /> Refresh</button>
+            </div>
           </div>
           <div className="paper-ledger-metrics">
             <div><span>Equity*</span><strong>{fmt(account.equity_excluding_unrealized_pnl, account.currency)}</strong></div>
