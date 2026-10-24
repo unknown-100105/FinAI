@@ -40,6 +40,18 @@ def _resolve_instrument(instrument: str):
 
 
 
+def _validate_provider_instrument(item: Instrument, provider: str) -> None:
+    """Avoid sending known unsupported NSE/BSE symbols to Longbridge."""
+    if provider == "longbridge" and str(item.exchange or "").strip().upper() in {"NSE", "BSE"}:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Longbridge does not provide the Indian NSE/BSE instrument in this registry. "
+                "Select yfinance for this instrument or search a market supported by your Longbridge account."
+            ),
+        )
+
+
 def _resolve_instrument_or_search(instrument: str):
     try:
         return _resolver.resolve_or_raise(instrument)
@@ -125,6 +137,7 @@ def quote(
     provider: str = Query(default="yfinance", pattern="^(yfinance|longbridge)$"),
 ):
     item = _resolve_instrument_or_search(instrument)
+    _validate_provider_instrument(item, provider)
 
     try:
         result = _get_service().quote(
@@ -179,6 +192,7 @@ def history(
         )
 
     item = _resolve_instrument_or_search(instrument)
+    _validate_provider_instrument(item, provider)
 
     try:
         bars = _get_service().history(
@@ -236,6 +250,7 @@ def analytics(
         )
 
     item = _resolve_instrument_or_search(instrument)
+    _validate_provider_instrument(item, provider)
 
     try:
         bars = _get_service().history(
@@ -289,6 +304,7 @@ def candle_analysis(
         raise HTTPException(status_code=422, detail="start must not be after end.")
 
     item = _resolve_instrument_or_search(instrument)
+    _validate_provider_instrument(item, provider)
 
     try:
         from market_data.candle_analysis import analyze_candles
