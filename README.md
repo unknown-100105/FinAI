@@ -103,6 +103,12 @@ python scripts/finai_preflight.py --json
 
 See [Offline mode and preflight guide](docs/OFFLINE_AND_PREFLIGHT.md) for the network-policy contract, local model requirements, artifact prerequisites, and tests. Offline checks cover the currently guarded provider paths, not arbitrary direct network calls from future modules.
 
+## Financial data ingestion and FinAI training
+
+Read-only Financial Datasets and Longbridge adapters can collect historical prices, statements and optional news metadata into a local, source-attributed JSONL corpus. The existing Sarvam QLoRA trainer accepts curated extra JSONL training files with --extra-train-file; provider disagreements are excluded by the SFT builder. No brokerage orders are placed.
+
+See [Financial data connector runbook](docs/FINANCIAL_DATA_CONNECTORS.md) for environment setup, ingestion commands, data manifests, the SFT builder, bounded smoke training and provider limitations. Provider terms and training/redistribution rights must be checked before data is used; secrets, raw provider records and generated training files must not be committed.
+
 ## Retrieval Lab
 
 The interface includes a **Retrieval Lab** that compares the embedding-free SQLite FTS5/BM25 retriever with the existing FTS5 + FAISS hybrid path on the same query. It displays source text and provenance, per-mode availability, ranking diagnostics and latency. The lab retrieves evidence only; it does not generate answers, and scores are not probabilities or proof of correctness.
