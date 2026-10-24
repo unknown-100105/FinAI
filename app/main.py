@@ -37,6 +37,7 @@ from app.advanced_causal_api import router as advanced_causal_router
 from app.retrieval_lab_api import router as retrieval_lab_router
 from app.research_control_api import router as research_control_router
 from app.swarmtrade_api import router as swarmtrade_router
+from app.swarmtrade_paper_api import router as swarmtrade_paper_router
 
 
 APP_VERSION = "0.1.0"
@@ -88,6 +89,7 @@ app.include_router(advanced_causal_router)
 app.include_router(retrieval_lab_router)
 app.include_router(research_control_router)
 app.include_router(swarmtrade_router)
+app.include_router(swarmtrade_paper_router)
 
 # Experimental patent-mechanism endpoints remain disabled unless explicitly opted in.
 if os.getenv("FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS", "").strip().casefold() in {
@@ -234,6 +236,7 @@ def api_info() -> Dict[str, Any]:
             "brain_status": "/api/v1/system/brain-status",
             "swarmtrade_status": "/api/v1/swarmtrade/status",
             "swarmtrade_plan": "/api/v1/swarmtrade/plan",
+            "swarmtrade_paper_status": "/api/v1/swarmtrade/paper/status",
             "research_control": "/api/v1/causal-risk/research-control/evaluate",
         },
     }
