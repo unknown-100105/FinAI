@@ -281,3 +281,23 @@ Then start FinAI using the normal API command for this checkout. Restart the pro
 The branch includes a local-first payment-intent journal and adapter contract in resilient_pay/ledger.py. It supports idempotency conflict checks, confirmed/authenticated adapter dispatch, state transitions, reconciliation-required handling for ambiguous outcomes, and an integrity-checkable hash-chained journal. LocalSimulationAdapter is a sandbox-only simulator. This is not a live bank or Hyperledger Fabric settlement integration; see docs/RESILIENTPAY_SETTLEMENT_BRIDGE.md.
 
 Run the local-only ResilientPay simulation with `python scripts/demo_resilient_pay.py`. It uses an in-memory journal and a SIM-prefixed adapter; no external payment service is called and no real funds are moved.
+
+
+## SwarmTrade deterministic planning baseline
+
+The integration branch now includes a deterministic, simulation-only SwarmTrade planner in the Market Terminal. It uses 5–500 logical votes in multiples of five, requires protective levels, applies a hard 1% single-trade risk cap and 3% aggregate open-risk cap, checks the daily loss threshold, and includes explicit cost assumptions. The frontend computes transparent trend, momentum, mean-reversion and breakout features from the selected chart bars; sentiment defaults to neutral.
+
+API:
+- `GET /api/v1/swarmtrade/status`
+- `POST /api/v1/swarmtrade/plan`
+
+For options, callers must supply a per-contract maximum-loss assumption. Futures require verified tick size, tick value and margin per contract. Forex requires pip size, pip value in the account currency and margin per configured unit or lot. The planner does not execute orders, connect brokers, compute complete option Greeks/payoffs, or provide venue-specific margin/rollover/FX conversion logic.
+
+Details and a manual verification checklist are in [docs/SWARMTRADE_SAFE_EXECUTION.md](docs/SWARMTRADE_SAFE_EXECUTION.md). Run:
+
+```powershell
+python -m pytest -q tests/test_swarmtrade_engine.py
+python benchmarks/swarmtrade_safety_benchmark.py --output swarmtrade-safety-benchmark.json --cases 500
+```
+
+The benchmark is synthetic implementation-safety testing, not evidence of investment performance or real-market prediction quality.
