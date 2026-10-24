@@ -35,6 +35,7 @@ from app.investment_knowledge_api import router as investment_knowledge_router
 from app.causal_risk_api import router as causal_risk_router
 from app.advanced_causal_api import router as advanced_causal_router
 from app.retrieval_lab_api import router as retrieval_lab_router
+from app.research_control_api import router as research_control_router
 from app.swarmtrade_api import router as swarmtrade_router
 
 
@@ -85,6 +86,7 @@ app.include_router(investment_knowledge_router)
 app.include_router(causal_risk_router)
 app.include_router(advanced_causal_router)
 app.include_router(retrieval_lab_router)
+app.include_router(research_control_router)
 app.include_router(swarmtrade_router)
 
 # Experimental patent-mechanism endpoints remain disabled unless explicitly opted in.
@@ -232,6 +234,7 @@ def api_info() -> Dict[str, Any]:
             "brain_status": "/api/v1/system/brain-status",
             "swarmtrade_status": "/api/v1/swarmtrade/status",
             "swarmtrade_plan": "/api/v1/swarmtrade/plan",
+            "research_control": "/api/v1/causal-risk/research-control/evaluate",
         },
     }
 
