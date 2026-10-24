@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from swarmtrade.engine import build_swarm_plan
+from benchmarks.swarmtrade_safety_benchmark import run_benchmark
 
 client = TestClient(app)
 
@@ -132,3 +133,13 @@ def test_swarmtrade_forex_risk_uses_pip_value_and_lot_margin():
     assert result["risk"]["risk_model"]["model"] == "forex_pip_value"
     assert result["risk"]["risk_model"]["pip_size"] == 0.0001
     assert result["sizing"]["quantity"] >= 1
+
+
+def test_swarmtrade_seeded_safety_benchmark_has_no_invariant_failures():
+    report = run_benchmark(30)
+    assert report["cases"] == 30
+    assert report["passed_cases"] == 30
+    assert report["determinism_failures"] == 0
+    assert report["guardrail_violations"] == 0
+    assert report["expected_control_rejections_missed"] == 0
+    assert report["research_boundary"].startswith("Synthetic deterministic safety benchmark")
