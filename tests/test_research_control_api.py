@@ -119,3 +119,14 @@ def test_research_control_rejects_non_finite_metrics():
     body = request_body(metrics={"metric": float("nan")})
     response = client.post("/api/v1/causal-risk/research-control/evaluate", json=body)
     assert response.status_code == 422
+
+
+def test_research_control_rejects_duplicate_or_reflexive_conflict_pairs():
+    body = request_body(conflict_pairs=[["source-a", "source-b"], ["source-b", "source-a"]])
+    response = client.post("/api/v1/causal-risk/research-control/evaluate", json=body)
+    assert response.status_code == 422
+    reflexive = client.post(
+        "/api/v1/causal-risk/research-control/evaluate",
+        json=request_body(conflict_pairs=[["source-a", "source-a"]]),
+    )
+    assert reflexive.status_code == 422
