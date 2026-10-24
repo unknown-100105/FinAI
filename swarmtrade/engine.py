@@ -159,12 +159,40 @@ def build_swarm_plan(request: Mapping[str, Any]) -> dict[str, Any]:
     risk_model_details: dict[str, float | str] = {"model": "price_distance_times_multiplier"}
 
     if asset_class == "option":
-        if max_loss_raw is None:
-            return _reject("Options require a caller-supplied max_loss_per_unit per contract",
+        option_type = str(request.get("option_type", "")).strip().lower()
+        strike_raw = request.get("option_strike")
+        if option_type not in {"call", "put"} or strike_raw is None:
+            return _reject("Options require option_type (call/put) and option_strike",
                            agent_count=agent_count, votes=votes, consensus_score=consensus_score, direction=dominant)
-        max_loss = _finite_number(max_loss_raw, "max_loss_per_unit", minimum=1e-12)
-        gross_risk_per_unit = max(stop_risk_per_unit, max_loss)
-        risk_model_details = {"model": "conservative_option_max_loss", "max_loss_per_unit": max_loss}
+        strike = _finite_number(strike_raw, "option_strike", minimum=1e-12)
+        if dominant == "short" and option_type == "call":
+            return _reject("Naked short calls have theoretically unbounded loss and are blocked; defined-risk spreads are not modeled",
+                           agent_count=agent_count, votes=votes, consensus_score=consensus_score, direction=dominant)
+        if max_loss_raw is None:
+            return _reject("Options require caller-supplied max_loss_per_unit per contract",
+                           agent_count=agent_count, votes=votes, consensus_score=consensus_score, direction=dominant)
+        supplied_max_loss = _finite_number(max_loss_raw, "max_loss_per_unit", minimum=1e-12)
+        if dominant == "long":
+            modeled_max_loss = entry * multiplier
+        else:
+            if strike <= entry:
+                return _reject("Short puts require option_strike greater than the option premium for this bounded-loss model",
+                               agent_count=agent_count, votes=votes, consensus_score=consensus_score, direction=dominant)
+            modeled_max_loss = (strike - entry) * multiplier
+        if supplied_max_loss + 1e-9 < modeled_max_loss:
+            return _reject("Supplied option max_loss_per_unit is below the vanilla option payoff maximum loss",
+                           agent_count=agent_count, votes=votes, consensus_score=consensus_score, direction=dominant)
+        gross_risk_per_unit = max(stop_risk_per_unit, supplied_max_loss, modeled_max_loss)
+        risk_model_details = {
+            "model": "single_vanilla_option_max_loss",
+            "option_type": option_type,
+            "option_strike": strike,
+            "option_premium": entry,
+            "position_side": dominant,
+            "theoretical_max_loss_per_contract": round(modeled_max_loss, 8),
+            "configured_max_loss_per_contract": supplied_max_loss,
+            "contract_multiplier": multiplier,
+        }
     elif asset_class == "future":
         if any(request.get(name) is None for name in ("tick_size", "tick_value", "margin_per_unit")):
             return _reject("Futures require venue-verified tick_size, tick_value, and margin_per_unit",
