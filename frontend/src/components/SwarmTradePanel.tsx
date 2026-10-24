@@ -3,7 +3,7 @@ import { BrainCircuit, LoaderCircle, ShieldAlert, ShieldCheck } from "lucide-rea
 import type { MarketBar } from "../api/market";
 import { createSwarmTradePlan, type SwarmTradePlan } from "../api/swarmtrade";
 
-type Props = { symbol: string; currentPrice: number | null; bars: MarketBar[] };
+type Props = { symbol: string; currentPrice: number | null; bars: MarketBar[]; isLoading: boolean };
 
 const fieldDefaults = {
   entry: "", stop: "", target: "", capital: "100000", riskPct: "0.5",
@@ -64,7 +64,7 @@ function fmt(value: number | undefined): string {
     : "—";
 }
 
-export function SwarmTradePanel({ symbol, currentPrice, bars }: Props) {
+export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState(symbol);
   const [assetClass, setAssetClass] = useState<"equity" | "option" | "future" | "crypto" | "forex">("equity");
   const [side, setSide] = useState<"auto" | "long" | "short">("auto");
@@ -203,9 +203,9 @@ export function SwarmTradePanel({ symbol, currentPrice, bars }: Props) {
           </div>
         </div>
         <p className="swarmtrade-caveat">Features are transparent rules over the selected candles, not trained predictions; sentiment remains neutral unless adjusted manually. Require at least six valid bars for automatic feature initialization. Hard limits: max 1% new-trade risk and 3% aggregate open risk. Supply accurate exchange-specific multipliers, margin and transaction costs. This tool never sends orders.</p>
-        <button className="swarmtrade-submit" type="submit" disabled={busy}>
+        <button className="swarmtrade-submit" type="submit" disabled={busy || isLoading || bars.length < 6}>
           {busy ? <LoaderCircle size={15} className="swarmtrade-spin" /> : <BrainCircuit size={15} />}
-          {busy ? "Evaluating agents…" : "Run deterministic risk-gated plan"}
+          {busy ? "Evaluating agents…" : isLoading ? "Waiting for selected market data…" : bars.length < 6 ? "At least 6 chart bars required" : "Run deterministic risk-gated plan"}
         </button>
       </form>
       {error && <div className="swarmtrade-result swarmtrade-error"><ShieldAlert size={16} /><span>{error}</span></div>}
