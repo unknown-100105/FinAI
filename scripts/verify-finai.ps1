@@ -115,6 +115,39 @@ try {
                 throw "SwarmTrade status must explicitly disable live order execution"
             }
 
+            $swarmPlanBody = @{
+                symbol = "FINAI-SMOKE"
+                asset_class = "equity"
+                side = "auto"
+                entry_price = 100
+                stop_price = 95
+                target_price = 112
+                capital = 100000
+                risk_pct = 0.5
+                max_leverage = 2
+                margin_rate = 0.1
+                fee_bps = 5
+                slippage_bps = 5
+                agent_count = 500
+                signals = @{
+                    trend = 0.9
+                    momentum = 0.8
+                    mean_reversion = 0.1
+                    breakout = 0.8
+                    sentiment = 0.7
+                }
+            } | ConvertTo-Json -Depth 6 -Compress
+            $swarmPlan = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/swarmtrade/plan" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $swarmPlanBody
+            if ($swarmPlan.status -ne "APPROVED_FOR_SIMULATION") {
+                throw "Synthetic SwarmTrade plan did not pass expected risk gates: $($swarmPlan.reason)"
+            }
+            if ($swarmPlan.agent_count -ne 500 -or $swarmPlan.execution.order_submitted -ne $false -or $swarmPlan.execution.fill_claimed -ne $false) {
+                throw "SwarmTrade simulation smoke request violated an execution boundary"
+            }
+            if ($swarmPlan.risk.effective_risk_pct -gt 1.0 -or $swarmPlan.risk.estimated_total_risk -gt $swarmPlan.risk.risk_budget) {
+                throw "SwarmTrade simulation smoke request violated position risk limits"
+            }
+
             $researchControl = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/causal-risk/research-control/status" -Method Get -Headers $apiHeaders
             if ($researchControl.status -ne "available" -or $researchControl.can_authorize_trades -ne $false) {
                 throw "Research control endpoint returned an unexpected response or trade boundary"
