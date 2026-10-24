@@ -77,7 +77,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 Then run from the repository root in another PowerShell terminal:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\\scripts\\verify-finai.ps1
+powershell -ExecutionPolicy Bypass -File ./scripts/verify-finai.ps1
 ```
 
 The verifier writes `patent-benchmark.json` and `swarmtrade-safety-benchmark.json`; these generated outputs are ignored by Git. It does not place orders. Set `$env:FINAI_SKIP_LIVE = "1"` to skip HTTP smoke checks when the backend is not running, but the regression suite, frontend checks and benchmarks still run.
