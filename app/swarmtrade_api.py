@@ -34,7 +34,7 @@ class SwarmTradeRequest(BaseModel):
     pip_value_per_unit: Optional[float] = Field(default=None, gt=0, allow_inf_nan=False)
     margin_per_unit: Optional[float] = Field(default=None, gt=0, allow_inf_nan=False)
     min_reward_risk: float = Field(default=1.0, ge=0.5, le=5.0, allow_inf_nan=False)
-    agent_count: int = Field(default=MAX_LOGICAL_AGENTS, ge=1, le=MAX_LOGICAL_AGENTS)
+    agent_count: int = Field(default=MAX_LOGICAL_AGENTS, ge=5, le=MAX_LOGICAL_AGENTS)
     signals: Dict[str, float] = Field(default_factory=dict)
 
     @field_validator("symbol")
@@ -44,6 +44,13 @@ class SwarmTradeRequest(BaseModel):
         if not normalized:
             raise ValueError("symbol must not be blank")
         return normalized
+
+    @field_validator("agent_count")
+    @classmethod
+    def validate_agent_count(cls, value: int) -> int:
+        if value % 5 != 0:
+            raise ValueError("agent_count must be a multiple of 5 to balance strategy roles")
+        return value
 
     @field_validator("signals")
     @classmethod
@@ -64,6 +71,8 @@ def swarmtrade_status() -> dict:
         "status": "available",
         "mode": "deterministic_simulation_only",
         "max_logical_agents": MAX_LOGICAL_AGENTS,
+        "min_logical_agents": 5,
+        "agent_count_multiple": 5,
         "agent_roles": ["momentum", "trend", "mean_reversion", "breakout", "sentiment"],
         "risk_controls": ["max 1% single-trade risk", "max 3% aggregate open-position risk",
                           "daily-loss cutoff", "protective stop and target", "cost-aware reward/risk",
