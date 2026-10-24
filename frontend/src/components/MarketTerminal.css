@@ -345,3 +345,41 @@
 .provider-control-group select{width:100%;min-height:32px;padding:6px 9px;border:1px solid rgba(146,174,208,.15);border-radius:8px;background:#091523;color:#dce7f7;font-size:10px}
 .provider-control-group{min-width:155px}
 @media(max-width:600px){.provider-control-group{min-width:100%}}
+
+/* SwarmTrade: deterministic logical-agent planning and risk review */
+.swarmtrade-panel{margin-top:16px;padding:17px;border:1px solid rgba(105,150,205,.2);border-radius:15px;background:linear-gradient(145deg,rgba(10,24,40,.94),rgba(6,15,27,.98));color:#e2ecfa}
+.swarmtrade-heading{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+.swarmtrade-title-icon{display:grid;place-items:center;width:37px;height:37px;border:1px solid rgba(96,165,250,.27);border-radius:11px;color:#83bdff;background:rgba(54,111,180,.12);flex:0 0 auto}
+.swarmtrade-heading h3{margin:0;font-size:14px;font-weight:750;letter-spacing:.01em}
+.swarmtrade-heading p{margin:4px 0 0;color:#94a9c3;font-size:10px;line-height:1.5}
+.swarmtrade-mode{margin-left:auto;align-self:flex-start;padding:5px 7px;border:1px solid rgba(245,179,78,.26);border-radius:7px;background:rgba(161,98,7,.1);color:#f2c477;font-size:8px;font-weight:800;letter-spacing:.07em;white-space:nowrap}
+.swarmtrade-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.swarmtrade-fields label{display:flex;flex-direction:column;gap:5px;min-width:0;color:#9eb2cb;font-size:9px;font-weight:600;text-transform:capitalize}
+.swarmtrade-fields input,.swarmtrade-fields select{width:100%;min-width:0;box-sizing:border-box;min-height:34px;padding:7px 9px;border:1px solid rgba(134,165,206,.18);border-radius:8px;background:#071321;color:#ecf4ff;font-size:11px;outline:none}
+.swarmtrade-fields input:focus,.swarmtrade-fields select:focus{border-color:rgba(107,177,255,.68);box-shadow:0 0 0 2px rgba(59,130,246,.12)}
+.swarmtrade-signal-block{margin-top:13px;padding:12px;border:1px solid rgba(128,161,204,.13);border-radius:10px;background:rgba(4,12,22,.28)}
+.swarmtrade-signal-block>strong{display:block;margin-bottom:10px;font-size:10px;color:#cfddf0}
+.swarmtrade-signal-block small{font-size:9px;font-weight:400;color:#8399b5}
+.swarmtrade-signal-fields{grid-template-columns:repeat(5,minmax(0,1fr))}
+.swarmtrade-caveat{margin:12px 0;color:#91a8c4;font-size:9px;line-height:1.6}
+.swarmtrade-submit{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:9px 13px;border:1px solid rgba(94,157,238,.4);border-radius:9px;background:rgba(44,111,196,.2);color:#e8f3ff;font-size:10px;font-weight:750;cursor:pointer}
+.swarmtrade-submit:hover:not(:disabled){background:rgba(44,111,196,.32)}
+.swarmtrade-submit:disabled{opacity:.55;cursor:wait}
+.swarmtrade-spin{animation:swarmtrade-spin 1s linear infinite}
+@keyframes swarmtrade-spin{to{transform:rotate(360deg)}}
+.swarmtrade-result{display:flex;align-items:flex-start;gap:10px;margin-top:14px;padding:12px;border:1px solid rgba(143,170,206,.17);border-radius:10px;background:rgba(3,10,18,.4);font-size:10px}
+.swarmtrade-approved{border-color:rgba(63,180,139,.3);color:#91e3c2}
+.swarmtrade-rejected,.swarmtrade-error{border-color:rgba(238,133,115,.27);color:#f5b4a7}
+.swarmtrade-result-body{flex:1;min-width:0}
+.swarmtrade-result-title{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.swarmtrade-result-title strong{font-size:10px;letter-spacing:.04em}
+.swarmtrade-result-title span{font-size:9px;color:#9eb2cb}
+.swarmtrade-result-body>p{margin:7px 0;color:#c2d0e2;line-height:1.55}
+.swarmtrade-result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:10px}
+.swarmtrade-result-grid>div{display:flex;flex-direction:column;gap:5px;padding:9px;border:1px solid rgba(127,157,198,.12);border-radius:7px;background:rgba(17,32,51,.52);min-width:0}
+.swarmtrade-result-grid span{font-size:8px;color:#91a7c1}
+.swarmtrade-result-grid strong{font-size:11px;color:#edf5ff;overflow-wrap:anywhere}
+.swarmtrade-execution-label{margin-top:10px;color:#c4ad7a;font-size:9px}
+.swarmtrade-warning{margin:7px 0 0!important;color:#8ea3bc!important;font-size:9px}
+@media(max-width:850px){.swarmtrade-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.swarmtrade-signal-fields{grid-template-columns:repeat(3,minmax(0,1fr))}.swarmtrade-result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.swarmtrade-panel{padding:12px}.swarmtrade-heading{align-items:flex-start;flex-wrap:wrap}.swarmtrade-mode{font-size:7px}.swarmtrade-fields,.swarmtrade-signal-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.swarmtrade-result-title{align-items:flex-start;flex-direction:column}}
