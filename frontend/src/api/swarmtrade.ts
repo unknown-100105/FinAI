@@ -17,6 +17,8 @@ export type SwarmTradeRequest = {
   fee_bps: number;
   slippage_bps: number;
   max_loss_per_unit?: number;
+  option_type?: "call" | "put";
+  option_strike?: number;
   tick_size?: number;
   tick_value?: number;
   pip_size?: number;
