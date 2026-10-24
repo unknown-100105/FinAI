@@ -19,6 +19,7 @@ def test_brain_status_reports_missing_assets_without_network_calls(tmp_path, mon
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     monkeypatch.delenv("SARVAM_API_KEY", raising=False)
+    monkeypatch.delenv("FINAI_COLIBRI_BASE_URL", raising=False)
 
     response = client.get("/api/v1/system/brain-status")
     assert response.status_code == 200
@@ -36,10 +37,13 @@ def test_brain_status_reports_missing_assets_without_network_calls(tmp_path, mon
     assert len(layers["retrieval"]["missing_assets"]) == 3
     assert layers["model_generation"]["status"] == "no_cloud_credentials_detected"
     assert layers["model_generation"]["provider_reachability_verified"] is False
+    assert layers["model_generation"]["local_model"]["configured"] is False
+    assert layers["model_generation"]["local_model"]["inference_verified"] is False
 
 
 def test_brain_status_never_exposes_provider_secrets_and_detects_local_assets(tmp_path, monkeypatch):
     monkeypatch.setattr(system_api, "ROOT", tmp_path)
+    monkeypatch.delenv("FINAI_COLIBRI_BASE_URL", raising=False)
     for key in (
         "OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY",
         "MISTRAL_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "SARVAM_API_KEY",
@@ -79,6 +83,8 @@ def test_brain_status_separates_offline_configuration_from_runtime_verification(
     layers = {item["id"]: item for item in response.json()["layers"]}
     offline = layers["offline_inference"]
 
+    assert offline["local_model_status_endpoint"] == "/api/v1/system/local-model-status"
+    assert offline["local_model_probe_is_opt_in"] is True
     assert offline["status"] == "offline_mode_requested"
     assert offline["network_mode"] == "offline"
     assert offline["colibri_configured"] is True
@@ -89,6 +95,7 @@ def test_brain_status_separates_offline_configuration_from_runtime_verification(
 
 def test_unregistered_key_aliases_do_not_claim_provider_configured(tmp_path, monkeypatch):
     monkeypatch.setattr(system_api, "ROOT", tmp_path)
+    monkeypatch.delenv("FINAI_COLIBRI_BASE_URL", raising=False)
     for key in (
         "OPENAI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY",
         "MISTRAL_API_KEY", "GEMINI_API_KEY", "SARVAM_API_KEY",
