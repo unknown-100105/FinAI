@@ -35,8 +35,17 @@ class CreatePaperAccountRequest(BaseModel):
 
 class OpenPaperPositionRequest(BaseModel):
     idempotency_key: str = Field(..., min_length=1, max_length=160)
+    quote_currency: str = Field(..., min_length=3, max_length=3)
     acknowledge_simulation_only: bool = Field(...)
     plan: SwarmTradeRequest
+
+    @field_validator("quote_currency")
+    @classmethod
+    def validate_quote_currency(cls, value: str) -> str:
+        normalized = value.strip().upper()
+        if len(normalized) != 3 or not normalized.isalpha():
+            raise ValueError("quote_currency must be a three-letter currency code")
+        return normalized
 
     @field_validator("idempotency_key")
     @classmethod
@@ -122,6 +131,7 @@ def open_paper_position(account_id: str, request: OpenPaperPositionRequest) -> d
         request_payload = {
             "plan_request": request.plan.model_dump(),
             "acknowledge_simulation_only": request.acknowledge_simulation_only,
+            "quote_currency": request.quote_currency,
         }
         request_hash = payload_digest(request_payload)
         replay = ledger.replay_if_exists(
@@ -134,6 +144,8 @@ def open_paper_position(account_id: str, request: OpenPaperPositionRequest) -> d
             return replay
 
         snapshot = ledger.get_account(account_id)
+        if snapshot["currency"] != request.quote_currency:
+            raise HTTPException(status_code=409, detail=f"Paper account currency {snapshot['currency']} does not match instrument quote currency {request.quote_currency}. Create or select an account in the quote currency; no automatic FX conversion is applied.")
         plan_request = request.plan.model_dump()
         # Risk sizing uses current persisted account state, never caller-reported capital/open risk.
         plan_request["capital"] = snapshot["equity_excluding_unrealized_pnl"]
