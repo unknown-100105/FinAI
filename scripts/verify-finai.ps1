@@ -107,6 +107,24 @@ try {
                 throw "Causal architecture endpoint returned an unexpected status"
             }
 
+            $swarmtrade = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/swarmtrade/status" -Method Get -Headers $apiHeaders
+            if ($swarmtrade.status -ne "available" -or $swarmtrade.max_logical_agents -ne 500) {
+                throw "SwarmTrade status endpoint returned an unexpected response"
+            }
+            if ($swarmtrade.live_order_execution -ne $false) {
+                throw "SwarmTrade status must explicitly disable live order execution"
+            }
+
+            $researchControl = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/causal-risk/research-control/status" -Method Get -Headers $apiHeaders
+            if ($researchControl.status -ne "available" -or $researchControl.can_authorize_trades -ne $false) {
+                throw "Research control endpoint returned an unexpected response or trade boundary"
+            }
+
+            $paperLedger = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/swarmtrade/paper/status" -Method Get -Headers $apiHeaders
+            if ($paperLedger.mode -ne "persistent_paper_trading_only" -or $paperLedger.real_orders_supported -ne $false) {
+                throw "Paper ledger status did not confirm simulation-only operation"
+            }
+
             # Exercise a real request path without requiring cloud credentials or model inference.
             $sessionId = "finai-live-smoke-$([guid]::NewGuid().ToString('N'))"
             $chatBody = @{
@@ -171,6 +189,12 @@ try {
     & $python benchmarks/counterfactual_screening_benchmark.py
     if ($LASTEXITCODE -ne 0) {
         throw "Counterfactual screening benchmark failed."
+    }
+
+    Write-Host "Running seeded SwarmTrade safety benchmark..." -ForegroundColor Yellow
+    & $python benchmarks/swarmtrade_safety_benchmark.py --output swarmtrade-safety-benchmark.json --cases 500
+    if ($LASTEXITCODE -ne 0) {
+        throw "SwarmTrade safety benchmark failed."
     }
 
     Write-Host "=== Verification complete ===" -ForegroundColor Green
