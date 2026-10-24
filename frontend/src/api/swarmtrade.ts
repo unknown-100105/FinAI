@@ -109,6 +109,22 @@ export type PaperAccountSnapshot = {
 
 const paperUrl = (path: string) => `${API_BASE_URL}/api/v1/swarmtrade/paper${path}`;
 
+export type PaperAccountOption = {
+  account_id: string;
+  label: string;
+  currency: string;
+  initial_capital: number;
+  equity_excluding_unrealized_pnl: number;
+  realized_pnl: number;
+  open_position_count: number;
+};
+
+export async function listPaperAccounts(): Promise<{ count: number; accounts: PaperAccountOption[] }> {
+  const response = await fetch(paperUrl("/accounts"));
+  if (!response.ok) throw new Error(`Paper account list error ${response.status}: ${await response.text()}`);
+  return response.json() as Promise<{ count: number; accounts: PaperAccountOption[] }>;
+}
+
 export async function getPaperLedgerStatus(): Promise<{ enabled: boolean; status: string }> {
   const response = await fetch(paperUrl("/status"));
   if (!response.ok) throw new Error(`Paper ledger status error ${response.status}`);
