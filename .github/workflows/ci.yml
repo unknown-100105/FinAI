@@ -51,6 +51,7 @@ jobs:
             tests/test_vectorless_retriever.py \
             tests/test_retrieval_lab_api.py \
             tests/test_swarmtrade_engine.py \
+            tests/test_research_control_api.py \
             tests/test_local_model_smoke_script_integration.py \
             tests/test_local_model_smoke_script.py \
             tests/test_local_model_api.py \
