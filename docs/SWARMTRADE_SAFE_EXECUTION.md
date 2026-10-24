@@ -2,7 +2,7 @@
 
 ## Implemented baseline
 
-The API implements a deterministic consensus simulation over up to 500 **logical** agents distributed over five fixed strategy roles: momentum, trend, mean reversion, breakout, and sentiment. Each role reads caller-supplied directional feature scores from -1 to +1. It does not call an LLM 500 times, launch 500 workers, or infer that the supplied signals came from a trained model.
+The API implements a deterministic consensus simulation over up to 500 **logical** agents distributed over five fixed strategy roles: momentum, trend, mean reversion, breakout, and sentiment. Each role reads directional feature scores from -1 to +1. In the UI, four price-based features are derived transparently from chart bars and sentiment remains neutral unless the user changes it. It does not call an LLM 500 times, launch 500 workers, or infer that the supplied signals came from a trained model.
 
 Routes:
 
@@ -40,7 +40,7 @@ Routes:
 - Aggregate open-position risk is limited to 3% of capital; current daily loss is checked against a configurable daily stop whose accepted maximum is 5%.
 - A protective stop and target are required; invalid long/short price ordering is rejected.
 - Fees and slippage are included as caller-provided assumptions. Sizing is also bounded by supplied margin and leverage assumptions.
-- Options require explicit `max_loss_per_unit` per contract. Contract multiplier, unit step, margin rate and costs must be verified for the instrument and venue.
+- Options require explicit `max_loss_per_unit` per contract; the conservative proxy is not a full option payoff or Greeks model. Futures require venue-verified tick size, tick value and margin per contract. Forex requires pip size, pip value in the account currency, and margin per configured unit/lot. Contract multiplier, unit step, conversion currency, margin and costs must be checked for the venue.
 - Every response clearly reports that no order was submitted and no fill is claimed.
 
 ## Important limitations
