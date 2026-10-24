@@ -103,24 +103,35 @@ def open_paper_position(account_id: str, request: OpenPaperPositionRequest) -> d
         raise HTTPException(status_code=422, detail="Explicit acknowledgement of simulation-only mode is required")
     ledger = _ledger()
     try:
+        # Idempotent retries must replay before recalculating against changed account state.
+        request_payload = {
+            "plan_request": request.plan.model_dump(),
+            "acknowledge_simulation_only": request.acknowledge_simulation_only,
+        }
+        request_hash = payload_digest(request_payload)
+        replay = ledger.replay_if_exists(
+            account_id=account_id,
+            idempotency_key=request.idempotency_key,
+            event_type="open",
+            request_digest=request_hash,
+        )
+        if replay is not None:
+            return replay
+
         snapshot = ledger.get_account(account_id)
         plan_request = request.plan.model_dump()
-        # Risk sizing uses actual paper-account state, not the caller's capital/open-risk claim.
+        # Risk sizing uses current persisted account state, never caller-reported capital/open risk.
         plan_request["capital"] = snapshot["equity_excluding_unrealized_pnl"]
         plan_request["open_position_risk_pct"] = snapshot["open_position_risk_pct"]
         plan_request["current_daily_loss_pct"] = snapshot["daily_realized_loss_pct"]
         plan = build_swarm_plan(plan_request)
         if plan.get("status") != "APPROVED_FOR_SIMULATION":
             raise HTTPException(status_code=409, detail={"message": "Risk gate blocked paper position", "plan": plan})
-        request_payload = {
-            "plan_request": plan_request,
-            "acknowledge_simulation_only": request.acknowledge_simulation_only,
-        }
         return ledger.open_position(
             account_id=account_id,
             idempotency_key=request.idempotency_key,
             plan=plan,
-            request_digest=payload_digest(request_payload),
+            request_digest=request_hash,
         )
     except HTTPException:
         raise
