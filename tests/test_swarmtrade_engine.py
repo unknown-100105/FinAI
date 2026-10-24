@@ -143,3 +143,17 @@ def test_swarmtrade_seeded_safety_benchmark_has_no_invariant_failures():
     assert report["guardrail_violations"] == 0
     assert report["expected_control_rejections_missed"] == 0
     assert report["research_boundary"].startswith("Synthetic deterministic safety benchmark")
+
+
+def test_swarmtrade_requires_balanced_agent_count_multiple():
+    response = client.post("/api/v1/swarmtrade/plan", json=bullish_request(agent_count=6))
+    assert response.status_code == 422
+
+
+def test_swarmtrade_engine_rejects_non_integer_or_unbalanced_agent_count():
+    for count in (4, 6, 500.5, True):
+        try:
+            build_swarm_plan(bullish_request(agent_count=count))
+        except ValueError:
+            continue
+        raise AssertionError(f"Expected agent count {count!r} to be rejected")
