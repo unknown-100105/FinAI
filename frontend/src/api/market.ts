@@ -2,6 +2,20 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
+export type MarketProvider = {
+  provider_id: string;
+  configured: boolean;
+  capabilities: string[];
+};
+
+export async function getMarketProviders(): Promise<{ default_provider: string; providers: MarketProvider[] }> {
+  const response = await fetch(API_BASE_URL + "/api/v1/market/providers");
+  if (!response.ok) {
+    throw new Error(`FinAI market provider API error ${response.status}: ${await response.text()}`);
+  }
+  return response.json() as Promise<{ default_provider: string; providers: MarketProvider[] }>;
+}
+
 export type MarketInstrument = {
   instrument_id: string;
   display_name: string;
@@ -66,9 +80,9 @@ async function getJson<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function getMarketQuote(instrument: string) {
+export function getMarketQuote(instrument: string, provider = "yfinance") {
   return getJson<{ instrument: MarketInstrument; quote: MarketQuote }>(
-    `/api/v1/market/quote?instrument=${encodeURIComponent(instrument)}`,
+    `/api/v1/market/quote?instrument=${encodeURIComponent(instrument)}&provider=${encodeURIComponent(provider)}`,
   );
 }
 
@@ -77,6 +91,7 @@ export function getMarketHistory(
   start: string,
   end: string,
   interval = "1d",
+  provider = "yfinance",
 ) {
   return getJson<{
     instrument: MarketInstrument;
@@ -84,7 +99,7 @@ export function getMarketHistory(
     count: number;
     bars: MarketBar[];
   }>(
-    `/api/v1/market/history?instrument=${encodeURIComponent(instrument)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&interval=${encodeURIComponent(interval)}`,
+    `/api/v1/market/history?instrument=${encodeURIComponent(instrument)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&interval=${encodeURIComponent(interval)}&provider=${encodeURIComponent(provider)}`,
   );
 }
 
@@ -138,6 +153,7 @@ export function getMarketAnalytics(
   start: string,
   end: string,
   interval = "1d",
+  provider = "yfinance",
 ) {
   return getJson<{
     instrument: MarketInstrument;
@@ -145,6 +161,6 @@ export function getMarketAnalytics(
     analytics: Record<string, number | null>;
     data_points: number;
   }>(
-    `/api/v1/market/analytics?instrument=${encodeURIComponent(instrument)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&interval=${encodeURIComponent(interval)}`,
+    `/api/v1/market/analytics?instrument=${encodeURIComponent(instrument)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&interval=${encodeURIComponent(interval)}&provider=${encodeURIComponent(provider)}`,
   );
 }
