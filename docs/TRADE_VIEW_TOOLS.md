@@ -1,16 +1,18 @@
 # Trade View planning tools
 
-The Market & Crypto Terminal now includes a local-first trade planning panel beneath the chart and technical indicators.
+The Market & Crypto Terminal includes a local-first trade planning panel beneath the chart and technical indicators, plus a deterministic SwarmTrade research planner.
 
 ## Included tools
 
 - **Saved watchlist:** add/remove symbols and select a saved symbol in the terminal. The watchlist is stored in this browser's local storage and is not synchronized to an account or server.
 - **Price alert conditions:** create above/below price thresholds for the currently selected symbol. Conditions are evaluated against the latest quote state returned by the terminal. They are not background jobs, push notifications, or guaranteed real-time alerts; they only update while the terminal is running and receiving quote updates.
 - **Position sizing calculator:** estimates quantity from a user-entered risk budget and directionally valid stop distance for a long or short position, plus an optional directionally valid reward/risk ratio. It does not submit orders or fetch broker buying power.
+- **SwarmTrade logical-agent planner:** evaluates up to 500 logical votes across momentum, trend, mean-reversion, breakout and sentiment roles; the count is restricted to multiples of five to keep role representation balanced. Trend/momentum/mean-reversion/breakout features are transparently derived from selected chart candles, while sentiment defaults to neutral. It reports a risk-gated *simulation plan*, not an executed trade.
+- **Derivative-aware risk inputs:** options require a user-provided per-contract maximum-loss assumption; futures require verified tick size, tick value and margin per contract; forex requires pip size, pip value in the account currency and margin per unit/lot. Incorrect venue metadata makes the estimate unreliable.
 
 ## Limitations
 
-- This is a planning workspace, not a brokerage connection or order execution system.
+- This is a planning workspace, not a brokerage connection or order execution system. The SwarmTrade endpoint explicitly returns `order_submitted: false` and `fill_claimed: false`.
 - It does not model taxes, fees, slippage, lot size, margin, liquidity, short-sale restrictions, or broker-specific rules.
 - Market quotes and chart history are provider-dependent. A displayed timestamp is provenance, not a guarantee of real-time exchange data.
 - The calculator is arithmetic only and is not investment advice.
@@ -111,3 +113,24 @@ Manual QA:
 7. Confirm the panel never invokes broker APIs or submits orders.
 
 This is a software simulation; the frontend build, lint and browser checklist remain required before merge.
+
+
+## SwarmTrade API and verification
+
+- `GET /api/v1/swarmtrade/status` reports the enabled simulation mode and guardrails.
+- `POST /api/v1/swarmtrade/plan` accepts symbol, asset class, entry/stop/target, account capital, risk budget, transaction-cost assumptions, margin/leverage assumptions and bounded signal features.
+- The planner caps single-trade risk at 1% and aggregate open risk at 3%; it blocks when the daily loss limit is reached, the stop/target direction is invalid, the requested side conflicts with consensus, or required futures/forex/options metadata is absent.
+- Futures sizing uses caller-supplied tick value and tick size. Forex sizing uses pip value and pip size. These values, the account currency, conversion assumptions, multiplier and margin need to match the real instrument.
+- Options are only approximated with a caller-provided maximum-loss amount. Full payoff curves, Greeks, expiry, assignment, volatility surface and exchange margin are not implemented here.
+- Automated checks: `python -m pytest -q tests/test_swarmtrade_engine.py` and `python benchmarks/swarmtrade_safety_benchmark.py --output swarmtrade-safety-benchmark.json --cases 500`. This benchmark tests deterministic safety constraints on synthetic inputs; it is not a profitability benchmark.
+
+## Manual SwarmTrade smoke checklist
+
+1. Pull `feature/finai-runtime-trading-integration`, start the backend and frontend, and open Markets.
+2. Select a symbol with at least six available bars; wait for the market panel to finish loading.
+3. Confirm four directional feature inputs populate from chart history and sentiment starts at zero. Change sentiment manually and verify the value is included in the result.
+4. Run with a long-compatible stop/target and a positive consensus; confirm quantity and risk are shown and the result clearly says simulation only.
+5. Choose a contradictory side, invert a stop, set the daily loss to its threshold, and verify the plan is blocked.
+6. Select futures and omit tick metadata, then provide valid tick size/tick value/margin; confirm the endpoint requires all three. Repeat with forex pip/margin fields.
+7. Select options and verify maximum loss per contract is required.
+8. Inspect the JSON response and confirm `order_submitted` and `fill_claimed` remain false.
