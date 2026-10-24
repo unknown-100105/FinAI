@@ -27,7 +27,12 @@ def _base_request(index: int, rng: random.Random) -> dict[str, Any]:
     direction = "long" if index % 2 == 0 else "short"
     sign = 1 if direction == "long" else -1
     asset_class = ("equity", "crypto", "option", "future", "forex")[(index + index // 10) % 5]
-    if asset_class == "forex":
+    if asset_class == "option":
+        entry, stop, target, capital, multiplier = (
+            (2.0, 1.0, 4.5, 100_000.0, 100.0) if direction == "long"
+            else (2.0, 3.0, 0.8, 100_000.0, 100.0)
+        )
+    elif asset_class == "forex":
         entry, stop, target, capital, multiplier = (
             (1.1, 1.095, 1.12, 500_000.0, 100_000.0) if direction == "long"
             else (1.1, 1.105, 1.08, 500_000.0, 100_000.0)
@@ -68,7 +73,9 @@ def _base_request(index: int, rng: random.Random) -> dict[str, Any]:
         },
     }
     if asset_class == "option":
-        request["max_loss_per_unit"] = 6.0
+        request["option_type"] = "call" if direction == "long" else "put"
+        request["option_strike"] = 3.0
+        request["max_loss_per_unit"] = 200.0 if direction == "long" else 100.0
     if asset_class == "future":
         request.update({"tick_size": 0.25, "tick_value": 12.5, "margin_per_unit": 5_000.0})
     if asset_class == "forex":
