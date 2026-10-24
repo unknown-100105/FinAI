@@ -16,7 +16,7 @@ FinAI exposes a read-only diagnostic endpoint for the optional local Colibrì se
 | `server_error` | The local endpoint returned a non-success HTTP status |
 | `invalid_server_response` | The server did not return an OpenAI-compatible model list |
 | `model_not_found` | Server is reachable, but the configured model ID was not listed |
-| `ready_for_inference` | The model ID was listed by the server; a chat-completion test is still required |
+| `model_listed_not_inference_verified` | The model ID was listed by the server; a chat-completion test is still required |
 
 Example PowerShell configuration:
 
