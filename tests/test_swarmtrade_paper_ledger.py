@@ -91,21 +91,26 @@ def test_paper_ledger_requires_explicit_confirmation(monkeypatch, tmp_path):
     assert response.status_code == 422
 
 
-def test_paper_ledger_blocks_daily_loss_and_aggregate_risk(monkeypatch, tmp_path):
+def test_paper_ledger_blocks_aggregate_risk_after_three_one_percent_positions(monkeypatch, tmp_path):
     monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
     monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
     account = client.post("/api/v1/swarmtrade/paper/accounts", json={"initial_capital": 100000}).json()
     account_id = account["account_id"]
-    open_body = {
-        "idempotency_key": "open-1",
-        "acknowledge_simulation_only": True,
-        "plan": approved_plan_request(open_position_risk_pct=2.5),
-    }
-    opened = client.post(f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions", json=open_body)
-    assert opened.status_code in {200, 409}
-    if opened.status_code == 200:
-        too_many_risk = client.post(
-            f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
-            json={**open_body, "idempotency_key": "open-2", "plan": approved_plan_request()},
-        )
-        assert too_many_risk.status_code == 409
+    for index in range(3):
+        open_body = {
+            "idempotency_key": f"open-{index}",
+            "acknowledge_simulation_only": True,
+            "plan": approved_plan_request(risk_pct=1.0, fee_bps=0, slippage_bps=0),
+        }
+        opened = client.post(f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions", json=open_body)
+        assert opened.status_code == 200, opened.text
+
+    too_many_risk = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+        json={
+            "idempotency_key": "open-4",
+            "acknowledge_simulation_only": True,
+            "plan": approved_plan_request(risk_pct=1.0, fee_bps=0, slippage_bps=0),
+        },
+    )
+    assert too_many_risk.status_code == 409
