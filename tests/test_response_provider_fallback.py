@@ -2,6 +2,7 @@ import pytest
 
 from llm.model_gateway import ModelGateway
 from llm.response_service import ResponseService
+from llm.resource_orchestrator import HardwareSnapshot
 
 
 @pytest.fixture(autouse=True)
@@ -15,6 +16,15 @@ def configured_fallback_test_environment(monkeypatch, tmp_path):
     (model_path / "config.json").write_text("{}", encoding="utf-8")
     (model_path / "model.safetensors").write_bytes(b"test-placeholder")
     monkeypatch.setenv("FINAI_RLLM_MODEL_PATH", str(model_path))
+    hardware = HardwareSnapshot(
+        cpu_cores=8,
+        ram_gb=16.0,
+        vram_gb=8.0,
+        storage_free_gb=100.0,
+        cuda_available=True,
+        platform="test",
+    )
+    monkeypatch.setattr("llm.model_router.detect_hardware", lambda: hardware)
 
 
 class FakeAdapter:
