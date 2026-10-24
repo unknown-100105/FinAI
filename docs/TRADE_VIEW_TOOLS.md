@@ -93,7 +93,7 @@ The Market Terminal includes a long-only SMA crossover simulation over the curre
 
 - The short and long moving-average windows, starting capital, fee basis points per side, and slippage basis points per side are user-configurable.
 - A signal is computed at the prior candle's close and executed at the next candle's open. The final open position is liquidated at the final close.
-- The UI reports final equity, net return, buy-and-hold return, maximum drawdown, closed trade count, win rate and recent completed trades.
+- The UI reports an equity curve, final equity, net return, buy-and-hold return, maximum drawdown, closed trade count, win rate, profit factor where defined, and recent completed trades.
 - The buy-and-hold comparison uses the same execution window and fee/slippage assumption as the strategy.
 - Trades are all-in long/flat simulations with fractional units. There is no brokerage connection, order execution or portfolio persistence.
 
