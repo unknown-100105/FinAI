@@ -26,7 +26,7 @@ CASE_COUNT = 500
 def _base_request(index: int, rng: random.Random) -> dict[str, Any]:
     direction = "long" if index % 2 == 0 else "short"
     sign = 1 if direction == "long" else -1
-    asset_class = ("equity", "crypto", "option", "future", "forex")[(index // 2) % 5]
+    asset_class = ("equity", "crypto", "option", "future", "forex")[(index + index // 10) % 5]
     if asset_class == "forex":
         entry, stop, target, capital, multiplier = (
             (1.1, 1.095, 1.12, 500_000.0, 100_000.0) if direction == "long"
@@ -110,6 +110,7 @@ def run_benchmark(case_count: int = CASE_COUNT) -> dict[str, Any]:
     rng = random.Random(SEED)
     status_counts: Counter[str] = Counter()
     asset_counts: Counter[str] = Counter()
+    approved_counts: Counter[str] = Counter()
     determinism_failures = 0
     guardrail_violations = 0
     expected_control_rejections_missed = 0
@@ -127,6 +128,8 @@ def run_benchmark(case_count: int = CASE_COUNT) -> dict[str, Any]:
             determinism_failures += 1
 
         status_counts[first["status"]] += 1
+        if first["status"] == "APPROVED_FOR_SIMULATION":
+            approved_counts[request["asset_class"]] += 1
         control_gate_missed = must_block and first["status"] == "APPROVED_FOR_SIMULATION"
         if control_gate_missed:
             expected_control_rejections_missed += 1
@@ -165,6 +168,7 @@ def run_benchmark(case_count: int = CASE_COUNT) -> dict[str, Any]:
         "passed_cases": passed_cases,
         "status_counts": dict(sorted(status_counts.items())),
         "asset_class_counts": dict(sorted(asset_counts.items())),
+        "approved_simulation_plans_by_asset_class": dict(sorted(approved_counts.items())),
         "determinism_failures": determinism_failures,
         "guardrail_violations": guardrail_violations,
         "expected_control_rejections_missed": expected_control_rejections_missed,
