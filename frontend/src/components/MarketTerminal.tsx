@@ -11,6 +11,7 @@ import {
 import { MarketSearchBox } from "./MarketSearchBox";
 import { CandleChart } from "./CandleChart";
 import { TradeToolsPanel } from "./TradeToolsPanel";
+import { StrategyBacktestPanel } from "./StrategyBacktestPanel";
 import "./MarketTerminal.css";
 
 const ranges = [
@@ -294,6 +295,8 @@ export function MarketTerminal() {
               <div className="analytics-card" key={label}><span>{label}</span><strong>{value}</strong><small>Calculated from selected bars</small></div>
             ))}
           </div>
+
+          <StrategyBacktestPanel bars={bars} symbol={instrument} currency={currency} />
         </div>
 
         <aside className="market-side">
