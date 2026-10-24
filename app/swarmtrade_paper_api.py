@@ -82,6 +82,16 @@ def paper_ledger_status() -> dict:
     }
 
 
+@router.get("/accounts")
+def list_paper_accounts() -> dict:
+    try:
+        return _ledger().list_accounts()
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @router.post("/accounts")
 def create_paper_account(request: CreatePaperAccountRequest) -> dict:
     try:
