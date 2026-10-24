@@ -301,3 +301,10 @@ python benchmarks/swarmtrade_safety_benchmark.py --output swarmtrade-safety-benc
 ```
 
 The benchmark is synthetic implementation-safety testing, not evidence of investment performance or real-market prediction quality.
+
+
+### Persistent SwarmTrade paper ledger
+
+A separate opt-in SQLite ledger records simulated positions and P&L. To enable it for trusted local verification, set `FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER=1` in `.env`; `FINAI_SWARMTRADE_PAPER_DB` sets the file path. It is disabled by default. The API requires explicit simulation acknowledgement, records idempotent open/close events, enforces paper-account current equity and aggregate risk limits, and never sends a live order. Account equity excludes unrealized P&L; manual exits use caller-supplied prices.
+
+See [docs/SWARMTRADE_PAPER_LEDGER.md](docs/SWARMTRADE_PAPER_LEDGER.md). Run `python -m pytest -q tests/test_swarmtrade_paper_ledger.py` for the focused tests.
