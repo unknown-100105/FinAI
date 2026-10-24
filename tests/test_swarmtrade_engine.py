@@ -142,6 +142,9 @@ def test_swarmtrade_seeded_safety_benchmark_has_no_invariant_failures():
     assert report["determinism_failures"] == 0
     assert report["guardrail_violations"] == 0
     assert report["expected_control_rejections_missed"] == 0
+    assert set(report["asset_class_counts"]) == {"equity", "option", "future", "crypto", "forex"}
+    assert report["approved_simulation_plans_by_asset_class"].get("future", 0) > 0
+    assert report["approved_simulation_plans_by_asset_class"].get("forex", 0) > 0
     assert report["research_boundary"].startswith("Synthetic deterministic safety benchmark")
 
 
