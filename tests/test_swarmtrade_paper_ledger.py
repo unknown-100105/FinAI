@@ -58,7 +58,7 @@ def test_paper_ledger_open_close_and_idempotent_replay(monkeypatch, tmp_path):
     assert opened_again.json()["position_id"] == position["position_id"]
     assert opened_again.json()["idempotent_replay"] is True
 
-    closed_body = {"idempotency_key": "close-001", "exit_price": 110, "reason": "target"}
+    closed_body = {"idempotency_key": "close-001", "exit_price": 115, "reason": "target"}
     closed = client.post(
         f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions/{position['position_id']}/close",
         json=closed_body,
@@ -78,6 +78,11 @@ def test_paper_ledger_open_close_and_idempotent_replay(monkeypatch, tmp_path):
     assert snapshot.status_code == 200
     assert snapshot.json()["open_position_count"] == 0
     assert snapshot.json()["realized_pnl"] > 0
+
+    history = client.get(f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions?status=closed")
+    assert history.status_code == 200
+    assert history.json()["count"] == 1
+    assert history.json()["positions"][0]["status"] == "CLOSED"
 
 
 def test_paper_ledger_requires_explicit_confirmation(monkeypatch, tmp_path):
@@ -114,3 +119,59 @@ def test_paper_ledger_blocks_aggregate_risk_after_three_one_percent_positions(mo
         },
     )
     assert too_many_risk.status_code == 409
+
+
+def test_paper_ledger_blocks_position_after_realized_daily_loss_limit(monkeypatch, tmp_path):
+    monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
+    account = client.post("/api/v1/swarmtrade/paper/accounts", json={"initial_capital": 10000}).json()
+    account_id = account["account_id"]
+
+    opened = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+        json={
+            "idempotency_key": "open-loss",
+            "acknowledge_simulation_only": True,
+            "plan": approved_plan_request(risk_pct=1.0, fee_bps=0, slippage_bps=0),
+        },
+    )
+    assert opened.status_code == 200, opened.text
+    position_id = opened.json()["position_id"]
+    closed = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions/{position_id}/close",
+        json={"idempotency_key": "close-loss", "exit_price": 90, "reason": "stop"},
+    )
+    assert closed.status_code == 200
+    assert closed.json()["net_pnl"] < 0
+
+    blocked = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+        json={
+            "idempotency_key": "next-open",
+            "acknowledge_simulation_only": True,
+            "plan": approved_plan_request(risk_pct=1.0, fee_bps=0, slippage_bps=0),
+        },
+    )
+    assert blocked.status_code == 409
+
+
+def test_paper_ledger_does_not_accept_stop_close_before_stop_price(monkeypatch, tmp_path):
+    monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
+    account = client.post("/api/v1/swarmtrade/paper/accounts", json={"initial_capital": 100000}).json()
+    account_id = account["account_id"]
+    opened = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+        json={
+            "idempotency_key": "open-stop-check",
+            "acknowledge_simulation_only": True,
+            "plan": approved_plan_request(),
+        },
+    )
+    assert opened.status_code == 200
+    position_id = opened.json()["position_id"]
+    response = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions/{position_id}/close",
+        json={"idempotency_key": "close-stop-too-early", "exit_price": 98, "reason": "stop"},
+    )
+    assert response.status_code == 409
