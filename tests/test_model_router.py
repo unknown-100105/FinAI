@@ -8,6 +8,7 @@ from llm.resource_orchestrator import HardwareSnapshot
 def configured_models_for_router_tests(monkeypatch, tmp_path):
     """Model-routing tests use explicit fake config, never real provider credentials."""
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("FINAI_LLM_PREFERENCE", "gemini-cloud")
     monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "empty-hf-cache"))
     model_path = tmp_path / "rllm-model"
     model_path.mkdir()
