@@ -26,7 +26,7 @@ def _finite_number(value: Any, name: str, *, minimum: float | None = None,
         raise ValueError(f"{name} must be a finite number")
     try:
         result = float(value)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError(f"{name} must be a finite number") from exc
     if not math.isfinite(result):
         raise ValueError(f"{name} must be a finite number")
@@ -62,9 +62,19 @@ def build_swarm_plan(request: Mapping[str, Any]) -> dict[str, Any]:
     All prices, contract multipliers, margin assumptions, and fees must be provided or
     reviewed by the caller for the actual instrument and venue.
     """
-    agent_count = int(request.get("agent_count", MAX_LOGICAL_AGENTS))
-    if agent_count < 1 or agent_count > MAX_LOGICAL_AGENTS:
-        raise ValueError(f"agent_count must be between 1 and {MAX_LOGICAL_AGENTS}")
+    raw_agent_count = request.get("agent_count", MAX_LOGICAL_AGENTS)
+    if isinstance(raw_agent_count, bool):
+        raise ValueError("agent_count must be an integer")
+    try:
+        agent_count = int(raw_agent_count)
+        if float(raw_agent_count) != agent_count:
+            raise ValueError("agent_count must be an integer")
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("agent_count must be an integer") from exc
+    if agent_count < len(ROLE_WEIGHTS) or agent_count > MAX_LOGICAL_AGENTS:
+        raise ValueError(f"agent_count must be between {len(ROLE_WEIGHTS)} and {MAX_LOGICAL_AGENTS}")
+    if agent_count % len(ROLE_WEIGHTS) != 0:
+        raise ValueError(f"agent_count must be a multiple of {len(ROLE_WEIGHTS)} to balance strategy roles")
 
     asset_class = str(request.get("asset_class", "equity")).strip().lower()
     if asset_class not in {"equity", "option", "future", "crypto", "forex"}:
