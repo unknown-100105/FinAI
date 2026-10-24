@@ -82,3 +82,5 @@ backups/
 
 # Generated patent/research benchmark output
 patent-benchmark.json
+
+swarmtrade-safety-benchmark.json
