@@ -113,19 +113,22 @@ def run_benchmark(case_count: int = CASE_COUNT) -> dict[str, Any]:
     determinism_failures = 0
     guardrail_violations = 0
     expected_control_rejections_missed = 0
+    passed_cases = 0
     samples: list[dict[str, Any]] = []
 
     for index in range(case_count):
         request = _base_request(index, rng)
-        asset_counts[request["asset_class"]] += 1
         must_block = _apply_control_case(request, index % 10)
+        asset_counts[request["asset_class"]] += 1
         first = build_swarm_plan(request)
         second = build_swarm_plan(request)
-        if first != second:
+        repeatable = first == second
+        if not repeatable:
             determinism_failures += 1
 
         status_counts[first["status"]] += 1
-        if must_block and first["status"] == "APPROVED_FOR_SIMULATION":
+        control_gate_missed = must_block and first["status"] == "APPROVED_FOR_SIMULATION"
+        if control_gate_missed:
             expected_control_rejections_missed += 1
 
         safe = (
@@ -143,16 +146,23 @@ def run_benchmark(case_count: int = CASE_COUNT) -> dict[str, Any]:
             safe = safe and first["sizing"]["quantity"] > 0
         if not safe:
             guardrail_violations += 1
-            if len(samples) < 10:
-                samples.append({"case": index, "reason": "guardrail_violation", "plan": first})
+        case_passed = repeatable and safe and not control_gate_missed
+        if case_passed:
+            passed_cases += 1
+        elif len(samples) < 10:
+            samples.append({
+                "case": index,
+                "reason": "guardrail_violation" if not safe else "known_control_not_rejected" if control_gate_missed else "non_deterministic_result",
+                "plan": first,
+            })
 
-    failures = determinism_failures + guardrail_violations + expected_control_rejections_missed
+    failures = case_count - passed_cases
     return {
         "benchmark": "finai_swarmtrade_deterministic_safety",
         "seed": SEED,
         "cases": case_count,
         "logical_agents_per_case": MAX_LOGICAL_AGENTS,
-        "passed_cases": case_count if failures == 0 else case_count - failures,
+        "passed_cases": passed_cases,
         "status_counts": dict(sorted(status_counts.items())),
         "asset_class_counts": dict(sorted(asset_counts.items())),
         "determinism_failures": determinism_failures,
