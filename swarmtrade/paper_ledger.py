@@ -132,6 +132,26 @@ class PaperLedger:
             raise KeyError("Paper account not found")
         return row
 
+    def list_accounts(self) -> dict[str, Any]:
+        self.initialize()
+        with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT account_id FROM paper_accounts ORDER BY created_at DESC, account_id"
+            ).fetchall()
+            accounts = []
+            for row in rows:
+                snapshot = self._account_snapshot(connection, row["account_id"])
+                accounts.append({
+                    "account_id": snapshot["account_id"],
+                    "label": snapshot["label"],
+                    "currency": snapshot["currency"],
+                    "initial_capital": snapshot["initial_capital"],
+                    "equity_excluding_unrealized_pnl": snapshot["equity_excluding_unrealized_pnl"],
+                    "realized_pnl": snapshot["realized_pnl"],
+                    "open_position_count": snapshot["open_position_count"],
+                })
+            return {"count": len(accounts), "accounts": accounts, "paper_only": True}
+
     def _account_snapshot(self, connection: sqlite3.Connection, account_id: str) -> dict[str, Any]:
         account = self._require_account(connection, account_id)
         total_realized = connection.execute(
