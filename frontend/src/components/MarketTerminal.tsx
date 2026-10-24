@@ -185,14 +185,15 @@ export function MarketTerminal() {
           ? data.providers
           : [{ provider_id: "yfinance", configured: true, capabilities: ["quote", "history"] }];
         setProviders(available);
-        if (!available.some((item) => item.provider_id === provider)) {
-          setProvider(data.default_provider || "yfinance");
-        }
+        setProvider((current) => (
+          available.some((item) => item.provider_id === current)
+            ? current
+            : (data.default_provider || "yfinance")
+        ))
       })
       .catch(() => {
         setProviders([{ provider_id: "yfinance", configured: true, capabilities: ["quote", "history"] }]);
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
