@@ -19,7 +19,11 @@ def models(capability: Optional[str] = Query(default=None)) -> Dict[str, Any]:
         if normalized_capability
         else list(MODEL_REGISTRY.values())
     )
-    enabled = {spec.model_id for spec in enabled_models()}
+    enabled = {
+        spec.model_id
+        for spec in enabled_models()
+        if model_configured(spec)
+    }
     return {
         "models": [
             {
