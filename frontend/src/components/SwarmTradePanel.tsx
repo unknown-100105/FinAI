@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { BrainCircuit, LoaderCircle, ShieldAlert, ShieldCheck } from "lucide-react";
 import type { MarketBar } from "../api/market";
-import { createSwarmTradePlan, type SwarmTradePlan } from "../api/swarmtrade";
+import { createSwarmTradePlan, type SwarmTradePlan, type SwarmTradeRequest } from "../api/swarmtrade";
+import { PaperTradingPanel } from "./PaperTradingPanel";
 
 type Props = { symbol: string; currentPrice: number | null; bars: MarketBar[]; isLoading: boolean };
 
@@ -71,13 +72,21 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
   const [fields, setFields] = useState({ ...fieldDefaults, entry: currentPrice == null ? "" : String(currentPrice) });
   const [signals, setSignals] = useState({ trend: "0", momentum: "0", mean_reversion: "0", breakout: "0", sentiment: "0" });
   const [result, setResult] = useState<SwarmTradePlan | null>(null);
+  const [lastPlanRequest, setLastPlanRequest] = useState<SwarmTradeRequest | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const lastSymbol = useRef(symbol);
+  const lastMarketPrice = useRef(currentPrice);
 
   useEffect(() => {
     const symbolChanged = lastSymbol.current !== symbol;
+    const quoteChanged = lastMarketPrice.current !== currentPrice;
     lastSymbol.current = symbol;
+    lastMarketPrice.current = currentPrice;
+    if (symbolChanged || quoteChanged) {
+      setResult(null);
+      setLastPlanRequest(null);
+    }
     setSelectedSymbol(symbol);
     setFields((previous) => {
       if (symbolChanged) return { ...previous, entry: "" };
@@ -89,11 +98,15 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
   useEffect(() => {
     const derived = deriveDirectionalSignals(bars);
     if (derived) {
+      setResult(null);
+      setLastPlanRequest(null);
       setSignals((previous) => ({ ...previous, ...derived }));
     }
   }, [bars]);
 
   const update = (key: keyof typeof fieldDefaults, value: string) => {
+    setResult(null);
+    setLastPlanRequest(null);
     setFields((previous) => ({ ...previous, [key]: value }));
   };
 
@@ -102,8 +115,9 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
     setBusy(true);
     setError("");
     setResult(null);
+    setLastPlanRequest(null);
     try {
-      const request = {
+      const request: SwarmTradeRequest = {
         symbol: selectedSymbol.trim(),
         asset_class: assetClass,
         side,
@@ -139,9 +153,10 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
         signals: Object.fromEntries(
           Object.entries(signals).map(([key, value]) => [key, numberValue(value)]),
         ),
-      } as const;
+      };
       const plan = await createSwarmTradePlan(request);
       setResult(plan);
+      if (plan.status === "APPROVED_FOR_SIMULATION") setLastPlanRequest(request);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to reach the SwarmTrade API.");
     } finally {
@@ -163,11 +178,11 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
       </div>
       <form className="swarmtrade-form" onSubmit={submit}>
         <div className="swarmtrade-fields">
-          <label>Symbol<input value={selectedSymbol} maxLength={40} required onChange={(event) => setSelectedSymbol(event.target.value)} /></label>
-          <label>Asset class<select value={assetClass} onChange={(event) => setAssetClass(event.target.value as typeof assetClass)}>
+          <label>Symbol<input value={selectedSymbol} maxLength={40} required onChange={(event) => { setSelectedSymbol(event.target.value); setResult(null); setLastPlanRequest(null); }} /></label>
+          <label>Asset class<select value={assetClass} onChange={(event) => { setAssetClass(event.target.value as typeof assetClass); setResult(null); setLastPlanRequest(null); }}>
             <option value="equity">Equity</option><option value="option">Option</option><option value="future">Future</option><option value="crypto">Crypto</option><option value="forex">Forex</option>
           </select></label>
-          <label>Proposed side<select value={side} onChange={(event) => setSide(event.target.value as typeof side)}>
+          <label>Proposed side<select value={side} onChange={(event) => { setSide(event.target.value as typeof side); setResult(null); setLastPlanRequest(null); }}>
             <option value="auto">Agent consensus</option><option value="long">Long only</option><option value="short">Short only</option>
           </select></label>
           <label>Entry price<input type="number" min="0.0000001" step="any" required value={fields.entry} onChange={(event) => update("entry", event.target.value)} /></label>
@@ -198,7 +213,7 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
           <strong>Directional input features <small>(-1.0 to +1.0; trend/momentum/reversion/breakout derive from chart bars)</small></strong>
           <div className="swarmtrade-fields swarmtrade-signal-fields">
             {Object.entries(signals).map(([key, value]) => (
-              <label key={key}>{key.replace("_", " ")}<input type="number" min="-1" max="1" step="0.1" required value={value} onChange={(event) => setSignals((previous) => ({ ...previous, [key]: event.target.value }))} /></label>
+              <label key={key}>{key.replace("_", " ")}<input type="number" min="-1" max="1" step="0.1" required value={value} onChange={(event) => { setSignals((previous) => ({ ...previous, [key]: event.target.value })); setResult(null); setLastPlanRequest(null); }} /></label>
             ))}
           </div>
         </div>
@@ -233,6 +248,7 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
           </div>
         </div>
       )}
+      <PaperTradingPanel symbol={selectedSymbol} currentPrice={finite(currentPrice)} request={lastPlanRequest} plan={result} />
     </section>
   );
 }
