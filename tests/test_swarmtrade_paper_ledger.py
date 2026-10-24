@@ -128,7 +128,7 @@ def test_paper_ledger_blocks_aggregate_risk_after_three_one_percent_positions(mo
 def test_paper_ledger_blocks_position_after_realized_daily_loss_limit(monkeypatch, tmp_path):
     monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
     monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
-    account = client.post("/api/v1/swarmtrade/paper/accounts", json={"initial_capital": 10000}).json()
+    account = client.post("/api/v1/swarmtrade/paper/accounts", json={"currency": "USD", "initial_capital": 10000}).json()
     account_id = account["account_id"]
 
     opened = client.post(
