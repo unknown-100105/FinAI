@@ -1,16 +1,31 @@
-﻿from llm.response_service import ResponseService
+﻿import pytest
+
+from llm.response_service import ResponseService
 from llm.rllm_finqa_adapter import RLLMFinQAModelAdapter
 from llm.response_adapter import SarvamResponseAdapter
 from llm.cloud.gemini_adapter import GeminiResponseAdapter
+
+@pytest.fixture(autouse=True)
+def configured_response_service_environment(monkeypatch, tmp_path):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("FINAI_LLM_PREFERENCE", "gemini-cloud")
+    monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "empty-hf-cache"))
+    model_path = tmp_path / "rllm-model"
+    model_path.mkdir()
+    (model_path / "config.json").write_text("{}", encoding="utf-8")
+    (model_path / "model.safetensors").write_bytes(b"test-placeholder")
+    monkeypatch.setenv("FINAI_RLLM_MODEL_PATH", str(model_path))
 
 
 def test_enabled_models_are_registered():
     service = ResponseService()
 
-    assert service.gateway.available_models() == [
-        "gemini-cloud",
-        "rllm-finqa-4b",
-    ]
+    available = service.gateway.available_models()
+    assert "gemini-cloud" in available
+    assert "rllm-finqa-4b" in available
+    # Configuring the Gemini provider makes its other registered model variants
+    # available to the router as well; this is registry metadata, not a live probe.
+    assert "gemini-pro-cloud" in available
 
 
 def test_default_model_is_gemini():

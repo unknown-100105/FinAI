@@ -208,8 +208,30 @@ export default function CausalRiskLab() {
     setError("");
   };
 
-  const graphNodes = graph.nodes.filter((node) => positions[node.node_id]);
-  const graphEdges = graph.edges.filter((edge) => positions[edge.source] && positions[edge.target]);
+  // Keep the graph renderable even when the backend introduces new node IDs.
+  // Known nodes preserve the curated layout; unknown nodes receive a stable radial position.
+  const graphNodePositions = useMemo(() => {
+    const next: Record<string, [number, number]> = {};
+    const count = Math.max(graph.nodes.length, 1);
+    graph.nodes.forEach((node, index) => {
+      const knownPosition = positions[node.node_id];
+      if (knownPosition) {
+        next[node.node_id] = knownPosition;
+        return;
+      }
+      const angle = -Math.PI / 2 + (2 * Math.PI * index) / count;
+      next[node.node_id] = [
+        50 + 35 * Math.cos(angle),
+        50 + 35 * Math.sin(angle),
+      ];
+    });
+    return next;
+  }, [graph.nodes]);
+
+  const graphNodes = graph.nodes;
+  const graphEdges = graph.edges.filter(
+    (edge) => graphNodePositions[edge.source] && graphNodePositions[edge.target],
+  );
   const risk = result?.systemic_stress ?? fallback.risk;
   const liquidity = result?.channels.liquidity ?? fallback.l;
   const equity = result?.channels.equity ?? fallback.e;
@@ -332,12 +354,12 @@ export default function CausalRiskLab() {
           <div className="causal-graph">
             <svg viewBox="0 0 100 100" preserveAspectRatio="none">
               {graphEdges.map((edge) => {
-                const a = positions[edge.source], b = positions[edge.target];
+                const a = graphNodePositions[edge.source], b = graphNodePositions[edge.target];
                 return <line key={edge.source + edge.target} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]}/>;
               })}
             </svg>
             {graphNodes.map((node) => {
-              const [x, y] = positions[node.node_id];
+              const [x, y] = graphNodePositions[node.node_id];
               const intervention = (Object.keys(s) as string[]).includes(node.node_id);
               return (
                 <div key={node.node_id} className={intervention ? "causal-node intervention" : "causal-node"} style={{ left: `${x}%`, top: `${y}%` }}>

@@ -1,5 +1,21 @@
+import pytest
+
 from llm.model_router import ModelRouter
 from llm.resource_orchestrator import HardwareSnapshot
+
+
+@pytest.fixture(autouse=True)
+def configured_models_for_router_tests(monkeypatch, tmp_path):
+    """Model-routing tests use explicit fake config, never real provider credentials."""
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("FINAI_LLM_PREFERENCE", "gemini-cloud")
+    monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "empty-hf-cache"))
+    model_path = tmp_path / "rllm-model"
+    model_path.mkdir()
+    (model_path / "config.json").write_text("{}", encoding="utf-8")
+    (model_path / "model.safetensors").write_bytes(b"test-placeholder")
+    monkeypatch.setenv("FINAI_RLLM_MODEL_PATH", str(model_path))
+
 
 
 def capable_gpu():
@@ -60,6 +76,7 @@ def test_critical_risk_can_promote_high_reasoning_cloud(monkeypatch):
         "OPENAI_API_KEY",
         "OPENROUTER_API_KEY",
         "MISTRAL_API_KEY",
+        "GEMINI_API_KEY",
     ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")

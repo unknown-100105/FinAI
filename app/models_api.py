@@ -1,5 +1,5 @@
 from typing import Any, Dict, Optional
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from llm.model_registry import MODEL_REGISTRY, enabled_models, models_for_capability, model_configured
 from llm.model_router import ModelRouter
 from llm.resource_orchestrator import detect_hardware, assess_local_model
@@ -19,7 +19,11 @@ def models(capability: Optional[str] = Query(default=None)) -> Dict[str, Any]:
         if normalized_capability
         else list(MODEL_REGISTRY.values())
     )
-    enabled = {spec.model_id for spec in enabled_models()}
+    enabled = {
+        spec.model_id
+        for spec in enabled_models()
+        if model_configured(spec)
+    }
     return {
         "models": [
             {
@@ -63,17 +67,24 @@ def route_preview(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("allowed_providers must be a list when supplied")
 
     router = ModelRouter()
-    route = router.route(
-        capability=capability,
-        risk_level=risk_level,
-        language=language,
-        explicit_model=str(model_id) if model_id else None,
-        network_mode=network_mode,
-        data_sensitivity=data_sensitivity,
-        allowed_providers=[
-            str(item) for item in (allowed_providers or [])
-        ],
-    )
+    try:
+        route = router.route(
+            capability=capability,
+            risk_level=risk_level,
+            language=language,
+            explicit_model=str(model_id) if model_id else None,
+            network_mode=network_mode,
+            data_sensitivity=data_sensitivity,
+            allowed_providers=[
+                str(item) for item in (allowed_providers or [])
+            ],
+        )
+    except RuntimeError as exc:
+        # An empty eligible-model set is a configuration/runtime limitation,
+        # not an unhandled server crash. Keep the reason visible to the UI.
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return route.to_dict()
 
 

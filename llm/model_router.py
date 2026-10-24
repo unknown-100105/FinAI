@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import os
 from typing import Optional
 
-from llm.model_registry import enabled_models, get_model_spec, ModelSpec
+from llm.model_registry import enabled_models, get_model_spec, ModelSpec, model_configured
 from llm.resource_orchestrator import assess_local_model, detect_hardware, HardwareSnapshot
 
 
@@ -136,7 +136,7 @@ class ModelRouter:
         candidates = [
             spec
             for spec in enabled_models()
-            if capability in spec.capabilities
+            if capability in spec.capabilities and model_configured(spec)
         ]
         constraints: list[str] = []
 
