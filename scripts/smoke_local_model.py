@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from uuid import uuid4
 from urllib.parse import urlparse
 
 import requests
@@ -121,7 +122,7 @@ def main() -> int:
             "Explain compound interest in one short sentence and include the marker "
             "FINAI_LOCAL_INFERENCE_SMOKE_OK."
         ),
-        "session_id": "local-smoke-test",
+        "session_id": "local-smoke-" + uuid4().hex,
         "language": "English",
         "persona": "neutral",
         "generate_response": True,
