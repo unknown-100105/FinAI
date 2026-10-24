@@ -335,3 +335,8 @@
 .strategy-lab-disclaimer{margin:12px 0 0;color:#6f829a;font-size:8px;line-height:1.55}
 @media(max-width:900px){.strategy-lab-controls{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.strategy-lab{padding:11px}.strategy-lab-heading{flex-direction:column}.strategy-lab-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.strategy-lab-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.strategy-lab-equity{margin-top:13px;padding:10px;border:1px solid rgba(146,174,208,.08);border-radius:10px;background:rgba(4,11,20,.3)}
+.strategy-lab-equity svg{display:block;width:100%;height:155px;overflow:visible}
+.strategy-equity-grid{stroke:rgba(126,151,190,.13);stroke-width:1;vector-effect:non-scaling-stroke}
+.strategy-equity-line{stroke:#79b8ff;stroke-width:2;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round}
