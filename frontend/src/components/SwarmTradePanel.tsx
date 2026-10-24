@@ -77,6 +77,7 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
   const [error, setError] = useState("");
   const lastSymbol = useRef(symbol);
   const lastMarketPrice = useRef(currentPrice);
+  const entryTouched = useRef(false);
 
   useEffect(() => {
     const symbolChanged = lastSymbol.current !== symbol;
@@ -89,7 +90,13 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
     }
     setSelectedSymbol(symbol);
     setFields((previous) => {
-      if (symbolChanged) return { ...previous, entry: "" };
+      if (symbolChanged) {
+        entryTouched.current = false;
+        return { ...previous, entry: "" };
+      }
+      if (!entryTouched.current && currentPrice != null) {
+        return { ...previous, entry: String(currentPrice) };
+      }
       if (previous.entry.trim() || currentPrice == null) return previous;
       return { ...previous, entry: String(currentPrice) };
     });
@@ -105,6 +112,7 @@ export function SwarmTradePanel({ symbol, currentPrice, bars, isLoading }: Props
   }, [bars]);
 
   const update = (key: keyof typeof fieldDefaults, value: string) => {
+    if (key === "entry") entryTouched.current = true;
     setResult(null);
     setLastPlanRequest(null);
     setFields((previous) => ({ ...previous, [key]: value }));
