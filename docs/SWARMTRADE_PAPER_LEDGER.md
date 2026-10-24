@@ -25,7 +25,7 @@ Each mutation requires a unique `idempotency_key`. Repeating the exact same key 
 
 ## Financial-model boundaries
 
-The ledger is for paper simulation. It records assumed entry/exit prices and estimated fees/slippage; it does not receive broker fills. Equity/crypto and option-premium PnL use price change × multiplier × quantity. Futures PnL uses tick-size/tick-value metadata. Forex PnL uses pip-size and account-currency pip value. Verify these fields, contract sizes, currency conversion, fees and margin at the venue. Unrealized PnL is not included in account equity or daily loss, and no automatic stop/target trigger is assumed—the caller explicitly closes a paper position.
+The ledger is for paper simulation. It records assumed entry/exit prices and estimated fees/slippage; it does not receive broker fills. Option planning requires explicit call/put type, strike and maximum-loss input. Naked short calls are rejected; defined-risk spreads, Greeks, exercise and assignment are not supported. Equity/crypto and option-premium PnL use price change × multiplier × quantity. Futures PnL uses tick-size/tick-value metadata. Forex PnL uses pip-size and account-currency pip value. Verify these fields, contract sizes, currency conversion, fees and margin at the venue. Unrealized PnL is not included in account equity or daily loss, and no automatic stop/target trigger is assumed—the caller explicitly closes a paper position.
 
 ## Tests
 
