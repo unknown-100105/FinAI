@@ -85,3 +85,29 @@ These calculations use only the historical bars returned by the selected provide
 8. Test sparse/invalid provider data, missing volume, an unavailable API and long histories. Confirm the UI shows no-data/partial-feed states rather than reporting invented market values.
 
 The current chart overlay/drawing implementation still requires the frontend build, lint, and browser checklist to be executed against the checkout before merge.
+
+
+## Historical SMA crossover backtest lab
+
+The Market Terminal includes a long-only SMA crossover simulation over the currently loaded bars.
+
+- The short and long moving-average windows, starting capital, fee basis points per side, and slippage basis points per side are user-configurable.
+- A signal is computed at the prior candle's close and executed at the next candle's open. The final open position is liquidated at the final close.
+- The UI reports an equity curve, final equity, net return, buy-and-hold return, maximum drawdown, closed trade count, win rate, profit factor where defined, and recent completed trades.
+- The buy-and-hold comparison uses the same execution window and fee/slippage assumption as the strategy.
+- Trades are all-in long/flat simulations with fractional units. There is no brokerage connection, order execution or portfolio persistence.
+
+### Backtest limitations and checks
+
+The lab excludes tax, spread beyond the configured slippage, market impact, liquidity constraints, dividends/corporate actions, lot sizes, margin/funding, short selling and derivatives contract mechanics. The strategy is a simple illustrative baseline and is not suitable as an F&O or crypto-arbitrage simulator. Prices and timestamps depend on the selected provider and may be delayed or incomplete.
+
+Manual QA:
+1. Enter an invalid moving-average period and confirm a clear validation message.
+2. Use fewer bars than the long SMA window; confirm no metrics are fabricated.
+3. Verify that the first possible execution occurs at the bar after the signal window, not on the signal candle itself.
+4. Set fees and slippage to zero, then to non-zero values; confirm final equity changes consistently with transaction costs.
+5. Verify that a loss-making strategy can report negative returns and that drawdown is non-negative.
+6. Compare strategy and buy-and-hold over the same execution start bar; do not interpret historical outperformance as a future guarantee.
+7. Confirm the panel never invokes broker APIs or submits orders.
+
+This is a software simulation; the frontend build, lint and browser checklist remain required before merge.
