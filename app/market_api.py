@@ -76,6 +76,23 @@ def _resolve_instrument_or_search(instrument: str):
             provider_symbols={"yfinance": symbol},
         )
 
+@router.get("/providers")
+def providers():
+    """List the read-only market providers available in this process."""
+    service = _get_service()
+    return {
+        "default_provider": service.default_provider,
+        "providers": [
+            {
+                "provider_id": provider_id,
+                "configured": True,
+                "capabilities": ["quote", "history"],
+            }
+            for provider_id in sorted(service.providers)
+        ],
+    }
+
+
 @router.get("/search")
 def search(
     query: str = Query(..., min_length=1),
@@ -105,6 +122,7 @@ def quote(
         min_length=1,
         description="Instrument name, alias, or supported market identifier.",
     ),
+    provider: str = Query(default="yfinance", pattern="^(yfinance|longbridge)$"),
 ):
     item = _resolve_instrument_or_search(instrument)
 
@@ -113,7 +131,7 @@ def quote(
             symbol=item.display_name,
             asset_type=item.asset_type,
             exchange=item.exchange,
-            provider_id="yfinance",
+            provider_id=provider,
         )
     except Exception as exc:
         raise HTTPException(
@@ -152,6 +170,7 @@ def history(
         pattern="^(1m|2m|5m|15m|30m|60m|90m|1h|1d|5d|1wk|1mo|3mo)$",
         description="OHLCV interval supported by the configured market-data provider.",
     ),
+    provider: str = Query(default="yfinance", pattern="^(yfinance|longbridge)$"),
 ):
     if start > end:
         raise HTTPException(
@@ -168,7 +187,7 @@ def history(
             exchange=item.exchange,
             start=start,
             end=end,
-            provider_id="yfinance",
+            provider_id=provider,
             interval=interval,
         )
     except Exception as exc:
@@ -208,6 +227,7 @@ def analytics(
         default="1d",
         pattern="^(1m|2m|5m|15m|30m|60m|90m|1h|1d|5d|1wk|1mo|3mo)$",
     ),
+    provider: str = Query(default="yfinance", pattern="^(yfinance|longbridge)$"),
 ):
     if start > end:
         raise HTTPException(
@@ -224,7 +244,7 @@ def analytics(
             exchange=item.exchange,
             start=start,
             end=end,
-            provider_id="yfinance",
+            provider_id=provider,
             interval=interval,
         )
     except Exception as exc:
@@ -263,6 +283,7 @@ def candle_analysis(
         pattern="^(1m|2m|5m|15m|30m|60m|90m|1h|1d|5d|1wk|1mo|3mo)$",
     ),
     max_candles: int = Query(default=1000, ge=10, le=5000),
+    provider: str = Query(default="yfinance", pattern="^(yfinance|longbridge)$"),
 ):
     if start > end:
         raise HTTPException(status_code=422, detail="start must not be after end.")
@@ -279,7 +300,7 @@ def candle_analysis(
             exchange=item.exchange,
             start=start,
             end=end,
-            provider_id="yfinance",
+            provider_id=provider,
             interval=interval,
         )
         analysis = analyze_candles(bars, max_candles=max_candles)
@@ -307,7 +328,7 @@ def candle_analysis(
         "interval": interval,
         "analysis": analysis,
         "news": articles,
-        "source": "yfinance OHLCV + instrument news search",
+        "source": f"{provider} OHLCV + instrument news search",
     }
 
 @router.get("/news")
