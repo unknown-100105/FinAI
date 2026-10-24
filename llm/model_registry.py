@@ -386,16 +386,21 @@ def model_configured(spec: ModelSpec) -> bool:
 
 
 def enabled_models():
-    """Return candidates which are both enabled and configured for this runtime."""
+    """Return registry candidates enabled by policy/provider configuration.
+
+    This is deliberately separate from model_configured(): adapters may be
+    registered for tests and diagnostics even while credentials or weights are
+    absent. Execution routing must check model_configured() before selection.
+    """
     result = []
     for spec in MODEL_REGISTRY.values():
-        configured = model_configured(spec)
-        if not configured:
+        if spec.model_id == "colibri-local":
+            # The optional local server is opt-in and is not probed at startup.
+            if os.getenv("FINAI_COLIBRI_BASE_URL", "").strip():
+                result.append(spec)
             continue
-
-        if spec.enabled or provider_configured(spec.provider) or spec.provider == "local":
+        if spec.enabled or provider_configured(spec.provider):
             result.append(spec)
-
     return result
 
 
