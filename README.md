@@ -118,7 +118,7 @@ set these values in the PowerShell session that launches FinAI (or in your
 local `.env` file, which must not be committed):
 
 ```powershell
-$env:FINAI_COLIBRI_BASE_URL = "http://127.0.0.1:8000/v1"
+$env:FINAI_COLIBRI_BASE_URL = "http://127.0.0.1:8010/v1" # separate from FinAI API on port 8000; use the actual local server port
 $env:FINAI_COLIBRI_MODEL = "olmoe-colibri" # must match the server's configured model ID
 $env:FINAI_COLIBRI_API_KEY = "local-finetoken"
 $env:FINAI_NETWORK_MODE = "offline"
@@ -126,10 +126,25 @@ $env:FINAI_DATA_SENSITIVITY = "restricted"
 ```
 
 The adapter is disabled while `FINAI_COLIBRI_BASE_URL` is blank, accepts only
-loopback endpoints, and refuses redirects. Check the actual model identifier
-with the local server's `/v1/models` endpoint before running FinAI tests. See
-[Offline mode and preflight](docs/OFFLINE_AND_PREFLIGHT.md) for the full setup
-and limitations.
+loopback endpoints, and refuses redirects. Keep the Colibrì server on a different
+port from FinAI's API (FinAI defaults to `127.0.0.1:8000`; the example local
+model port above is `8010`). These variables must be set in the backend
+process environment before starting FinAI.
+
+After starting both services, run a real local generation smoke test from the
+repository root:
+
+```powershell
+.\\.venv\\Scripts\\python.exe scripts\\smoke_local_model.py
+```
+
+The script requires the backend Brain diagnostics to report offline mode, probes
+the configured model ID through the loopback model-list endpoint, and sends a
+synthetic, non-sensitive request through FinAI's ordinary chat route with
+`colibri-local` explicitly selected. It does not call cloud providers directly.
+A successful smoke test proves only one request completed; it is not an evaluation
+of financial accuracy or model quality. See [Local model status](docs/LOCAL_MODEL_STATUS.md)
+and [Offline mode and preflight](docs/OFFLINE_AND_PREFLIGHT.md) for setup and limitations.
 
 ## Cloud response providers
 
