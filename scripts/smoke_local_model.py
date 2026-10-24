@@ -170,9 +170,11 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    if model_id and model_id != LOCAL_MODEL_ID:
+    provider = str(generation.get("provider", ""))
+    if model_id != LOCAL_MODEL_ID or provider != "local_colibri":
         print(
-            f"FAIL: Expected {LOCAL_MODEL_ID}, but response metadata reports {model_id}.",
+            "FAIL: Response metadata does not confirm the explicit local Colibri adapter. "
+            f"Model: {model_id or 'missing'}; provider: {provider or 'missing'}.",
             file=sys.stderr,
         )
         return 1
