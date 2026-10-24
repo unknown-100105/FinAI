@@ -41,7 +41,7 @@ def main() -> int:
     parser.add_argument(
         "--timeout",
         type=float,
-        default=180.0,
+        default=330.0,
         help="Maximum seconds for the chat generation call (default: %(default)s).",
     )
     args = parser.parse_args()
