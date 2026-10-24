@@ -28,6 +28,8 @@ class SwarmTradeRequest(BaseModel):
     fee_bps: float = Field(default=5.0, ge=0, le=1000, allow_inf_nan=False)
     slippage_bps: float = Field(default=5.0, ge=0, le=1000, allow_inf_nan=False)
     max_loss_per_unit: Optional[float] = Field(default=None, gt=0, allow_inf_nan=False)
+    option_type: Optional[Literal["call", "put"]] = None
+    option_strike: Optional[float] = Field(default=None, gt=0, allow_inf_nan=False)
     tick_size: Optional[float] = Field(default=None, gt=0, allow_inf_nan=False)
     tick_value: Optional[float] = Field(default=None, gt=0, allow_inf_nan=False)
     pip_size: Optional[float] = Field(default=None, gt=0, allow_inf_nan=False)
