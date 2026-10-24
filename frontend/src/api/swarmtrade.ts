@@ -17,6 +17,11 @@ export type SwarmTradeRequest = {
   fee_bps: number;
   slippage_bps: number;
   max_loss_per_unit?: number;
+  tick_size?: number;
+  tick_value?: number;
+  pip_size?: number;
+  pip_value_per_unit?: number;
+  margin_per_unit?: number;
   min_reward_risk: number;
   agent_count: number;
   signals: Record<string, number>;
