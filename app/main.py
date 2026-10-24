@@ -237,6 +237,9 @@ def api_info() -> Dict[str, Any]:
             "swarmtrade_status": "/api/v1/swarmtrade/status",
             "swarmtrade_plan": "/api/v1/swarmtrade/plan",
             "swarmtrade_paper_status": "/api/v1/swarmtrade/paper/status",
+            "swarmtrade_paper_accounts": "/api/v1/swarmtrade/paper/accounts",
+            "swarmtrade_paper_positions": "/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+            "research_control_status": "/api/v1/causal-risk/research-control/status",
             "research_control": "/api/v1/causal-risk/research-control/evaluate",
         },
     }
