@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { BrainCircuit, LoaderCircle, ShieldAlert, ShieldCheck } from "lucide-react";
+import type { MarketBar } from "../api/market";
 import { createSwarmTradePlan, type SwarmTradePlan } from "../api/swarmtrade";
 
-type Props = { symbol: string; currentPrice: number | null };
+type Props = { symbol: string; currentPrice: number | null; bars: MarketBar[] };
 
 const fieldDefaults = {
   entry: "", stop: "", target: "", capital: "100000", riskPct: "0.5",
@@ -15,13 +16,54 @@ function numberValue(value: string): number {
   return Number(value);
 }
 
+
+function average(values: number[]): number {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+function clampSignal(value: number): number {
+  return Math.max(-1, Math.min(1, Number.isFinite(value) ? value : 0));
+}
+
+/** Simple, transparent candle-derived features; these are not trained model outputs. */
+function deriveDirectionalSignals(bars: MarketBar[]): Partial<Record<"trend" | "momentum" | "mean_reversion" | "breakout", string>> | null {
+  const valid = bars.filter((bar) => Number.isFinite(bar.close) && bar.close > 0
+    && Number.isFinite(bar.high) && Number.isFinite(bar.low));
+  const closes = valid.map((bar) => bar.close);
+  if (closes.length < 6) return null;
+
+  const last = closes[closes.length - 1];
+  const sma20 = average(closes.slice(-Math.min(20, closes.length)));
+  const sma50 = average(closes.slice(-Math.min(50, closes.length)));
+  const trendBase = closes.length >= 50 ? (sma20 - sma50) / sma50 : (last - sma20) / sma20;
+  const momentumBase = last / closes[closes.length - 6] - 1;
+  const meanReversionBase = (sma20 - last) / sma20;
+
+  const prior = valid.slice(-21, -1);
+  const breakoutBars = prior.length ? prior : valid.slice(0, -1);
+  const priorHigh = breakoutBars.length ? Math.max(...breakoutBars.map((bar) => bar.high)) : last;
+  const priorLow = breakoutBars.length ? Math.min(...breakoutBars.map((bar) => bar.low)) : last;
+  const midpoint = (priorHigh + priorLow) / 2;
+  const span = Math.max(priorHigh - priorLow, last * 0.0001);
+  let breakout = clampSignal(((last - midpoint) / span) * 0.8);
+  if (last > priorHigh) breakout = 1;
+  else if (last < priorLow) breakout = -1;
+
+  return {
+    trend: String(Number(clampSignal(trendBase / 0.03).toFixed(2))),
+    momentum: String(Number(clampSignal(momentumBase / 0.05).toFixed(2))),
+    mean_reversion: String(Number(clampSignal(meanReversionBase / 0.03).toFixed(2))),
+    breakout: String(Number(breakout.toFixed(2))),
+  };
+}
+
 function fmt(value: number | undefined): string {
   return typeof value === "number" && Number.isFinite(value)
     ? new Intl.NumberFormat("en-IN", { maximumFractionDigits: 4 }).format(value)
     : "—";
 }
 
-export function SwarmTradePanel({ symbol, currentPrice }: Props) {
+export function SwarmTradePanel({ symbol, currentPrice, bars }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState(symbol);
   const [assetClass, setAssetClass] = useState<"equity" | "option" | "future" | "crypto" | "forex">("equity");
   const [side, setSide] = useState<"auto" | "long" | "short">("auto");
@@ -38,6 +80,13 @@ export function SwarmTradePanel({ symbol, currentPrice }: Props) {
       entry: currentPrice == null ? previous.entry : String(currentPrice),
     }));
   }, [symbol, currentPrice]);
+
+  useEffect(() => {
+    const derived = deriveDirectionalSignals(bars);
+    if (derived) {
+      setSignals((previous) => ({ ...previous, ...derived }));
+    }
+  }, [bars]);
 
   const update = (key: keyof typeof fieldDefaults, value: string) => {
     setFields((previous) => ({ ...previous, [key]: value }));
@@ -121,14 +170,14 @@ export function SwarmTradePanel({ symbol, currentPrice }: Props) {
           {assetClass === "option" && <label>Max loss per contract<input type="number" min="0.0000001" step="any" required value={fields.maxLossPerUnit} onChange={(event) => update("maxLossPerUnit", event.target.value)} /></label>}
         </div>
         <div className="swarmtrade-signal-block">
-          <strong>Directional input features <small>(each -1.0 to +1.0; supplied by you)</small></strong>
+          <strong>Directional input features <small>(-1.0 to +1.0; trend/momentum/reversion/breakout derive from chart bars)</small></strong>
           <div className="swarmtrade-fields swarmtrade-signal-fields">
             {Object.entries(signals).map(([key, value]) => (
               <label key={key}>{key.replace("_", " ")}<input type="number" min="-1" max="1" step="0.1" required value={value} onChange={(event) => setSignals((previous) => ({ ...previous, [key]: event.target.value }))} /></label>
             ))}
           </div>
         </div>
-        <p className="swarmtrade-caveat">Hard limits: max 1% new-trade risk and 3% aggregate open risk. Supply accurate exchange-specific multipliers, margin and transaction costs. This tool never sends orders.</p>
+        <p className="swarmtrade-caveat">Features are transparent rules over the selected candles, not trained predictions; sentiment remains neutral unless adjusted manually. Require at least six valid bars for automatic feature initialization. Hard limits: max 1% new-trade risk and 3% aggregate open risk. Supply accurate exchange-specific multipliers, margin and transaction costs. This tool never sends orders.</p>
         <button className="swarmtrade-submit" type="submit" disabled={busy}>
           {busy ? <LoaderCircle size={15} className="swarmtrade-spin" /> : <BrainCircuit size={15} />}
           {busy ? "Evaluating agents…" : "Run deterministic risk-gated plan"}
