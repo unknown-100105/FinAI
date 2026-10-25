@@ -280,7 +280,7 @@ def test_paper_ledger_rejects_idempotency_key_reuse_with_changed_close_payload(m
     assert changed_close.status_code == 409
     assert "Idempotency key" in changed_close.json()["detail"]
 
-def test_paper_ledger_persists_account_and_closed_position_across_instances(tmp_path):
+def test_paper_ledger_persists_account_across_instances(tmp_path):
     db_path = tmp_path / "persistent-ledger.sqlite3"
     first = PaperLedger(db_path)
     account = first.create_account(label="Restart test", currency="INR", initial_capital=25000)
