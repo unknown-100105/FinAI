@@ -13,6 +13,13 @@ if (Test-Path $venvPython) {
     $python = "python"
 }
 
+# The integrated acceptance runner can select a free loopback port when the default is occupied.
+$apiBaseUrl = if (-not [string]::IsNullOrWhiteSpace($env:FINAI_API_BASE_URL)) {
+    $env:FINAI_API_BASE_URL.TrimEnd("/")
+} else {
+    "$apiBaseUrl"
+}
+
 Push-Location $repoRoot
 try {
     Write-Host "=== FinAI final local verification ===" -ForegroundColor Cyan
@@ -56,12 +63,12 @@ try {
             $apiHeaders["Authorization"] = "Bearer $($env:FINAI_API_BEARER_TOKEN)"
         }
         try {
-            $health = Invoke-RestMethod -Uri "http://127.0.0.1:8000/health" -Method Get -Headers $apiHeaders
+            $health = Invoke-RestMethod -Uri "$apiBaseUrl/health" -Method Get -Headers $apiHeaders
             if ($health.status -ne "ok") {
                 throw "FinAI /health did not return status=ok"
             }
 
-            $apiInfo = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1" -Method Get -Headers $apiHeaders
+            $apiInfo = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1" -Method Get -Headers $apiHeaders
             if ($apiInfo.endpoints.brain_status -ne "/api/v1/system/brain-status") {
                 throw "FinAI API info does not advertise the Brain status endpoint"
             }
@@ -69,7 +76,7 @@ try {
                 throw "FinAI API info has an invalid XAI endpoint"
             }
 
-            $models = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/models" -Method Get -Headers $apiHeaders
+            $models = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/models" -Method Get -Headers $apiHeaders
             if ($null -eq $models.models -or $models.models.Count -lt 1) {
                 throw "Model registry endpoint returned no model definitions"
             }
@@ -81,7 +88,7 @@ try {
                 }
             }
 
-            $brain = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/system/brain-status" -Method Get -Headers $apiHeaders
+            $brain = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/system/brain-status" -Method Get -Headers $apiHeaders
             if ($brain.status -ne "diagnostic") {
                 throw "FinAI Brain status endpoint returned an unexpected status"
             }
@@ -93,7 +100,7 @@ try {
             }
 
             # Configuration-only local-model diagnostic: this must never probe a server.
-            $localModel = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/system/local-model-status" -Method Get -Headers $apiHeaders
+            $localModel = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/system/local-model-status" -Method Get -Headers $apiHeaders
             if ($localModel.probe_requested -ne $false -or $localModel.reachable -ne $false) {
                 throw "Default local-model status unexpectedly performed a network probe or claimed reachability"
             }
@@ -108,7 +115,7 @@ try {
                 mode = "compare"
                 top_k = 3
             } | ConvertTo-Json -Compress
-            $retrieval = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/retrieval-lab/search" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $retrievalBody
+            $retrieval = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/retrieval-lab/search" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $retrievalBody
             if ($retrieval.mode -ne "compare" -or $null -eq $retrieval.results_by_mode) {
                 throw "Retrieval Lab compare endpoint returned an invalid response shape"
             }
@@ -125,7 +132,7 @@ try {
                 }
             }
 
-            $research = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/causal-risk/research-status" -Method Get -Headers $apiHeaders
+            $research = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/causal-risk/research-status" -Method Get -Headers $apiHeaders
             if ($research.status -ne "FINAI_RESEARCH_STACK") {
                 throw "Research status endpoint returned an unexpected status"
             }
@@ -139,12 +146,12 @@ try {
                 throw "Multimodal encoder capability is missing from research status"
             }
 
-            $architecture = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/causal-risk/architecture" -Method Get -Headers $apiHeaders
+            $architecture = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/causal-risk/architecture" -Method Get -Headers $apiHeaders
             if ($architecture.status -ne "architecture_implemented") {
                 throw "Causal architecture endpoint returned an unexpected status"
             }
 
-            $swarmtrade = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/swarmtrade/status" -Method Get -Headers $apiHeaders
+            $swarmtrade = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/swarmtrade/status" -Method Get -Headers $apiHeaders
             if ($swarmtrade.status -ne "available" -or $swarmtrade.max_logical_agents -ne 500) {
                 throw "SwarmTrade status endpoint returned an unexpected response"
             }
@@ -174,7 +181,7 @@ try {
                     sentiment = 0.7
                 }
             } | ConvertTo-Json -Depth 6 -Compress
-            $swarmPlan = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/swarmtrade/plan" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $swarmPlanBody
+            $swarmPlan = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/swarmtrade/plan" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $swarmPlanBody
             if ($swarmPlan.status -ne "APPROVED_FOR_SIMULATION") {
                 throw "Synthetic SwarmTrade plan did not pass expected risk gates: $($swarmPlan.reason)"
             }
@@ -185,12 +192,12 @@ try {
                 throw "SwarmTrade simulation smoke request violated position risk limits"
             }
 
-            $researchControl = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/causal-risk/research-control/status" -Method Get -Headers $apiHeaders
+            $researchControl = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/causal-risk/research-control/status" -Method Get -Headers $apiHeaders
             if ($researchControl.status -ne "available" -or $researchControl.can_authorize_trades -ne $false) {
                 throw "Research control endpoint returned an unexpected response or trade boundary"
             }
 
-            $paperLedger = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/swarmtrade/paper/status" -Method Get -Headers $apiHeaders
+            $paperLedger = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/swarmtrade/paper/status" -Method Get -Headers $apiHeaders
             if ($paperLedger.mode -ne "persistent_paper_trading_only" -or $paperLedger.real_orders_supported -ne $false) {
                 throw "Paper ledger status did not confirm simulation-only operation"
             }
@@ -202,7 +209,7 @@ try {
                 message = "How much is my account balance?"
                 generate_response = $false
             } | ConvertTo-Json -Compress
-            $chat = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/chat" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $chatBody
+            $chat = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/chat" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $chatBody
             if ($chat.session_id -ne $sessionId) {
                 throw "Chat endpoint did not preserve the supplied smoke-test session ID"
             }
@@ -213,7 +220,7 @@ try {
                 throw "Chat smoke request did not return a trace ID"
             }
 
-            $xai = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/xai/traces" -Method Get -Headers $apiHeaders
+            $xai = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/xai/traces" -Method Get -Headers $apiHeaders
             if ($null -eq $xai.traces -or $null -eq $xai.count) {
                 throw "XAI traces endpoint returned an unexpected response shape"
             }
