@@ -43,7 +43,7 @@ class FinAIAPIAuthMiddleware:
         path = scope.get("path", "")
         method = scope.get("method", "GET").upper()
         if path == "/health" or method == "OPTIONS":
-            await self.app(scope, receive, send)
+            await self.app(scope, receive, send_with_security_headers)
             return
 
         mode = os.getenv("FINAI_API_AUTH_MODE", "development").strip().casefold()
@@ -60,7 +60,7 @@ class FinAIAPIAuthMiddleware:
             return
 
         if not auth_required:
-            await self.app(scope, receive, send)
+            await self.app(scope, receive, send_with_security_headers)
             return
 
         expected = os.getenv("FINAI_API_BEARER_TOKEN", "").strip()
