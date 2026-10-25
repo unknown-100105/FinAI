@@ -330,3 +330,54 @@ def test_paper_ledger_reloads_position_history_after_new_instance(monkeypatch, t
     assert history_after_restart["count"] == 1
     assert history_after_restart["positions"][0]["position_id"] == position_id
     assert history_after_restart["positions"][0]["status"] == "CLOSED"
+
+def test_paper_entry_halt_blocks_new_positions_but_allows_closing_existing_position(monkeypatch, tmp_path):
+    monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
+    monkeypatch.delenv("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", raising=False)
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "entry-halt.sqlite3"))
+    account = client.post(
+        "/api/v1/swarmtrade/paper/accounts",
+        json={"label": "Entry halt test", "currency": "USD", "initial_capital": 100000},
+    )
+    assert account.status_code == 200, account.text
+    account_id = account.json()["account_id"]
+
+    open_body = {
+        "idempotency_key": "halt-test-open",
+        "acknowledge_simulation_only": True,
+        "quote_currency": "USD",
+        "plan": approved_plan_request(),
+    }
+    opened = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+        json=open_body,
+    )
+    assert opened.status_code == 200, opened.text
+    position_id = opened.json()["position_id"]
+
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "true")
+    status = client.get("/api/v1/swarmtrade/paper/status")
+    assert status.status_code == 200
+    assert status.json()["new_entries_halted"] is True
+    assert status.json()["close_operations_allowed_during_entry_halt"] is True
+
+    blocked = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+        json={
+            **open_body,
+            "idempotency_key": "halt-test-second-open",
+        },
+    )
+    assert blocked.status_code == 423
+    assert "entry halt is active" in blocked.json()["detail"]
+
+    # The pause prevents adding exposure but must not trap an already-open paper position.
+    closed = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions/{position_id}/close",
+        json={"idempotency_key": "halt-test-close", "exit_price": 105, "reason": "manual"},
+    )
+    assert closed.status_code == 200, closed.text
+    assert closed.json()["execution"]["real_order_submitted"] is False
+    snapshot = client.get(f"/api/v1/swarmtrade/paper/accounts/{account_id}")
+    assert snapshot.status_code == 200
+    assert snapshot.json()["open_position_count"] == 0
