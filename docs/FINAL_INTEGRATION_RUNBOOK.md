@@ -37,7 +37,7 @@ If the worktree is in a different location, activate the virtual environment tha
 7. Writes a JSON preflight snapshot and a consolidated JSON report.
 8. Stops the temporary API process and restores the original process environment.
 
-The runner never sets the opt-in flag for live LLM provider smoke calls. It does not submit broker orders. Do not expose the temporary API to the public internet. The entry-halt check is limited to new paper-ledger entries and is not a live-broker emergency-stop implementation.
+The runner never sets the opt-in flag for live cloud LLM provider smoke calls. If a Colibrì local endpoint is configured, it performs one bounded synthetic generation directly through the loopback-only adapter (no cloud fallback and no generated text in logs); otherwise it records that stage as skipped. It does not submit broker orders. Do not expose the temporary API to the public internet. The entry-halt check is limited to new paper-ledger entries and is not a live-broker emergency-stop implementation.
 
 ## Outputs
 
