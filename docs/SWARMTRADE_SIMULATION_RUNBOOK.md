@@ -108,6 +108,6 @@ Create the configured file to halt new paper entries. Remove it to resume entrie
 
 ## 8. Explicit non-goals / live-execution blockers
 
-This workflow does not provide authoritative real-time quotes, venue-verified instrument metadata, live order submission, real fill reconciliation, a broker sandbox integration, or an operational kill switch. The agent mesh records research evidence; it does not turn the logical-agent planner into 500 independently running autonomous agents. No profitability claim is supported by the deterministic safety benchmark.
+This workflow does not provide authoritative real-time quotes, venue-verified instrument metadata, live order submission, real fill reconciliation, a broker sandbox integration, or a live broker/execution emergency-stop kill switch. The documented entry halt controls paper-ledger entries only. The agent mesh records research evidence; it does not turn the logical-agent planner into 500 independently running autonomous agents. No profitability claim is supported by the deterministic safety benchmark.
 
 **Release decision:** local simulation and paper-ledger testing only. Live trading is not approved by this repository state. A live adapter must be a separately reviewed implementation with trusted account state, idempotent execution, timeout/unknown-order reconciliation, audited controls, and independent safety approval.
