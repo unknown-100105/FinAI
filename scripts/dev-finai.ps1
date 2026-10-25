@@ -38,7 +38,7 @@ foreach ($name in $envNames) { $oldEnv[$name] = [Environment]::GetEnvironmentVar
 
 function Assert-LocalPortFree {
     param([int]$Port)
-    $listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback, $Port)
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
     try { $listener.Start() }
     catch { throw "Port $Port is already in use. Stop the service using 127.0.0.1:$Port and retry." }
     finally { if ($null -ne $listener) { $listener.Stop() } }
