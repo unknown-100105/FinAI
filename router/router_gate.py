@@ -369,6 +369,60 @@ class FinAIRouterGate:
             str(text).strip().lower().split()
         )
 
+        # Deterministic, informational routes for high-frequency finance
+        # requests that are not reliably covered by every trained router artifact.
+        # These rules only select a capability; they do not authorize transactions.
+        if normalized_for_rules in {"the payment failed", "payment failed", "a payment failed"}:
+            return {
+                "intent": "UNKNOWN",
+                "raw_prediction": None,
+                "confidence": 1.0,
+                "margin": 0.0,
+                "decision": "CLARIFY",
+                "risk_level": "medium",
+                "requires_clarification": True,
+                "reason": "ambiguous_payment_failure",
+                "top_k": [
+                    {"intent": "PAYMENT_FAILED", "confidence": 0.0},
+                    {"intent": "PAYMENT_PENDING", "confidence": 0.0},
+                    {"intent": "PAYMENT_SUCCESS", "confidence": 0.0},
+                ],
+            }
+
+        if (
+            re.search(r"\\bemi\\b|equated monthly instal+ment", normalized_for_rules)
+            and any(term in normalized_for_rules for term in ("calculate", "what is", "my emi", "emi for", "emi amount", "emi calculator", "emi"))
+        ):
+            return {
+                "intent": "EMI_QUERY",
+                "raw_prediction": "EMI_QUERY",
+                "confidence": 1.0,
+                "margin": 1.0,
+                "decision": "ROUTE",
+                "risk_level": "low",
+                "requires_clarification": False,
+                "reason": "deterministic_emi_rule",
+                "confidence_source": "deterministic_rule",
+                "top_k": [],
+            }
+
+        if (
+            "kyc" in normalized_for_rules
+            and any(term in normalized_for_rules for term in ("document", "documents", "paperwork", "required papers"))
+        ):
+            return {
+                "intent": "KYC_DOCUMENTS",
+                "raw_prediction": "KYC_DOCUMENTS",
+                "confidence": 1.0,
+                "margin": 1.0,
+                "decision": "ROUTE",
+                "risk_level": "low",
+                "requires_clarification": False,
+                "reason": "deterministic_kyc_documents_rule",
+                "confidence_source": "deterministic_rule",
+                "top_k": [],
+            }
+
         if (
             any(term in normalized_for_rules for term in FINANCIAL_PRODUCT_TERMS)
             and any(
