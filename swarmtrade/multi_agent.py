@@ -283,5 +283,5 @@ def validate_order_transition(previous: OrderState, next_state: OrderState) -> N
 
 def live_execution_enabled(environment: Mapping[str, str] | None = None) -> bool:
     """Always fail closed in this phase; no live broker adapter is implemented here."""
-    values = environment or {}
-    return values.get("FINAI_LIVE_TRADING_ENABLED", "").strip().casefold() == "true" and False
+    # A future live adapter must replace this only after a separate safety review.
+    return False
