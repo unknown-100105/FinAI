@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
@@ -30,8 +31,24 @@ class VectorlessRetriever:
 
     @staticmethod
     def build_query(query: str) -> str:
-        """Turn user text into a safe OR query of individually quoted terms."""
-        tokens = re.findall(r"\w+", query, flags=re.UNICODE)
+        """Turn user text into a safe OR query while preserving Unicode marks.
+
+        Python's regular-expression ``\\w`` does not include all combining
+        marks used by Indic scripts. Tokenize letters/digits plus Unicode mark
+        characters explicitly so terms such as Hindi ``भुगतान`` stay intact.
+        """
+        normalized = unicodedata.normalize("NFC", query)
+        tokens: list[str] = []
+        current: list[str] = []
+        for char in normalized:
+            category = unicodedata.category(char)
+            if char != "_" and (char.isalnum() or category.startswith("M")):
+                current.append(char)
+            elif current:
+                tokens.append("".join(current))
+                current = []
+        if current:
+            tokens.append("".join(current))
         if not tokens:
             return ""
         return " OR ".join('"' + token.replace('"', '""') + '"' for token in tokens)
