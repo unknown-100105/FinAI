@@ -151,11 +151,6 @@ def open_paper_position(account_id: str, request: OpenPaperPositionRequest) -> d
     if not request.acknowledge_simulation_only:
         raise HTTPException(status_code=422, detail="Explicit acknowledgement of simulation-only mode is required")
     ledger = _ledger()
-    if _entries_halted():
-        raise HTTPException(
-            status_code=423,
-            detail="Paper entry halt is active; new simulated positions are blocked. Existing simulated positions may still be closed.",
-        )
     try:
         # Idempotent retries must replay before recalculating against changed account state.
         request_payload = {
@@ -172,6 +167,11 @@ def open_paper_position(account_id: str, request: OpenPaperPositionRequest) -> d
         )
         if replay is not None:
             return replay
+        if _entries_halted():
+            raise HTTPException(
+                status_code=423,
+                detail="Paper entry halt is active; new simulated positions are blocked. Existing simulated positions may still be closed.",
+            )
 
         snapshot = ledger.get_account(account_id)
         if snapshot["currency"] != request.quote_currency:
