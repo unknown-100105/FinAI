@@ -90,6 +90,14 @@ try {
         }
         Add-StageResult "isolated_api_startup" "passed" "Loopback API returned /health status=ok; paper ledger uses a new run-specific SQLite database."
 
+        # The API process already inherited the isolated paper settings. Clear these
+        # variables in the parent so pytest evaluates the normal safe defaults and
+        # cannot accidentally share the API smoke-test database.
+        [Environment]::SetEnvironmentVariable("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", $null, "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_DB", $null, "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", $null, "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_HALT_FILE", $null, "Process")
+
         Write-Host "[FULL] Backend, frontend, API, preflight, provider configuration and benchmarks..." -ForegroundColor Yellow
         & (Join-Path $repoRoot "scripts\verify-finai.ps1")
         if ($LASTEXITCODE -ne 0) { throw "scripts/verify-finai.ps1 returned exit code $LASTEXITCODE." }
