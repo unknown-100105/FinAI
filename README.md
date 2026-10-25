@@ -21,6 +21,8 @@ FinAI is a financial-domain assistant with a staged pipeline for routing, policy
 
 See [Communication protocols and API boundaries](docs/API_PROTOCOLS.md) for the REST/HTTP(S) frontend-backend contract, provider interfaces, persistence/retrieval boundaries, and simulation-only trading limitations.
 
+See [Remediation and acceptance status](docs/REMEDIATION_AND_ACCEPTANCE.md) for the audit follow-up checklist, production guardrails, and verification commands. The checklist intentionally distinguishes implemented code from runtime evidence.
+
 ## Backend setup
 
 Create and activate a virtual environment, then install:
