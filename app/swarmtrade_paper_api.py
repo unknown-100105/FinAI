@@ -180,6 +180,7 @@ def open_paper_position(account_id: str, request: OpenPaperPositionRequest) -> d
 
 @router.post("/accounts/{account_id}/positions/{position_id}/close")
 def close_paper_position(account_id: str, position_id: str, request: ClosePaperPositionRequest) -> dict:
+    # Keep the feature flag authoritative for every ledger mutation, including closes.
     ledger = _ledger()
     request_payload = {
         "position_id": position_id,
