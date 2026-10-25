@@ -23,6 +23,23 @@ class FinAIAPIAuthMiddleware:
             await self.app(scope, receive, send)
             return
 
+        async def send_with_security_headers(message):
+            if message.get("type") == "http.response.start":
+                headers = list(message.get("headers", []))
+                present = {key.lower() for key, _ in headers}
+                defaults = (
+                    (b"x-content-type-options", b"nosniff"),
+                    (b"x-frame-options", b"DENY"),
+                    (b"referrer-policy", b"no-referrer"),
+                    (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+                    (b"cache-control", b"no-store"),
+                )
+                for name, value in defaults:
+                    if name not in present:
+                        headers.append((name, value))
+                message = {**message, "headers": headers}
+            await send(message)
+
         path = scope.get("path", "")
         method = scope.get("method", "GET").upper()
         if path == "/health" or method == "OPTIONS":
@@ -39,7 +56,7 @@ class FinAIAPIAuthMiddleware:
                 status_code=503,
                 content={"detail": "Invalid FINAI_API_AUTH_MODE configuration."},
             )
-            await response(scope, receive, send)
+            await response(scope, receive, send_with_security_headers)
             return
 
         if not auth_required:
