@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
@@ -116,8 +117,14 @@ def test_research_control_rejects_oversized_state_payload():
 
 
 def test_research_control_rejects_non_finite_metrics():
+    # Send raw JSON containing NaN. Passing float("nan") through TestClient's
+    # json= parameter can fail in the client serializer before the API is reached.
     body = request_body(metrics={"metric": float("nan")})
-    response = client.post("/api/v1/causal-risk/research-control/evaluate", json=body)
+    response = client.post(
+        "/api/v1/causal-risk/research-control/evaluate",
+        content=json.dumps(body, allow_nan=True),
+        headers={"content-type": "application/json"},
+    )
     assert response.status_code == 422
 
 
