@@ -66,8 +66,8 @@ try {
         [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_DB", $paperDbPath, "Process")
         [Environment]::SetEnvironmentVariable("FINAI_LIVE_TRADING_ENABLED", "0", "Process")
         [Environment]::SetEnvironmentVariable("FINAI_SKIP_LIVE", $null, "Process")
-        [Environment]::SetEnvironmentVariable("FINAI_RUN_LIVE_PROVIDER_SMOKE", $null, "Process")
-        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", $null, "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_RUN_LIVE_PROVIDER_SMOKE", "0", "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "0", "Process")
         [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_HALT_FILE", $haltFilePath, "Process")
 
         Write-Host "[API] Starting isolated loopback API..." -ForegroundColor Yellow
@@ -93,10 +93,10 @@ try {
         # The API process already inherited the isolated paper settings. Clear these
         # variables in the parent so pytest evaluates the normal safe defaults and
         # cannot accidentally share the API smoke-test database.
-        [Environment]::SetEnvironmentVariable("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", $null, "Process")
-        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_DB", $null, "Process")
-        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", $null, "Process")
-        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_HALT_FILE", $null, "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "0", "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_DB", "", "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "0", "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_HALT_FILE", "", "Process")
 
         Write-Host "[FULL] Backend, frontend, API, preflight, provider configuration and benchmarks..." -ForegroundColor Yellow
         & (Join-Path $repoRoot "scripts\verify-finai.ps1")
