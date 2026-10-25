@@ -25,6 +25,8 @@ See [Audit remediation and verification checklist](docs/REMEDIATION_AND_AUDIT.md
 
 See [Remediation and acceptance status](docs/REMEDIATION_AND_ACCEPTANCE.md) for the audit follow-up checklist, production guardrails, and verification commands. The checklist intentionally distinguishes implemented code from runtime evidence.
 
+See [Multi-agent, multi-asset trading architecture](docs/MULTI_AGENT_LIVE_TRADING_ARCHITECTURE.md) for the proposed agent hierarchy, shared evidence contract, risk gates, broker-adapter design, live-mode acceptance criteria, and profitability evaluation protocol.
+
 ## Backend setup
 
 Create and activate a virtual environment, then install:
