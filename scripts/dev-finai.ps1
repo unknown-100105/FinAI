@@ -78,7 +78,8 @@ try {
         if (-not $apiHealthy) { throw "FinAI API did not become healthy within 45 seconds. Inspect $apiLog" }
 
         Write-Host "Starting Vite frontend on http://127.0.0.1:$frontendPort ..." -ForegroundColor Cyan
-        $frontendProcess = Start-Process -FilePath $npm -ArgumentList "run dev -- --host 127.0.0.1 --port $frontendPort --strictPort" -WorkingDirectory $frontendRoot -PassThru -NoNewWindow -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErrorLog
+        $commandProcessor = if (-not [string]::IsNullOrWhiteSpace($env:ComSpec)) { $env:ComSpec } else { Join-Path $env:SystemRoot "System32\cmd.exe" }
+        $frontendProcess = Start-Process -FilePath $commandProcessor -ArgumentList "/d /c npm.cmd run dev -- --host 127.0.0.1 --port $frontendPort --strictPort" -WorkingDirectory $frontendRoot -PassThru -NoNewWindow -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErrorLog
 
         Start-Sleep -Seconds 3
         $frontendProcess.Refresh()
