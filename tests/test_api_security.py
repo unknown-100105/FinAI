@@ -65,3 +65,36 @@ def test_invalid_auth_mode_fails_closed(monkeypatch):
 
     response = client.get("/api/v1")
     assert response.status_code == 503
+
+
+def test_cors_development_defaults_are_local_only():
+    from app.main import _cors_allowed_origins
+
+    assert _cors_allowed_origins("development", "") == [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ]
+
+
+def test_cors_production_defaults_to_no_browser_origins():
+    from app.main import _cors_allowed_origins
+
+    assert _cors_allowed_origins("production", "") == []
+
+
+def test_cors_production_uses_explicit_allowlist():
+    from app.main import _cors_allowed_origins
+
+    assert _cors_allowed_origins(
+        "production", "https://finai.example.com, https://admin.example.com/"
+    ) == ["https://finai.example.com", "https://admin.example.com"]
+
+
+def test_cors_rejects_wildcard_with_credentials():
+    import pytest
+    from app.main import _cors_allowed_origins
+
+    with pytest.raises(ValueError, match="must not contain"):
+        _cors_allowed_origins("production", "*")
