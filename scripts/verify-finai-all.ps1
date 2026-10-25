@@ -99,7 +99,12 @@ try {
         [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_DB", $paperDbPath, "Process")
         [Environment]::SetEnvironmentVariable("FINAI_LIVE_TRADING_ENABLED", "0", "Process")
         [Environment]::SetEnvironmentVariable("FINAI_SKIP_LIVE", $null, "Process")
-        [Environment]::SetEnvironmentVariable("FINAI_RUN_LIVE_PROVIDER_SMOKE", "0", "Process")
+        $liveProviderSmoke = [string]$originalEnvironment["FINAI_RUN_LIVE_PROVIDER_SMOKE"]
+        if ($liveProviderSmoke -in @("1", "true", "yes", "on")) {
+            [Environment]::SetEnvironmentVariable("FINAI_RUN_LIVE_PROVIDER_SMOKE", $liveProviderSmoke, "Process")
+        } else {
+            [Environment]::SetEnvironmentVariable("FINAI_RUN_LIVE_PROVIDER_SMOKE", "0", "Process")
+        }
         [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "0", "Process")
         [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_HALT_FILE", $haltFilePath, "Process")
 
