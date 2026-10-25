@@ -361,6 +361,16 @@ def test_paper_entry_halt_blocks_new_positions_but_allows_closing_existing_posit
     assert status.json()["new_entries_halted"] is True
     assert status.json()["close_operations_allowed_during_entry_halt"] is True
 
+    # Retrying an already-successful idempotent request must replay; it cannot
+    # create new exposure and should remain deterministic during the halt.
+    replay = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+        json=open_body,
+    )
+    assert replay.status_code == 200
+    assert replay.json()["idempotent_replay"] is True
+    assert replay.json()["position_id"] == position_id
+
     blocked = client.post(
         f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
         json={
