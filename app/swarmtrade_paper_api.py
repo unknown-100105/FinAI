@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -10,7 +9,12 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.swarmtrade_api import SwarmTradeRequest
 from swarmtrade.engine import build_swarm_plan
-from swarmtrade.paper_ledger import PaperLedger, payload_digest
+from swarmtrade.paper_ledger import (
+    PaperEntryHaltedError,
+    PaperLedger,
+    paper_entries_halted,
+    payload_digest,
+)
 
 router = APIRouter(prefix="/api/v1/swarmtrade/paper", tags=["swarmtrade-paper"])
 
@@ -20,14 +24,7 @@ def _enabled() -> bool:
 
 
 def _entries_halted() -> bool:
-    """Fail closed on new paper entries when a boolean flag or halt-file is active."""
-    halted = os.getenv("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "").strip().lower()
-    if halted in {"1", "true", "yes", "on"}:
-        return True
-    # Optional operator-controlled sentinel path is checked per request, so the
-    # paper entry pause can be activated without restarting the local API.
-    halt_file = os.getenv("FINAI_SWARMTRADE_PAPER_HALT_FILE", "").strip()
-    return bool(halt_file) and Path(halt_file).is_file()
+    return paper_entries_halted()
 
 
 def _ledger() -> PaperLedger:
@@ -192,6 +189,8 @@ def open_paper_position(account_id: str, request: OpenPaperPositionRequest) -> d
         )
     except HTTPException:
         raise
+    except PaperEntryHaltedError as exc:
+        raise HTTPException(status_code=423, detail=str(exc)) from exc
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
