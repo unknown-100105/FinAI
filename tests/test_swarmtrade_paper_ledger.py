@@ -334,6 +334,7 @@ def test_paper_ledger_reloads_position_history_after_new_instance(monkeypatch, t
 def test_paper_entry_halt_blocks_new_positions_but_allows_closing_existing_position(monkeypatch, tmp_path):
     monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
     monkeypatch.delenv("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", raising=False)
+    monkeypatch.delenv("FINAI_SWARMTRADE_PAPER_HALT_FILE", raising=False)
     monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "entry-halt.sqlite3"))
     account = client.post(
         "/api/v1/swarmtrade/paper/accounts",
