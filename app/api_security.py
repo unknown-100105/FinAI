@@ -74,7 +74,7 @@ class FinAIAPIAuthMiddleware:
                     )
                 },
             )
-            await response(scope, receive, send)
+            await response(scope, receive, send_with_security_headers)
             return
 
         headers = {
@@ -94,7 +94,7 @@ class FinAIAPIAuthMiddleware:
                 content={"detail": "A valid bearer token is required."},
                 headers={"WWW-Authenticate": "Bearer"},
             )
-            await response(scope, receive, send)
+            await response(scope, receive, send_with_security_headers)
             return
 
-        await self.app(scope, receive, send)
+        await self.app(scope, receive, send_with_security_headers)
