@@ -156,11 +156,21 @@ def main() -> int:
                 }
             )
 
+    no_live_attempt_reason = None
+    if args.live and attempted == 0:
+        failures += 1
+        no_live_attempt_reason = (
+            "Live mode was requested, but no provider request was attempted. "
+            "Configure at least one provider key and ensure online mode, data sensitivity, "
+            "and the provider allowlist permit that provider."
+        )
+
     print(json.dumps({
         "mode": "live" if args.live else "configuration_only",
         "network_mode": network_mode,
         "data_sensitivity": sensitivity,
         "attempted_live_requests": attempted,
+        "live_attempt_error": no_live_attempt_reason,
         "results": results,
         "note": (
             "Live requests use a synthetic prompt and may incur charges. "
