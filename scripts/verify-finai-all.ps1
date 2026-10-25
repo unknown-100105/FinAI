@@ -275,7 +275,6 @@ try {
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path $preflightPath)) { throw "Could not write the preflight JSON snapshot." }
         $preflight = Get-Content $preflightPath -Raw | ConvertFrom-Json
         Add-StageResult "offline_preflight_snapshot" "passed" "Saved package/artifact/provider inventory; absent external assets are recorded rather than claimed ready."
-        Add-StageResult "summary_report_written" "passed" $summaryPath
 
         $report = [ordered]@{
             schema_version = "1.0"
@@ -319,6 +318,10 @@ try {
                 "No live broker adapter, live order submission, live fill reconciliation, or production deployment approval is asserted."
             )
         }
+        $report | ConvertTo-Json -Depth 10 | Set-Content -Path $summaryPath -Encoding UTF8
+        Add-StageResult "summary_report_written" "passed" $summaryPath
+        $report.stages = @($stageResults)
+        $report.finished_at_utc = [DateTime]::UtcNow.ToString("o")
         $report | ConvertTo-Json -Depth 10 | Set-Content -Path $summaryPath -Encoding UTF8
         Write-Host ""
         Write-Host "ALL LOCAL ACCEPTANCE CHECKS PASSED" -ForegroundColor Green
