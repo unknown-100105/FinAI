@@ -80,6 +80,19 @@ def test_demo_session_authentication_is_disabled_in_production(monkeypatch):
     assert logout.status_code == 503
 
 
+def test_api_responses_include_security_headers(monkeypatch):
+    monkeypatch.setenv("FINAI_ENV", "development")
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "development")
+    monkeypatch.delenv("FINAI_API_BEARER_TOKEN", raising=False)
+
+    response = client.get("/api/v1")
+    assert response.status_code == 200
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["referrer-policy"] == "no-referrer"
+    assert response.headers["cache-control"] == "no-store"
+
+
 def test_invalid_auth_mode_fails_closed(monkeypatch):
     monkeypatch.setenv("FINAI_ENV", "development")
     monkeypatch.setenv("FINAI_API_AUTH_MODE", "sometimes")
