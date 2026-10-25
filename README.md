@@ -341,3 +341,21 @@ See [docs/SWARMTRADE_PAPER_LEDGER.md](docs/SWARMTRADE_PAPER_LEDGER.md). Run `pyt
 The API now also exposes `GET /api/v1/swarmtrade/safety/status` and `POST /api/v1/swarmtrade/safety/evaluate`. This deterministic gate checks candidate notional, portfolio and daily-loss bounds, leverage, spread, quote freshness, evidence presence, conflicting findings, and derivative contract-risk metadata. An approval is **simulation-only**; live execution is hard-disabled. The existing agent mesh, planner, and SQLite paper ledger remain separate capabilities.
 
 See [docs/MULTI_AGENT_LIVE_TRADING_ARCHITECTURE.md](docs/MULTI_AGENT_LIVE_TRADING_ARCHITECTURE.md), [docs/BROKER_SELECTION_MULTI_MARKET.md](docs/BROKER_SELECTION_MULTI_MARKET.md), and [docs/SWARMTRADE_SAFETY_API_QUICKSTART.md](docs/SWARMTRADE_SAFETY_API_QUICKSTART.md). Focused tests: `python -m pytest -q tests/test_multi_agent_trading_safety.py tests/test_swarmtrade_safety_api.py`.
+
+## One-command full local acceptance run
+
+For an integrated Windows verification pass, use the runner below after pulling this branch. It starts a dedicated API bound to `127.0.0.1:8000`, enables only the isolated paper ledger with a run-specific SQLite database, calls the existing full verifier, exercises the paper-ledger HTTP workflow, validates the safety benchmark report, and saves a machine-readable summary with logs under `verification-output/<UTC timestamp>/`.
+
+Activate your Python environment and run from the repository root:
+
+```powershell
+git fetch origin
+git pull --ff-only
+powershell -ExecutionPolicy Bypass -File .\scripts\verify-finai-all.ps1
+```
+
+Requirements: Python project dependencies installed, Node.js/npm available, network access for `npm ci`, and port 8000 free. Stop any separately running local FinAI API first; the runner deliberately refuses to reuse an existing server. It starts and stops its own API process, resets the temporary paper database for each run, and restores its process environment afterward.
+
+The runner never opts into live LLM provider calls and explicitly disables live trading. It runs backend tests, frontend production build and lint, API checks, provider-configuration inspection, patent-mechanism and counterfactual benchmarks, the 500-case SwarmTrade benchmark, plus a paper-account open/replay/conflict/close/history round trip. It does not modify CI configuration.
+
+A successful local report is scoped to the exact commit and environment recorded in the JSON report. It does not establish that external provider credentials, local model weights, licensed RAG corpora, browser interactions, empirical causal claims, profitability, or live broker execution are verified. See `docs/FINAL_INTEGRATION_RUNBOOK.md` for the complete acceptance boundary.
