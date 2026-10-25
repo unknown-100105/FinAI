@@ -404,3 +404,36 @@ def test_paper_entry_halt_file_is_checked_dynamically(monkeypatch, tmp_path):
 
     halt_file.unlink()
     assert client.get("/api/v1/swarmtrade/paper/status").json()["new_entries_halted"] is False
+
+def test_paper_entry_halt_is_rechecked_inside_write_transaction(monkeypatch, tmp_path):
+    from app import swarmtrade_paper_api
+    from swarmtrade import paper_ledger
+
+    monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
+    monkeypatch.delenv("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", raising=False)
+    monkeypatch.delenv("FINAI_SWARMTRADE_PAPER_HALT_FILE", raising=False)
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "transaction-halt.sqlite3"))
+    account = client.post(
+        "/api/v1/swarmtrade/paper/accounts",
+        json={"label": "Transaction halt test", "currency": "USD", "initial_capital": 100000},
+    )
+    assert account.status_code == 200, account.text
+
+    # Simulate a halt becoming active after the API pre-check but before the
+    # ledger acquires its write transaction.
+    monkeypatch.setattr(swarmtrade_paper_api, "_entries_halted", lambda: False)
+    monkeypatch.setattr(paper_ledger, "paper_entries_halted", lambda: True)
+    response = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account.json()['account_id']}/positions",
+        json={
+            "idempotency_key": "transaction-halt-open",
+            "acknowledge_simulation_only": True,
+            "quote_currency": "USD",
+            "plan": approved_plan_request(),
+        },
+    )
+    assert response.status_code == 423
+    assert "entry halt is active" in response.json()["detail"]
+    assert PaperLedger(tmp_path / "transaction-halt.sqlite3").list_positions(
+        account.json()["account_id"], status="open"
+    )["count"] == 0
