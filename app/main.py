@@ -52,18 +52,36 @@ app = FastAPI(
     ),
 )
 
-# Local-development CORS for the future React frontend.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+def _cors_allowed_origins(
+    environment: str | None = None,
+    configured: str | None = None,
+) -> list[str]:
+    """Return an explicit CORS allowlist; production never inherits dev origins."""
+    env_name = (environment if environment is not None else os.getenv("FINAI_ENV", "development")).strip().casefold()
+    raw = configured if configured is not None else os.getenv("FINAI_CORS_ALLOW_ORIGINS", "")
+    origins = list(dict.fromkeys(item.strip().rstrip("/") for item in raw.split(",") if item.strip()))
+    if origins:
+        if "*" in origins:
+            raise ValueError("FINAI_CORS_ALLOW_ORIGINS must not contain '*' when credentials are enabled")
+        return origins
+    if env_name in {"production", "prod"}:
+        return []
+    return [
         "http://localhost:3000",
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
-    ],
+    ]
+
+
+# Localhost origins are defaults only in development. Production must provide
+# an explicit comma-separated FINAI_CORS_ALLOW_ORIGINS allowlist.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_allowed_origins(),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
 )
 
 # Optional shared-token guard; production fails closed without a strong server token.
