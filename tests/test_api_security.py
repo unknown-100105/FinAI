@@ -58,6 +58,28 @@ def test_production_fails_closed_without_strong_token(monkeypatch):
     assert "FINAI_API_BEARER_TOKEN" in response.json()["detail"]
 
 
+def test_demo_session_authentication_is_disabled_in_production(monkeypatch):
+    monkeypatch.setenv("FINAI_ENV", "production")
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "bearer")
+    monkeypatch.setenv("FINAI_API_BEARER_TOKEN", VALID_TOKEN)
+    headers = {"Authorization": f"Bearer {VALID_TOKEN}"}
+
+    authenticate = client.post(
+        "/api/v1/session/authenticate",
+        json={"session_id": "demo-session"},
+        headers=headers,
+    )
+    assert authenticate.status_code == 503
+    assert "real identity provider" in authenticate.json()["detail"]
+
+    logout = client.post(
+        "/api/v1/session/logout",
+        json={"session_id": "demo-session"},
+        headers=headers,
+    )
+    assert logout.status_code == 503
+
+
 def test_invalid_auth_mode_fails_closed(monkeypatch):
     monkeypatch.setenv("FINAI_ENV", "development")
     monkeypatch.setenv("FINAI_API_AUTH_MODE", "sometimes")
