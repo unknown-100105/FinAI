@@ -56,7 +56,7 @@ A one-command Windows acceptance runner now composes the backend suite, frontend
 powershell -ExecutionPolicy Bypass -File .\scripts\verify-finai-all.ps1
 ~~~
 
-The runner starts and stops its own loopback API and uses a fresh run-specific SQLite paper ledger. Port 8000 must be free. It does not opt into paid provider requests or submit real orders. The report and logs are written under verification-output/<UTC timestamp>/, which is ignored by Git. See docs/FINAL_INTEGRATION_RUNBOOK.md for setup, outputs, and limitations.
+The runner starts and stops its own loopback API and Vite dev server and uses a fresh run-specific SQLite paper ledger. Port 8000 must be free. It does not opt into paid provider requests or submit real orders. The report and logs are written under verification-output/<UTC timestamp>/, which is ignored by Git. See docs/FINAL_INTEGRATION_RUNBOOK.md for setup, outputs, and limitations.
 
 This runner has been added to the branch but has not yet been executed on the user's Windows environment. Its results must be recorded from a run on the exact commit being reviewed; do not infer success from the existence of this script or from prior pytest/benchmark output.
 
