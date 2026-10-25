@@ -280,3 +280,16 @@ def test_paper_ledger_rejects_idempotency_key_reuse_with_changed_close_payload(m
     assert changed_close.status_code == 409
     assert "Idempotency key" in changed_close.json()["detail"]
 
+def test_paper_ledger_persists_account_and_closed_position_across_instances(tmp_path):
+    db_path = tmp_path / "persistent-ledger.sqlite3"
+    first = PaperLedger(db_path)
+    account = first.create_account(label="Restart test", currency="INR", initial_capital=25000)
+
+    # A new ledger object represents a fresh application process using the same DB.
+    second = PaperLedger(db_path)
+    reloaded = second.get_account(account["account_id"])
+    assert reloaded["label"] == "Restart test"
+    assert reloaded["currency"] == "INR"
+    assert reloaded["initial_capital"] == 25000
+    assert reloaded["realized_pnl"] == 0
+    assert reloaded["open_position_count"] == 0
