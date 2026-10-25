@@ -270,7 +270,8 @@ export function CandleChart({
     if (drawingMode === "horizontal") {
       const price = Number(bar.close);
       if (Number.isFinite(price)) {
-        setDrawings((current) => [...current, { id: makeId(), kind: "horizontal", price, timestamp: bar.timestamp }].slice(-40));
+        const drawing: ChartDrawing = { id: makeId(), kind: "horizontal", price, timestamp: bar.timestamp };
+        setDrawings((current) => [...current, drawing].slice(-40));
       }
       setDrawingMode(null);
       return;
@@ -282,9 +283,10 @@ export function CandleChart({
         setPendingAnchor(anchor);
       } else {
         if (pendingAnchor.timestamp !== anchor.timestamp) {
-          setDrawings((current) => [...current, {
+          const drawing: ChartDrawing = {
             id: makeId(), kind: "trendline", start: pendingAnchor, end: anchor,
-          }].slice(-40));
+          };
+          setDrawings((current) => [...current, drawing].slice(-40));
         }
         setPendingAnchor(null);
         setDrawingMode(null);
