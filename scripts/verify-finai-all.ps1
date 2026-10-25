@@ -145,6 +145,10 @@ try {
         New-Item -ItemType File -Path $haltFilePath -Force | Out-Null
         $haltStatus = Invoke-ApiJson -Method Get -Path "/api/v1/swarmtrade/paper/status"
         if ($haltStatus.new_entries_halted -ne $true) { throw "Paper entry-halt sentinel did not appear in status." }
+        $haltedReplay = Invoke-ApiJson -Method Post -Path $openPath -Body $openRequest
+        if ($haltedReplay.idempotent_replay -ne $true -or $haltedReplay.position_id -ne $opened.position_id) {
+            throw "Entry halt broke an idempotent replay of an already successful paper open."
+        }
         $haltedOpen = @{
             idempotency_key = "verify-halted-open-$([guid]::NewGuid().ToString('N'))"
             quote_currency = "USD"
