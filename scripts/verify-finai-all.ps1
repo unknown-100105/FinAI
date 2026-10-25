@@ -28,10 +28,32 @@ $frontendProcess = $null
 $stageResults = [System.Collections.Generic.List[object]]::new()
 $startedAt = [DateTime]::UtcNow.ToString("o")
 $originalEnvironment = @{}
-$environmentNames = @("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "FINAI_SWARMTRADE_PAPER_DB", "FINAI_LIVE_TRADING_ENABLED", "FINAI_SKIP_LIVE", "FINAI_RUN_LIVE_PROVIDER_SMOKE", "FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "FINAI_SWARMTRADE_PAPER_HALT_FILE")
+$environmentNames = @("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "FINAI_SWARMTRADE_PAPER_DB", "FINAI_LIVE_TRADING_ENABLED", "FINAI_SKIP_LIVE", "FINAI_RUN_LIVE_PROVIDER_SMOKE", "FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "FINAI_SWARMTRADE_PAPER_HALT_FILE", "FINAI_API_BASE_URL")
 
 New-Item -ItemType Directory -Path $runDir -Force | Out-Null
 foreach ($name in $environmentNames) { $originalEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, "Process") }
+
+function Get-AvailableLoopbackPort {
+    param([Parameter(Mandatory = $true)][int]$PreferredPort)
+
+    $preferred = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $PreferredPort)
+    try {
+        $preferred.Start()
+        return $PreferredPort
+    } catch {
+        # An existing service may be using the default port; fall back to an OS-assigned port.
+    } finally {
+        if ($null -ne $preferred) { $preferred.Stop() }
+    }
+
+    $dynamic = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+    try {
+        $dynamic.Start()
+        return ([System.Net.IPEndPoint]$dynamic.LocalEndpoint).Port
+    } finally {
+        if ($null -ne $dynamic) { $dynamic.Stop() }
+    }
+}
 
 function Add-StageResult {
     param([string]$Name, [string]$Status, [string]$Details)
@@ -61,10 +83,12 @@ try {
         $branchName = (& git branch --show-current).Trim()
         if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($head)) { throw "Could not determine the current Git commit." }
 
-        $portProbe = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $port)
-        try { $portProbe.Start() }
-        catch { throw "Port $port is already in use. Stop the existing local API on 127.0.0.1:$port and rerun so this script can test an isolated process." }
-        finally { if ($null -ne $portProbe) { $portProbe.Stop() } }
+        # Prefer conventional ports, but automatically use free loopback ports when another service is running.
+        $port = Get-AvailableLoopbackPort -PreferredPort 8000
+        $frontendPort = Get-AvailableLoopbackPort -PreferredPort 5173
+        $baseUrl = "http://127.0.0.1:$port"
+        [Environment]::SetEnvironmentVariable("FINAI_API_BASE_URL", $baseUrl, "Process")
+        Write-Host "API port: $port ; frontend port: $frontendPort"
 
         [Environment]::SetEnvironmentVariable("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1", "Process")
         [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_DB", $paperDbPath, "Process")
