@@ -381,3 +381,15 @@ def test_paper_entry_halt_blocks_new_positions_but_allows_closing_existing_posit
     snapshot = client.get(f"/api/v1/swarmtrade/paper/accounts/{account_id}")
     assert snapshot.status_code == 200
     assert snapshot.json()["open_position_count"] == 0
+
+def test_paper_entry_halt_file_is_checked_dynamically(monkeypatch, tmp_path):
+    monkeypatch.delenv("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", raising=False)
+    halt_file = tmp_path / "paper-entries.halt"
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_HALT_FILE", str(halt_file))
+    assert client.get("/api/v1/swarmtrade/paper/status").json()["new_entries_halted"] is False
+
+    halt_file.write_text("operator requested entry pause", encoding="utf-8")
+    assert client.get("/api/v1/swarmtrade/paper/status").json()["new_entries_halted"] is True
+
+    halt_file.unlink()
+    assert client.get("/api/v1/swarmtrade/paper/status").json()["new_entries_halted"] is False
