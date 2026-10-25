@@ -82,3 +82,9 @@ backups/
 
 # Generated patent/research benchmark output
 patent-benchmark.json
+
+swarmtrade-safety-benchmark.json
+
+# Local end-to-end acceptance artifacts (logs, SQLite test ledger, JSON report)
+/verification-output/
+/benchmarks/counterfactual_screening_benchmark.json

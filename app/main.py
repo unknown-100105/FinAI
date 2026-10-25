@@ -1,6 +1,14 @@
 ﻿import os
+from pathlib import Path
 from typing import Any, Dict, Optional
 from uuid import uuid4
+
+from dotenv import load_dotenv
+
+# Load developer-local environment values before importing routers that gate
+# optional providers or research features. Existing shell/CI values take priority.
+ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(ROOT / ".env", override=False)
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,11 +28,18 @@ from app.investment_routes_api import router as investment_routes_router
 from app.resources_api import router as resources_router
 from app.models_api import router as models_router
 from app.system_api import router as system_router
+from app.local_model_api import router as local_model_router
 from app.xai_router import router as xai_router
 from app.market_intelligence_api import router as market_intelligence_router
 from app.investment_knowledge_api import router as investment_knowledge_router
 from app.causal_risk_api import router as causal_risk_router
 from app.advanced_causal_api import router as advanced_causal_router
+from app.retrieval_lab_api import router as retrieval_lab_router
+from app.research_control_api import router as research_control_router
+from app.swarmtrade_api import router as swarmtrade_router
+from app.swarmtrade_paper_api import router as swarmtrade_paper_router
+from app.swarmtrade_agent_mesh_api import router as swarmtrade_agent_mesh_router
+from app.swarmtrade_safety_api import router as swarmtrade_safety_router
 
 
 APP_VERSION = "0.1.0"
@@ -39,18 +54,40 @@ app = FastAPI(
     ),
 )
 
-# Local-development CORS for the future React frontend.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+def _cors_allowed_origins(
+    environment: str | None = None,
+    configured: str | None = None,
+) -> list[str]:
+    """Return an explicit CORS allowlist; production never inherits dev origins."""
+    env_name = (environment if environment is not None else os.getenv("FINAI_ENV", "development")).strip().casefold()
+    raw = configured if configured is not None else os.getenv("FINAI_CORS_ALLOW_ORIGINS", "")
+    origins = list(dict.fromkeys(item.strip().rstrip("/") for item in raw.split(",") if item.strip()))
+    if origins:
+        if "*" in origins:
+            raise ValueError("FINAI_CORS_ALLOW_ORIGINS must not contain '*' when credentials are enabled")
+        if env_name in {"production", "prod"} and any(
+            not origin.startswith("https://") for origin in origins
+        ):
+            raise ValueError("production FINAI_CORS_ALLOW_ORIGINS entries must use HTTPS")
+        return origins
+    if env_name in {"production", "prod"}:
+        return []
+    return [
         "http://localhost:3000",
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
-    ],
+    ]
+
+
+# Localhost origins are defaults only in development. Production must provide
+# an explicit comma-separated FINAI_CORS_ALLOW_ORIGINS allowlist.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_allowed_origins(),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
 )
 
 # Optional shared-token guard; production fails closed without a strong server token.
@@ -67,11 +104,18 @@ app.include_router(investment_routes_router)
 app.include_router(resources_router)
 app.include_router(models_router)
 app.include_router(system_router)
+app.include_router(local_model_router)
 app.include_router(xai_router)
 app.include_router(market_intelligence_router)
 app.include_router(investment_knowledge_router)
 app.include_router(causal_risk_router)
 app.include_router(advanced_causal_router)
+app.include_router(retrieval_lab_router)
+app.include_router(research_control_router)
+app.include_router(swarmtrade_router)
+app.include_router(swarmtrade_paper_router)
+app.include_router(swarmtrade_agent_mesh_router)
+app.include_router(swarmtrade_safety_router)
 
 # Experimental patent-mechanism endpoints remain disabled unless explicitly opted in.
 if os.getenv("FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS", "").strip().casefold() in {
@@ -97,10 +141,26 @@ def get_market_data_service() -> MarketDataService:
     if _market_data_service is None:
         from market_data.providers.yfinance_provider import YFinanceProvider
 
+        providers = {
+            "yfinance": YFinanceProvider(),
+        }
+        # Optional, read-only Longbridge support. Credentials are checked before
+        # registering the provider; SDK initialization remains lazy until a quote
+        # or history request explicitly selects it.
+        longbridge_configured = all(
+            os.getenv(name, "").strip()
+            for name in (
+                "LONGBRIDGE_APP_KEY",
+                "LONGBRIDGE_APP_SECRET",
+                "LONGBRIDGE_ACCESS_TOKEN",
+            )
+        )
+        if longbridge_configured:
+            from market_data.providers.longbridge_provider import LongbridgeMarketDataProvider
+            providers["longbridge"] = LongbridgeMarketDataProvider()
+
         _market_data_service = MarketDataService(
-            providers={
-                "yfinance": YFinanceProvider(),
-            },
+            providers=providers,
             default_provider="yfinance",
         )
 
@@ -200,12 +260,31 @@ def api_info() -> Dict[str, Any]:
             "chat": "/api/v1/chat",
             "xai": "/api/v1/xai",
             "brain_status": "/api/v1/system/brain-status",
+            "swarmtrade_status": "/api/v1/swarmtrade/status",
+            "swarmtrade_plan": "/api/v1/swarmtrade/plan",
+            "swarmtrade_safety_status": "/api/v1/swarmtrade/safety/status",
+            "swarmtrade_safety_evaluate": "/api/v1/swarmtrade/safety/evaluate",
+            "swarmtrade_paper_status": "/api/v1/swarmtrade/paper/status",
+            "swarmtrade_paper_accounts": "/api/v1/swarmtrade/paper/accounts",
+            "swarmtrade_paper_positions": "/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+            "research_control_status": "/api/v1/causal-risk/research-control/status",
+            "research_control": "/api/v1/causal-risk/research-control/evaluate",
         },
     }
 
 
+def _require_demo_session_flow_non_production() -> None:
+    """Prevent a demo-only session toggle from being mistaken for real identity auth."""
+    if os.getenv("FINAI_ENV", "development").strip().casefold() in {"production", "prod"}:
+        raise HTTPException(
+            status_code=503,
+            detail="Demo session authentication is disabled in production; configure a real identity provider.",
+        )
+
+
 @app.post("/api/v1/session/authenticate")
 def authenticate_session(request: SessionRequest) -> Dict[str, Any]:
+    _require_demo_session_flow_non_production()
     session_id = request.session_id.strip()
     if not session_id:
         raise HTTPException(status_code=422, detail="session_id cannot be empty.")
@@ -224,6 +303,7 @@ def authenticate_session(request: SessionRequest) -> Dict[str, Any]:
 
 @app.post("/api/v1/session/logout")
 def logout_session(request: SessionRequest) -> Dict[str, Any]:
+    _require_demo_session_flow_non_production()
     session_id = request.session_id.strip()
     if not session_id:
         raise HTTPException(status_code=422, detail="session_id cannot be empty.")

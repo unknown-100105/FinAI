@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   BarChart3,
   Bot,
@@ -27,6 +27,7 @@ import {
   WalletCards,
   Globe2,
   BrainCircuit,
+  Database,
 } from "lucide-react";
 import {
   authenticateSession,
@@ -36,23 +37,24 @@ import {
   type BrainStatus,
 } from "./api/finai";
 import { getFinAIModels, type FinAIModel } from "./api/models";
-import { MarketTerminal } from "./components/MarketTerminal";
-import { WealthWorkspace } from "./components/WealthWorkspace";
-import { PlatformHome } from "./components/PlatformHome";
-import InvestmentHub from "./components/InvestmentHub";
-import { NewsHub } from "./components/NewsHub";
-import { CryptoArbitrageHub } from "./components/CryptoArbitrageHub";
-import { KnowledgeHub } from "./components/KnowledgeHub";
-import { InvestmentDiaryHub } from "./components/InvestmentDiaryHub";
-import { StudyHub } from "./components/StudyHub";
-import { ResourcesHub } from "./components/ResourcesHub";
-import { MarketAnalystHub } from "./components/MarketAnalystHub";
-import GlobalInvestmentHub from "./components/GlobalInvestmentHub";
-import { XAIExplorerHub } from "./components/XAIExplorerHub";
-import CausalRiskLab from "./components/CausalRiskLab";
-import { PlatformGuide } from "./components/PlatformGuide";
-import { AssistantResultCard } from "./components/AssistantResultCard";
-import ModelIntelligenceHub from "./components/ModelIntelligenceHub";
+const MarketTerminal = lazy(() => import("./components/MarketTerminal").then((module) => ({ default: module.MarketTerminal })));
+const WealthWorkspace = lazy(() => import("./components/WealthWorkspace").then((module) => ({ default: module.WealthWorkspace })));
+const PlatformHome = lazy(() => import("./components/PlatformHome").then((module) => ({ default: module.PlatformHome })));
+const InvestmentHub = lazy(() => import("./components/InvestmentHub"));
+const NewsHub = lazy(() => import("./components/NewsHub").then((module) => ({ default: module.NewsHub })));
+const CryptoArbitrageHub = lazy(() => import("./components/CryptoArbitrageHub").then((module) => ({ default: module.CryptoArbitrageHub })));
+const KnowledgeHub = lazy(() => import("./components/KnowledgeHub").then((module) => ({ default: module.KnowledgeHub })));
+const InvestmentDiaryHub = lazy(() => import("./components/InvestmentDiaryHub").then((module) => ({ default: module.InvestmentDiaryHub })));
+const StudyHub = lazy(() => import("./components/StudyHub").then((module) => ({ default: module.StudyHub })));
+const ResourcesHub = lazy(() => import("./components/ResourcesHub").then((module) => ({ default: module.ResourcesHub })));
+const MarketAnalystHub = lazy(() => import("./components/MarketAnalystHub").then((module) => ({ default: module.MarketAnalystHub })));
+const GlobalInvestmentHub = lazy(() => import("./components/GlobalInvestmentHub"));
+const XAIExplorerHub = lazy(() => import("./components/XAIExplorerHub").then((module) => ({ default: module.XAIExplorerHub })));
+const CausalRiskLab = lazy(() => import("./components/CausalRiskLab"));
+const RetrievalLab = lazy(() => import("./components/RetrievalLab").then((module) => ({ default: module.RetrievalLab })));
+const ModelIntelligenceHub = lazy(() => import("./components/ModelIntelligenceHub"));
+const AssistantResultCard = lazy(() => import("./components/AssistantResultCard").then((module) => ({ default: module.AssistantResultCard })));
+const PlatformGuide = lazy(() => import("./components/PlatformGuide").then((module) => ({ default: module.PlatformGuide })));
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
@@ -76,6 +78,7 @@ const navigation = [
   { id: "analyst", label: "Market Analyst", icon: Activity },
   { id: "global", label: "Global Markets", icon: Globe2 },
   { id: "causal", label: "Causal Risk Lab", icon: BrainCircuit },
+  { id: "retrieval", label: "Retrieval Lab", icon: Database },
   { id: "resources", label: "Schemes & Resources", icon: Landmark },
   { id: "study", label: "Study Centre", icon: GraduationCap },
   { id: "models", label: "Model Intelligence", icon: Cpu },
@@ -707,6 +710,7 @@ function App() {
     analyst: <MarketAnalystHub />,
     global: <GlobalInvestmentHub />,
     causal: <CausalRiskLab />,
+    retrieval: <RetrievalLab />,
     resources: <ResourcesHub />,
     study: <StudyHub />,
     models: <ModelIntelligenceHub />,
@@ -726,6 +730,7 @@ function App() {
     "news",
     "models",
     "causal",
+    "retrieval",
     "resources",
   ]);
 
@@ -733,6 +738,7 @@ function App() {
     overview: "Core",
     news: "Intelligence",
     causal: "Research",
+    retrieval: "",
     resources: "Tools",
     assistant: "",
     markets: "",
@@ -833,7 +839,9 @@ function App() {
               </button>
             )}
           </div>
-          {content}
+          <Suspense fallback={<div className="workspace-loading" role="status">Loading workspace…</div>}>
+            {content}
+          </Suspense>
         </main>
       </div>
     </div>

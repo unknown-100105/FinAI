@@ -26,7 +26,7 @@ def test_missing_key_fails_before_http():
 @patch("llm.cloud.anthropic.requests.post")
 def test_success_parses_message_content(post):
     post.return_value = _response()
-    provider = AnthropicProvider(api_key="test-key", model_name="claude-sonnet-5-5")
+    provider = AnthropicProvider(api_key="test-key", model_name="claude-sonnet-5")
 
     result = provider.generate(
         "Explain SIP",
@@ -36,7 +36,7 @@ def test_success_parses_message_content(post):
     )
 
     assert result["provider_id"] == "anthropic"
-    assert result["model_name"] == "claude-sonnet-5-5"
+    assert result["model_name"] == "claude-sonnet-5"
     assert result["response"] == "Anthropic response"
     assert "latency_seconds" in result["metrics"]
 

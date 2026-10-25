@@ -1003,3 +1003,13 @@ button {
 .brain-layer-row .needs-attention{color:#e3bd83}
 
 .brain-plan-step .brain-step-status{color:#9ab7d8;font-weight:750}
+
+
+.workspace-loading {
+  display: grid;
+  min-height: 12rem;
+  place-items: center;
+  padding: 2rem;
+  color: var(--muted, #64748b);
+  text-align: center;
+}

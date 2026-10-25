@@ -1,5 +1,6 @@
 ﻿from dataclasses import dataclass
 import os
+from pathlib import Path
 from typing import Tuple
 
 
@@ -172,7 +173,7 @@ MODEL_REGISTRY = {
 
     "anthropic-claude": ModelSpec(
         model_id="anthropic-claude",
-        model_name="claude-sonnet-5-5",
+        model_name="claude-sonnet-5",
         role="anthropic_deep_reasoning",
         capabilities=(
             "response_generation",
@@ -303,7 +304,94 @@ def provider_configured(provider: str) -> bool:
     return bool(os.getenv(key, "").strip()) if key else False
 
 
+def _resolve_configured_model_path(env_name: str) -> Path | None:
+    configured = os.getenv(env_name, "").strip()
+    if not configured:
+        return None
+    path = Path(configured).expanduser()
+    if not path.is_absolute():
+        path = Path(__file__).resolve().parents[1] / path
+    return path.resolve()
+
+
+def _directory_has_model_weights(path: Path) -> bool:
+    """Require model configuration and weight files, not merely an existing folder."""
+    if not path.is_dir():
+        return False
+    if not any(path.rglob("config.json")):
+        return False
+    return any(path.rglob("*.safetensors")) or any(
+        path.rglob("pytorch_model*.bin")
+    )
+
+
+def _cached_model_exists(model_reference: str) -> bool:
+    """Check the local Hugging Face cache without triggering downloads."""
+    configured_cache = (
+        os.getenv("HF_HUB_CACHE", "").strip()
+        or os.getenv("HUGGINGFACE_HUB_CACHE", "").strip()
+    )
+    if configured_cache:
+        cache_root = Path(configured_cache).expanduser()
+    else:
+        hf_home = os.getenv("HF_HOME", "").strip()
+        cache_root = (
+            Path(hf_home).expanduser() / "hub"
+            if hf_home
+            else Path.home() / ".cache" / "huggingface" / "hub"
+        )
+
+    cache_name = "models--" + model_reference.replace("/", "--")
+    snapshots = cache_root / cache_name / "snapshots"
+    if not snapshots.is_dir():
+        return False
+    return any(
+        _directory_has_model_weights(snapshot)
+        for snapshot in snapshots.iterdir()
+        if snapshot.is_dir()
+    )
+
+
+def model_configured(spec: ModelSpec) -> bool:
+    """Report local configuration readiness; this does not claim live inference works."""
+    if spec.model_id == "colibri-local":
+        return bool(os.getenv("FINAI_COLIBRI_BASE_URL", "").strip())
+
+    if spec.provider in {"openai", "gemini", "anthropic", "mistral", "openrouter"}:
+        return provider_configured(spec.provider)
+
+    # Only local models with an implemented adapter and a verifiable model source
+    # are reported as configured. Registry entries for research candidates do
+    # not become runnable just because their provider label defaults to "local".
+    local_model_sources = {
+        "rllm-finqa-4b": (
+            "FINAI_RLLM_MODEL_PATH",
+            "rLLM/rLLM-FinQA-4B",
+        ),
+        "qwen3-embedding-0.6b": (
+            "FINAI_EMBEDDING_MODEL_PATH",
+            "Qwen/Qwen3-Embedding-0.6B",
+        ),
+    }
+    source = local_model_sources.get(spec.model_id)
+    if source is None:
+        return False
+
+    env_name, model_reference = source
+    configured_path = _resolve_configured_model_path(env_name)
+    if configured_path is not None:
+        return _directory_has_model_weights(configured_path)
+
+    return _cached_model_exists(model_reference)
+
+
 def enabled_models():
+    """Return registry candidates enabled by policy/provider configuration.
+
+    This is deliberately separate from model_configured(): adapters may be
+    registered for tests and diagnostics even while credentials or weights are
+    absent. Execution routing must check model_configured() before selection.
+    """
     result = []
     for spec in MODEL_REGISTRY.values():
         if spec.model_id == "colibri-local":
@@ -314,23 +402,6 @@ def enabled_models():
         if spec.enabled or provider_configured(spec.provider):
             result.append(spec)
     return result
-
-
-def model_configured(spec: ModelSpec) -> bool:
-    if spec.model_id == "colibri-local":
-        return bool(os.getenv("FINAI_COLIBRI_BASE_URL", "").strip())
-
-    if spec.provider == "local":
-        return True
-    env_by_provider = {
-        "openai": "OPENAI_API_KEY",
-        "gemini": "GEMINI_API_KEY",
-        "anthropic": "ANTHROPIC_API_KEY",
-        "mistral": "MISTRAL_API_KEY",
-        "openrouter": "OPENROUTER_API_KEY",
-    }
-    key = env_by_provider.get(spec.provider)
-    return bool(os.getenv(key, "").strip()) if key else False
 
 
 def models_for_capability(capability: str):

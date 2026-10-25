@@ -17,6 +17,18 @@ FinAI is a financial-domain assistant with a staged pipeline for routing, policy
 - `scripts/` — training, RAG, validation, and audit utilities
 - `tests/` — regression and integration tests
 
+## Communication protocols
+
+See [Communication protocols and API boundaries](docs/API_PROTOCOLS.md) for the REST/HTTP(S) frontend-backend contract, provider interfaces, persistence/retrieval boundaries, and simulation-only trading limitations.
+
+See [Audit remediation and verification checklist](docs/REMEDIATION_AND_AUDIT.md) for production CORS configuration, clean-checkout setup, and the non-CI acceptance checks. The checklist explicitly distinguishes source changes from tests and benchmarks that still need execution.
+
+See [Remediation and acceptance status](docs/REMEDIATION_AND_ACCEPTANCE.md) for the audit follow-up checklist, production guardrails, and verification commands. The checklist intentionally distinguishes implemented code from runtime evidence.
+
+See [Multi-agent, multi-asset trading architecture](docs/MULTI_AGENT_LIVE_TRADING_ARCHITECTURE.md) for the proposed agent hierarchy, shared evidence contract, risk gates, broker-adapter design, live-mode acceptance criteria, and profitability evaluation protocol.
+
+See [Broker selection for multi-market rollout](docs/BROKER_SELECTION_MULTI_MARKET.md) for a provider shortlist, official API references, sandbox limitations, and a staged adapter rollout.
+
 ## Backend setup
 
 Create and activate a virtual environment, then install:
@@ -68,6 +80,20 @@ Run the backend regression suite:
 python -m pytest -q
 ```
 
+For the full Windows verification flow (backend tests, frontend install/build/lint, local API smoke checks, and the deterministic research/SwarmTrade benchmarks), start the backend in one terminal:
+
+```powershell
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Then run from the repository root in another PowerShell terminal:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ./scripts/verify-finai.ps1
+```
+
+The verifier writes `patent-benchmark.json` and `swarmtrade-safety-benchmark.json`; these generated outputs are ignored by Git. It does not place orders. Set `$env:FINAI_SKIP_LIVE = "1"` to skip HTTP smoke checks when the backend is not running, but the regression suite, frontend checks and benchmarks still run.
+
 Do not treat a passing test suite as proof that external services, generated model artifacts, or production credentials are available.
 
 The dedicated TF-IDF router model at
@@ -103,6 +129,20 @@ python scripts/finai_preflight.py --json
 
 See [Offline mode and preflight guide](docs/OFFLINE_AND_PREFLIGHT.md) for the network-policy contract, local model requirements, artifact prerequisites, and tests. Offline checks cover the currently guarded provider paths, not arbitrary direct network calls from future modules.
 
+## Financial data ingestion and FinAI training
+
+Read-only Financial Datasets and Longbridge adapters can collect historical prices, statements and optional news metadata into a local, source-attributed JSONL corpus. The existing Sarvam QLoRA trainer accepts curated extra JSONL training files with --extra-train-file; provider disagreements are excluded by the SFT builder. No brokerage orders are placed.
+
+See [Financial data connector runbook](docs/FINANCIAL_DATA_CONNECTORS.md) for environment setup, ingestion commands, data manifests, the SFT builder, bounded smoke training and provider limitations. Provider terms and training/redistribution rights must be checked before data is used; secrets, raw provider records and generated training files must not be committed.
+
+## Retrieval Lab
+
+The interface includes a **Retrieval Lab** that compares the embedding-free SQLite FTS5/BM25 retriever with the existing FTS5 + FAISS hybrid path on the same query. It displays source text and provenance, per-mode availability, ranking diagnostics and latency. The lab retrieves evidence only; it does not generate answers, and scores are not probabilities or proof of correctness.
+
+API: `POST /api/v1/retrieval-lab/search` with `query`, `mode` (`vectorless`, `hybrid`, or `compare`) and optional `top_k` (1–10). Vectorless retrieval needs the SQLite database and FTS5 index; hybrid additionally needs the FAISS index, document-ID map and embedding runtime/model assets. Missing hybrid assets do not hide vectorless results in comparison mode.
+
+See [Retrieval Lab setup and evaluation guide](docs/RETRIEVAL_LAB.md) for build instructions, limitations, and a defensible Recall@k/MRR/latency benchmark protocol.
+
 ## Optional local Colibrì inference
 
 FinAI can optionally route response generation to a separately installed
@@ -118,7 +158,7 @@ set these values in the PowerShell session that launches FinAI (or in your
 local `.env` file, which must not be committed):
 
 ```powershell
-$env:FINAI_COLIBRI_BASE_URL = "http://127.0.0.1:8000/v1"
+$env:FINAI_COLIBRI_BASE_URL = "http://127.0.0.1:8010/v1" # separate from FinAI API on port 8000; use the actual local server port
 $env:FINAI_COLIBRI_MODEL = "olmoe-colibri" # must match the server's configured model ID
 $env:FINAI_COLIBRI_API_KEY = "local-finetoken"
 $env:FINAI_NETWORK_MODE = "offline"
@@ -126,10 +166,25 @@ $env:FINAI_DATA_SENSITIVITY = "restricted"
 ```
 
 The adapter is disabled while `FINAI_COLIBRI_BASE_URL` is blank, accepts only
-loopback endpoints, and refuses redirects. Check the actual model identifier
-with the local server's `/v1/models` endpoint before running FinAI tests. See
-[Offline mode and preflight](docs/OFFLINE_AND_PREFLIGHT.md) for the full setup
-and limitations.
+loopback endpoints, and refuses redirects. Keep the Colibrì server on a different
+port from FinAI's API (FinAI defaults to `127.0.0.1:8000`; the example local
+model port above is `8010`). These variables must be set in the backend
+process environment before starting FinAI.
+
+After starting both services, run a real local generation smoke test from the
+repository root:
+
+```powershell
+.\\.venv\\Scripts\\python.exe scripts\\smoke_local_model.py
+```
+
+The script requires the backend Brain diagnostics to report offline mode, probes
+the configured model ID through the loopback model-list endpoint, and sends a
+synthetic, non-sensitive request through FinAI's ordinary chat route with
+`colibri-local` explicitly selected. It does not call cloud providers directly.
+A successful smoke test proves only one request completed; it is not an evaluation
+of financial accuracy or model quality. See [Local model status](docs/LOCAL_MODEL_STATUS.md)
+and [Offline mode and preflight](docs/OFFLINE_AND_PREFLIGHT.md) for setup and limitations.
 
 ## Cloud response providers
 
@@ -155,7 +210,7 @@ Before production deployment, replace the demo/session authentication flow with 
 
 ## Professional market intelligence
 
-The market workspace now includes an interactive candlestick terminal with wheel zoom, drag-to-pan, crosshair/inspection, reset and fullscreen controls. The Market Analyst adds a chronological model arena with Logistic Regression, Random Forest, Extra Trees, Gradient Boosting, HistGradientBoosting and MLP, plus ensemble probability, validation metrics and feature attribution. The terminal also includes browser-local watchlists, above/below quote alert conditions, and a position-sizing/reward-risk calculator. These are planning tools only: alerts are not push notifications, and the UI does not place broker orders. See docs/TRADE_VIEW_TOOLS.md.
+The market workspace now includes an interactive candlestick terminal with wheel zoom, drag-to-pan, vertical/horizontal crosshair inspection, reset and fullscreen controls. It supports selectable SMA 20, EMA 20 and Bollinger Band overlays, a volume toggle, and per-instrument browser-local horizontal levels and two-anchor trendlines. A historical SMA crossover lab simulates next-bar-open execution with configurable fee/slippage assumptions, an equity curve and a buy-and-hold comparator; it does not place orders. The Market Analyst adds a chronological model arena with Logistic Regression, Random Forest, Extra Trees, Gradient Boosting, HistGradientBoosting and MLP, plus ensemble probability, validation metrics and feature attribution. The terminal also includes browser-local watchlists, above/below quote alert conditions, individual candle explanations, and a position-sizing/reward-risk calculator. These are planning tools only: alerts are not push notifications, and the UI does not place broker orders. See docs/TRADE_VIEW_TOOLS.md.
 
 The Global Markets workspace provides a research registry across major regions and asset classes including equities, ETFs, government bonds, corporate bonds, deposits/FDs, funds, REITs, commodities and currencies. For an Indian resident, the eligibility workflow explicitly checks the areas that must be verified: FEMA/LRS, local foreign-investor rules, KYC, currency/repatriation, withholding and Indian tax/reporting.
 
@@ -252,3 +307,71 @@ Then start FinAI using the normal API command for this checkout. Restart the pro
 The branch includes a local-first payment-intent journal and adapter contract in resilient_pay/ledger.py. It supports idempotency conflict checks, confirmed/authenticated adapter dispatch, state transitions, reconciliation-required handling for ambiguous outcomes, and an integrity-checkable hash-chained journal. LocalSimulationAdapter is a sandbox-only simulator. This is not a live bank or Hyperledger Fabric settlement integration; see docs/RESILIENTPAY_SETTLEMENT_BRIDGE.md.
 
 Run the local-only ResilientPay simulation with `python scripts/demo_resilient_pay.py`. It uses an in-memory journal and a SIM-prefixed adapter; no external payment service is called and no real funds are moved.
+
+
+## SwarmTrade deterministic planning baseline
+
+The integration branch now includes a deterministic, simulation-only SwarmTrade planner in the Market Terminal. It uses 5–500 logical votes in multiples of five, requires protective levels, applies a hard 1% single-trade risk cap and 3% aggregate open-risk cap, checks the daily loss threshold, and includes explicit cost assumptions. The frontend computes transparent trend, momentum, mean-reversion and breakout features from the selected chart bars; sentiment defaults to neutral.
+
+API:
+- `GET /api/v1/swarmtrade/status`
+- `POST /api/v1/swarmtrade/plan`
+
+For options, callers must supply a per-contract maximum-loss assumption. Futures require verified tick size, tick value and margin per contract. Forex requires pip size, pip value in the account currency and margin per configured unit or lot. The planner does not execute orders, connect brokers, compute complete option Greeks/payoffs, or provide venue-specific margin/rollover/FX conversion logic.
+
+Details and a manual verification checklist are in [docs/SWARMTRADE_SAFE_EXECUTION.md](docs/SWARMTRADE_SAFE_EXECUTION.md). Run:
+
+```powershell
+python -m pytest -q tests/test_swarmtrade_engine.py
+python benchmarks/swarmtrade_safety_benchmark.py --output swarmtrade-safety-benchmark.json --cases 500
+```
+
+The benchmark is synthetic implementation-safety testing, not evidence of investment performance or real-market prediction quality.
+
+
+### Persistent SwarmTrade paper ledger
+
+A separate opt-in SQLite ledger records simulated positions and P&L. To enable it for trusted local verification, set `FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER=1` in `.env`; `FINAI_SWARMTRADE_PAPER_DB` sets the file path. It is disabled by default. The API requires explicit simulation acknowledgement, records idempotent open/close events, enforces paper-account current equity and aggregate risk limits, and never sends a live order. Account equity excludes unrealized P&L; manual exits use caller-supplied prices.
+
+See [docs/SWARMTRADE_PAPER_LEDGER.md](docs/SWARMTRADE_PAPER_LEDGER.md). Run `python -m pytest -q tests/test_swarmtrade_paper_ledger.py` for the focused tests.
+
+
+### Multi-agent research safety gate
+
+The API now also exposes `GET /api/v1/swarmtrade/safety/status` and `POST /api/v1/swarmtrade/safety/evaluate`. This deterministic gate checks candidate notional, portfolio and daily-loss bounds, leverage, spread, quote freshness, evidence presence, conflicting findings, and derivative contract-risk metadata. An approval is **simulation-only**; live execution is hard-disabled. The existing agent mesh, planner, and SQLite paper ledger remain separate capabilities.
+
+See [docs/MULTI_AGENT_LIVE_TRADING_ARCHITECTURE.md](docs/MULTI_AGENT_LIVE_TRADING_ARCHITECTURE.md), [docs/BROKER_SELECTION_MULTI_MARKET.md](docs/BROKER_SELECTION_MULTI_MARKET.md), and [docs/SWARMTRADE_SAFETY_API_QUICKSTART.md](docs/SWARMTRADE_SAFETY_API_QUICKSTART.md). Focused tests: `python -m pytest -q tests/test_multi_agent_trading_safety.py tests/test_swarmtrade_safety_api.py`.
+
+## One-command full local acceptance run
+
+For an integrated Windows verification pass, use the runner below after pulling this branch. It starts a dedicated API bound to `127.0.0.1:8000`, enables only the isolated paper ledger with a run-specific SQLite database, calls the existing full verifier, exercises the paper-ledger HTTP workflow, validates the safety benchmark report, and saves a machine-readable summary with logs under `verification-output/<UTC timestamp>/`.
+
+Activate your Python environment and run from the repository root:
+
+```powershell
+git fetch origin
+git pull --ff-only
+powershell -ExecutionPolicy Bypass -File .\scripts\verify-finai-all.ps1
+```
+
+Requirements: Python project dependencies installed, Node.js/npm available, network access for `npm ci`, and port 8000 free. Stop any separately running local FinAI API first; the runner deliberately refuses to reuse an existing server. It starts and stops its own API process, resets the temporary paper database for each run, and restores its process environment afterward.
+
+The runner never opts into paid/cloud LLM provider calls and explicitly disables live trading. If `FINAI_COLIBRI_BASE_URL` is configured, it runs a bounded synthetic generation through the loopback-only Colibrì adapter and reports only safe metadata (never the generated text); when no local endpoint is configured, that stage is recorded as skipped. It runs backend tests, frontend production build and lint, API checks, provider-configuration inspection, patent-mechanism and counterfactual benchmarks, the 500-case SwarmTrade benchmark, plus a paper-account open/replay/conflict/close/history round trip. It does not modify CI configuration.
+
+A successful local report is scoped to the exact commit and environment recorded in the JSON report. It does not establish that external provider credentials, local model weights, licensed RAG corpora, browser interactions, empirical causal claims, profitability, or live broker execution are verified. See `docs/FINAL_INTEGRATION_RUNBOOK.md` for the complete acceptance boundary.
+
+## Run backend and frontend together
+
+For local UI/browser acceptance, the helper below starts FastAPI and Vite on loopback and stops both processes when interrupted:
+
+~~~powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-finai.ps1
+~~~
+
+The paper ledger remains disabled by default. To enable only the local simulation ledger explicitly:
+
+~~~powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-finai.ps1 -EnablePaperLedger
+~~~
+
+Open the frontend at http://127.0.0.1:5173 and the API documentation at http://127.0.0.1:8000/docs. Logs are written beneath logs/ and are ignored by Git. This development helper binds to localhost and keeps live trading disabled; do not expose it to the public internet.

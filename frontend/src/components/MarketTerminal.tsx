@@ -5,12 +5,14 @@ import {
 } from "lucide-react";
 import {
   getMarketAnalytics, getMarketHistory, getMarketNews, getMarketOverview,
-  getMarketQuote, type MarketBar, type MarketNewsItem,
-  type MarketOverviewItem, type MarketQuote,
+  getMarketProviders, getMarketQuote, type MarketBar, type MarketNewsItem,
+  type MarketOverviewItem, type MarketProvider, type MarketQuote,
 } from "../api/market";
 import { MarketSearchBox } from "./MarketSearchBox";
 import { CandleChart } from "./CandleChart";
 import { TradeToolsPanel } from "./TradeToolsPanel";
+import { StrategyBacktestPanel } from "./StrategyBacktestPanel";
+import { SwarmTradePanel } from "./SwarmTradePanel";
 import "./MarketTerminal.css";
 
 const ranges = [
@@ -25,7 +27,7 @@ const ranges = [
   { id: "MAX", days: 3650, interval: "1d" },
 ] as const;
 
-const intervals = ["1m", "5m", "15m", "30m", "1h", "1d", "1wk"] as const;
+const intervals = ["1m", "5m", "15m", "30m", "1h", "1d", "1wk", "1mo"] as const;
 const quickSymbols = [
   "TCS", "INFY", "RELIANCE", "HDFCBANK", "ICICIBANK", "SBIN",
   "ITC", "LT", "NIFTY 50", "SENSEX", "BTC", "ETH",
@@ -90,6 +92,10 @@ export function MarketTerminal() {
   const [instrument, setInstrument] = useState("TCS");
   const [range, setRange] = useState("1M");
   const [interval, setInterval] = useState("1d");
+  const [provider, setProvider] = useState("yfinance");
+  const [providers, setProviders] = useState<MarketProvider[]>([
+    { provider_id: "yfinance", configured: true, capabilities: ["quote", "history"] },
+  ]);
   const [quote, setQuote] = useState<MarketQuote | null>(null);
   const [bars, setBars] = useState<MarketBar[]>([]);
   const [analytics, setAnalytics] = useState<Record<string, number | null>>({});
@@ -102,6 +108,7 @@ export function MarketTerminal() {
 
   const selectedRange = ranges.find((item) => item.id === range) ?? ranges[2];
   const intervalAllowed = (value: string) => {
+    if (provider === "longbridge") return value === "1d" || value === "1wk" || value === "1mo";
     if (value === "1m" || value === "2m" || value === "5m") return selectedRange.days <= 7;
     if (value === "15m" || value === "30m" || value === "1h") return selectedRange.days <= 60;
     return true;
@@ -112,9 +119,9 @@ export function MarketTerminal() {
 
     try {
       const [quoteResult, historyResult, analyticsResult] = await Promise.allSettled([
-        getMarketQuote(instrument),
-        getMarketHistory(instrument, window.start, window.end, interval),
-        getMarketAnalytics(instrument, window.start, window.end, interval),
+        getMarketQuote(instrument, provider),
+        getMarketHistory(instrument, window.start, window.end, interval, provider),
+        getMarketAnalytics(instrument, window.start, window.end, interval, provider),
       ]);
 
       setError("");
@@ -153,7 +160,7 @@ export function MarketTerminal() {
     } finally {
       setLoading(false);
     }
-  }, [instrument, selectedRange.days, interval]);
+  }, [instrument, selectedRange.days, interval, provider]);
 
   const loadSide = useCallback(async () => {
     try {
@@ -170,6 +177,25 @@ export function MarketTerminal() {
       setSideLoading(false);
     }
   }, [instrument]);
+
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Loads configured market providers without exposing their credentials.
+    void getMarketProviders()
+      .then((data) => {
+        const available = Array.isArray(data.providers) && data.providers.length
+          ? data.providers
+          : [{ provider_id: "yfinance", configured: true, capabilities: ["quote", "history"] }];
+        setProviders(available);
+        setProvider((current) => (
+          available.some((item) => item.provider_id === current)
+            ? current
+            : (data.default_provider || "yfinance")
+        ))
+      })
+      .catch(() => {
+        setProviders([{ provider_id: "yfinance", configured: true, capabilities: ["quote", "history"] }]);
+      });
+  }, []);
 
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- Polls quote/history/analytics APIs for the selected instrument.
@@ -218,6 +244,11 @@ export function MarketTerminal() {
       </div>
 
       {error && <div className="market-error">{error}</div>}
+      {provider === "longbridge" && (
+        <div className="market-provider-note">
+          Longbridge mode supports daily, weekly and monthly candles through its read-only adapter. Coverage depends on your account; built-in Indian NSE/BSE symbols are not supported by this adapter.
+        </div>
+      )}
 
       <div className="market-layout">
         <div className="market-main">
@@ -233,10 +264,23 @@ export function MarketTerminal() {
               </div>
             </div>
             <div className="market-control-groups">
+              <div className="control-group provider-control-group">
+                <span>Market data provider</span>
+                <select aria-label="Market data provider" value={provider} onChange={(event) => {
+                  const next = event.target.value;
+                  setProvider(next);
+                  if (next === "longbridge") setInterval("1d");
+                  setLoading(true);
+                }}>
+                  {providers.map((item) => (
+                    <option key={item.provider_id} value={item.provider_id}>{item.provider_id === "yfinance" ? "Yahoo Finance" : "Longbridge (read-only)"}</option>
+                  ))}
+                </select>
+              </div>
               <div className="control-group">
                 <span>Range</span>
                 <div className="range-tabs">{ranges.map((item) => (
-                  <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => { setRange(item.id); setInterval(item.interval); setLoading(true); }}>{item.id}</button>
+                  <button key={item.id} type="button" className={range === item.id ? "active" : ""} onClick={() => { setRange(item.id); setInterval(provider === "longbridge" ? "1d" : item.interval); setLoading(true); }}>{item.id}</button>
                 ))}</div>
               </div>
               <div className="control-group">
@@ -272,7 +316,7 @@ export function MarketTerminal() {
               <div className="chart-badge"><Activity size={13} /> {quote?.source ?? "market feed"}</div>
             </div>
             <div className="chart-wrap chart-grid">
-              {loading ? <div className="chart-empty">Loading OHLC candles…</div> : <CandleChart bars={bars} height={310} showVolume={true} />}
+              {loading ? <div className="chart-empty">Loading OHLC candles…</div> : <CandleChart key={instrument} bars={bars} symbol={instrument} height={310} showVolume={true} />}
             </div>
             <div className="chart-footer">
               <span>{bars[0]?.timestamp ? new Date(bars[0].timestamp).toLocaleString() : "—"}</span>
@@ -294,6 +338,9 @@ export function MarketTerminal() {
               <div className="analytics-card" key={label}><span>{label}</span><strong>{value}</strong><small>Calculated from selected bars</small></div>
             ))}
           </div>
+
+          <StrategyBacktestPanel bars={bars} symbol={instrument} currency={currency} />
+          <SwarmTradePanel symbol={instrument} currentPrice={finite(quote?.price)} quoteCurrency={quote?.currency ?? ""} bars={bars} isLoading={loading} />
         </div>
 
         <aside className="market-side">

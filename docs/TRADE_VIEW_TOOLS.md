@@ -1,16 +1,18 @@
 # Trade View planning tools
 
-The Market & Crypto Terminal now includes a local-first trade planning panel beneath the chart and technical indicators.
+The Market & Crypto Terminal includes a local-first trade planning panel beneath the chart and technical indicators, plus a deterministic SwarmTrade research planner.
 
 ## Included tools
 
 - **Saved watchlist:** add/remove symbols and select a saved symbol in the terminal. The watchlist is stored in this browser's local storage and is not synchronized to an account or server.
 - **Price alert conditions:** create above/below price thresholds for the currently selected symbol. Conditions are evaluated against the latest quote state returned by the terminal. They are not background jobs, push notifications, or guaranteed real-time alerts; they only update while the terminal is running and receiving quote updates.
 - **Position sizing calculator:** estimates quantity from a user-entered risk budget and directionally valid stop distance for a long or short position, plus an optional directionally valid reward/risk ratio. It does not submit orders or fetch broker buying power.
+- **SwarmTrade logical-agent planner:** evaluates up to 500 logical votes across momentum, trend, mean-reversion, breakout and sentiment roles; the count is restricted to multiples of five to keep role representation balanced. Trend/momentum/mean-reversion/breakout features are transparently derived from selected chart candles, while sentiment defaults to neutral. It reports a risk-gated *simulation plan*, not an executed trade.
+- **Derivative-aware risk inputs:** options require a user-provided per-contract maximum-loss assumption; futures require verified tick size, tick value and margin per contract; forex requires pip size, pip value in the account currency and margin per unit/lot. Incorrect venue metadata makes the estimate unreliable.
 
 ## Limitations
 
-- This is a planning workspace, not a brokerage connection or order execution system.
+- This is a planning workspace, not a brokerage connection or order execution system. The SwarmTrade endpoint explicitly returns `order_submitted: false` and `fill_claimed: false`.
 - It does not model taxes, fees, slippage, lot size, margin, liquidity, short-sale restrictions, or broker-specific rules.
 - Market quotes and chart history are provider-dependent. A displayed timestamp is provenance, not a guarantee of real-time exchange data.
 - The calculator is arithmetic only and is not investment advice.
@@ -28,3 +30,120 @@ The Market & Crypto Terminal now includes a local-first trade planning panel ben
 8. Disconnect or block the market API and verify the existing error/partial-feed messaging remains visible.
 
 These checks still need to be run in a browser against the current checkout. Adding the component is not evidence that browser QA has passed.
+
+
+## Individual candle explanations
+
+The candlestick chart now presents a deterministic explanation for the selected candle. Click or keyboard-select a candle to inspect:
+
+- timestamp and position in the returned series;
+- OHLC values, real-body size, high-low range, upper wick and lower wick;
+- body-to-range percentage and close-to-previous-close percentage when available;
+- volume and volume relative to up to 20 preceding candles when those observations are available;
+- descriptive candidates for very small bodies/doji-like candles, long-wick candles and engulfing bodies.
+
+Pattern labels are descriptive candidates only. They are not trade signals, forecasts, causal explanations, or evidence of profitability. Interpretation depends on instrument, interval, trend and data quality. The component does not claim that a candle predicts the next price move.
+
+### Candle explanation manual QA
+
+1. Load an instrument with at least 25 OHLC bars and confirm the latest candle is explained by default.
+2. Select early, middle and latest candles; confirm the timestamp, ordinal and OHLC values correspond to the selected candle.
+3. Check the body and wick calculations against the OHLC values.
+4. Confirm change versus previous close is unavailable for the first candle and calculated for subsequent candles.
+5. Confirm volume comparison uses only prior bars, excludes the selected bar, and reports unavailable when prior average volume is zero or unavailable.
+6. Use keyboard Enter/Space on a focused candle and verify selection updates.
+7. Test narrow mobile width, long symbol names, missing volume and partial market-data responses.
+8. Verify the explanation does not generate an order, recommend a trade, or describe a pattern as a guaranteed reversal.
+
+These checks must be run against the current checkout; adding the panel is not evidence that browser QA has passed.
+
+
+## TradingView-style chart controls
+
+The Market Terminal now includes client-side chart overlays and drawing annotations in addition to the OHLC candle inspection panel.
+
+### Indicators
+- SMA 20 and EMA 20 overlays, calculated from the returned close series.
+- Bollinger Bands (20-period mean with two standard deviations).
+- Volume histogram can be toggled without changing the underlying market-data request.
+- Vertical and horizontal hover crosshair guides, zoom, pan, reset and fullscreen.
+
+These calculations use only the historical bars returned by the selected provider/range. They do not guarantee exchange-grade data quality or predict future prices. EMA is initialized from the first available close; Bollinger/SMA values are shown only after 20 bars are available.
+
+### Drawing tools
+- **Horizontal level:** select the tool, then click/keyboard-select a candle; FinAI records its close as the level.
+- **Trendline:** select the tool, then select two candles to anchor the line between their close values.
+- Drawings are saved in browser local storage under an instrument-specific key. They are local to that browser and are not synchronized to a user account or server.
+- Individual drawings can be removed, or all drawings can be cleared. Use a consistent symbol when returning to saved levels; trendlines only render when both anchor timestamps exist in the currently loaded history.
+
+### Manual chart QA
+1. Load at least 30 valid OHLC bars; confirm SMA/EMA toggles turn overlays on/off and the price scale includes the active overlay values.
+2. Confirm Bollinger upper/lower bounds appear only when at least 20 valid closes exist; toggle volume and verify the price panel grows/shrinks without a network request.
+3. Hover over the plot and confirm vertical candle and horizontal price guides track the pointer.
+4. Select Horizontal level and select a candle; confirm the saved price equals that candle's close. Reload and confirm the level persists for the same symbol.
+5. Create a trendline using two different candles; confirm it links their close prices, survives reload, and can be individually removed.
+6. Change symbols and verify each symbol keeps its own drawings rather than inheriting another symbol's annotations.
+7. Test zoom, drag-to-pan, reset and fullscreen with mouse and keyboard; make sure the controls remain reachable on narrow/mobile widths.
+8. Test sparse/invalid provider data, missing volume, an unavailable API and long histories. Confirm the UI shows no-data/partial-feed states rather than reporting invented market values.
+
+The current chart overlay/drawing implementation still requires the frontend build, lint, and browser checklist to be executed against the checkout before merge.
+
+
+## Historical SMA crossover backtest lab
+
+The Market Terminal includes a long-only SMA crossover simulation over the currently loaded bars.
+
+- The short and long moving-average windows, starting capital, fee basis points per side, and slippage basis points per side are user-configurable.
+- A signal is computed at the prior candle's close and executed at the next candle's open. The final open position is liquidated at the final close.
+- The UI reports an equity curve, final equity, net return, buy-and-hold return, maximum drawdown, closed trade count, win rate, profit factor where defined, and recent completed trades.
+- The buy-and-hold comparison uses the same execution window and fee/slippage assumption as the strategy.
+- Trades are all-in long/flat simulations with fractional units. There is no brokerage connection, order execution or portfolio persistence.
+
+### Backtest limitations and checks
+
+The lab excludes tax, spread beyond the configured slippage, market impact, liquidity constraints, dividends/corporate actions, lot sizes, margin/funding, short selling and derivatives contract mechanics. The strategy is a simple illustrative baseline and is not suitable as an F&O or crypto-arbitrage simulator. Prices and timestamps depend on the selected provider and may be delayed or incomplete.
+
+Manual QA:
+1. Enter an invalid moving-average period and confirm a clear validation message.
+2. Use fewer bars than the long SMA window; confirm no metrics are fabricated.
+3. Verify that the first possible execution occurs at the bar after the signal window, not on the signal candle itself.
+4. Set fees and slippage to zero, then to non-zero values; confirm final equity changes consistently with transaction costs.
+5. Verify that a loss-making strategy can report negative returns and that drawdown is non-negative.
+6. Compare strategy and buy-and-hold over the same execution start bar; do not interpret historical outperformance as a future guarantee.
+7. Confirm the panel never invokes broker APIs or submits orders.
+
+This is a software simulation; the frontend build, lint and browser checklist remain required before merge.
+
+
+## SwarmTrade API and verification
+
+- `GET /api/v1/swarmtrade/status` reports the enabled simulation mode and guardrails.
+- `POST /api/v1/swarmtrade/plan` accepts symbol, asset class, entry/stop/target, account capital, risk budget, transaction-cost assumptions, margin/leverage assumptions and bounded signal features.
+- The planner caps single-trade risk at 1% and aggregate open risk at 3%; it blocks when the daily loss limit is reached, the stop/target direction is invalid, the requested side conflicts with consensus, or required futures/forex/options metadata is absent.
+- Futures sizing uses caller-supplied tick value and tick size. Forex sizing uses pip value and pip size. These values, the account currency, conversion assumptions, multiplier and margin need to match the real instrument.
+- Options are only approximated with a caller-provided maximum-loss amount. Full payoff curves, Greeks, expiry, assignment, volatility surface and exchange margin are not implemented here.
+- Automated checks: `python -m pytest -q tests/test_swarmtrade_engine.py` and `python benchmarks/swarmtrade_safety_benchmark.py --output swarmtrade-safety-benchmark.json --cases 500`. This benchmark tests deterministic safety constraints on synthetic inputs; it is not a profitability benchmark.
+
+## Manual SwarmTrade smoke checklist
+
+1. Pull `feature/finai-runtime-trading-integration`, start the backend and frontend, and open Markets.
+2. Select a symbol with at least six available bars; wait for the market panel to finish loading.
+3. Confirm four directional feature inputs populate from chart history and sentiment starts at zero. Change sentiment manually and verify the value is included in the result.
+4. Run with a long-compatible stop/target and a positive consensus; confirm quantity and risk are shown and the result clearly says simulation only.
+5. Choose a contradictory side, invert a stop, set the daily loss to its threshold, and verify the plan is blocked.
+6. Select futures and omit tick metadata, then provide valid tick size/tick value/margin; confirm the endpoint requires all three. Repeat with forex pip/margin fields.
+7. Select options and verify maximum loss per contract is required.
+8. Inspect the JSON response and confirm `order_submitted` and `fill_claimed` remain false.
+
+
+## Persistent paper accounts (opt-in)
+
+Set `FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER=1` in `.env` only for a trusted local environment. The ledger is otherwise disabled and returns HTTP 503.
+
+- Create a paper account: `POST /api/v1/swarmtrade/paper/accounts`.
+- Inspect account/open risk: `GET /api/v1/swarmtrade/paper/accounts/{account_id}`.
+- List closed/open position history: `GET /api/v1/swarmtrade/paper/accounts/{account_id}/positions?status=all`.
+- Record a simulation-only entry: `POST /api/v1/swarmtrade/paper/accounts/{account_id}/positions` with an approved plan, an idempotency key and `acknowledge_simulation_only: true`.
+- Record a simulated exit: `POST /api/v1/swarmtrade/paper/accounts/{account_id}/positions/{position_id}/close` with exit price and reason.
+
+The account-state path ignores caller-supplied capital/open-risk values when sizing, and checks the aggregate open-risk cap again in a serialized SQLite transaction. Repeating an identical mutation with the same idempotency key replays the original response. Unrealized P&L is not included in equity/daily loss, and no automatic stop execution is simulated. Do not expose this local tool publicly without authentication and access controls. Full notes: [SWARMTRADE_PAPER_LEDGER.md](SWARMTRADE_PAPER_LEDGER.md).

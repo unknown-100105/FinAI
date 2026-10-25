@@ -6,6 +6,8 @@ fastapi
 uvicorn
 pydantic
 requests
+python-dotenv>=1,<2
+longbridge>=4.0.5,<5
 
 numpy
 pandas
@@ -14,6 +16,8 @@ scipy
 joblib
 yfinance
 faiss-cpu
+
+datasets
 
 torch
 transformers

@@ -1,0 +1,195 @@
+from fastapi.testclient import TestClient
+
+from app.main import app
+from swarmtrade.engine import build_swarm_plan
+from benchmarks.swarmtrade_safety_benchmark import run_benchmark
+
+client = TestClient(app)
+
+
+def bullish_request(**overrides):
+    data = {
+        "symbol": "TEST",
+        "asset_class": "equity",
+        "side": "auto",
+        "entry_price": 100,
+        "stop_price": 95,
+        "target_price": 112,
+        "capital": 100000,
+        "risk_pct": 0.5,
+        "fee_bps": 2,
+        "slippage_bps": 2,
+        "agent_count": 500,
+        "signals": {"trend": 0.9, "momentum": 0.8, "breakout": 0.8, "sentiment": 0.7},
+    }
+    data.update(overrides)
+    return data
+
+
+def test_swarmtrade_is_deterministic_and_limits_agents_to_500():
+    request = bullish_request()
+    first = build_swarm_plan(request)
+    second = build_swarm_plan(request)
+    assert first == second
+    assert first["agent_count"] == 500
+    assert first["logical_agents_only"] is True
+    assert first["status"] == "APPROVED_FOR_SIMULATION"
+    assert first["execution"]["order_submitted"] is False
+    assert first["execution"]["fill_claimed"] is False
+
+
+def test_swarmtrade_enforces_hard_risk_budget_even_if_user_requests_more():
+    result = build_swarm_plan(bullish_request(risk_pct=5))
+    assert result["status"] == "APPROVED_FOR_SIMULATION"
+    assert result["risk"]["effective_risk_pct"] <= 1.0
+    assert result["risk"]["estimated_total_risk"] <= result["risk"]["risk_budget"] + 1e-8
+
+
+def test_swarmtrade_blocks_when_daily_loss_limit_reached():
+    result = build_swarm_plan(bullish_request(current_daily_loss_pct=2.0, max_daily_loss_pct=2.0))
+    assert result["status"] == "REJECTED"
+    assert "Daily loss limit" in result["reason"]
+
+
+def test_swarmtrade_requires_valid_protective_levels():
+    result = build_swarm_plan(bullish_request(stop_price=102, target_price=110))
+    assert result["status"] == "REJECTED"
+    assert "Long trade requires" in result["reason"]
+
+
+def test_swarmtrade_options_require_strike_and_explicit_max_loss_per_contract():
+    result = build_swarm_plan(bullish_request(
+        asset_class="option", multiplier=100, option_type="call", option_strike=100,
+    ))
+    assert result["status"] == "REJECTED"
+    assert "max_loss_per_unit" in result["reason"]
+
+
+def test_swarmtrade_option_rejects_max_loss_below_long_premium_risk():
+    result = build_swarm_plan(bullish_request(
+        asset_class="option", entry_price=2, stop_price=1, target_price=4.5,
+        multiplier=100, option_type="call", option_strike=3, max_loss_per_unit=50,
+    ))
+    assert result["status"] == "REJECTED"
+    assert "below the vanilla option payoff maximum loss" in result["reason"]
+
+
+def test_swarmtrade_blocks_theoretically_unbounded_naked_short_calls():
+    result = build_swarm_plan(bullish_request(
+        asset_class="option", side="auto", entry_price=2, stop_price=3, target_price=0.8,
+        multiplier=100, option_type="call", option_strike=3, max_loss_per_unit=1000,
+        signals={"trend": -0.9, "momentum": -0.8, "breakout": -0.8, "sentiment": -0.7, "mean_reversion": -0.1},
+    ))
+    assert result["status"] == "REJECTED"
+    assert "unbounded loss" in result["reason"]
+
+
+def test_swarmtrade_short_put_uses_bounded_expiry_loss():
+    request = bullish_request(
+        asset_class="option", side="auto", entry_price=2, stop_price=3, target_price=0.8,
+        multiplier=100, option_type="put", option_strike=3, max_loss_per_unit=100,
+        signals={"trend": -0.9, "momentum": -0.8, "breakout": -0.8, "sentiment": -0.7, "mean_reversion": -0.1},
+    )
+    result = build_swarm_plan(request)
+    assert result["status"] == "APPROVED_FOR_SIMULATION"
+    assert result["risk"]["risk_model"]["theoretical_max_loss_per_contract"] == 100.0
+
+
+def test_swarmtrade_no_signal_does_not_trade():
+    result = build_swarm_plan(bullish_request(signals={}))
+    assert result["status"] == "NO_SIGNAL"
+    assert result["execution"]["order_submitted"] is False
+
+
+def test_swarmtrade_api_status_and_plan():
+    status = client.get("/api/v1/swarmtrade/status")
+    assert status.status_code == 200
+    assert status.json()["max_logical_agents"] == 500
+    response = client.post("/api/v1/swarmtrade/plan", json=bullish_request())
+    assert response.status_code == 200
+    assert response.json()["status"] == "APPROVED_FOR_SIMULATION"
+
+
+def test_swarmtrade_api_rejects_agent_count_over_limit():
+    response = client.post("/api/v1/swarmtrade/plan", json=bullish_request(agent_count=501))
+    assert response.status_code == 422
+
+
+def test_swarmtrade_api_rejects_unknown_signal_key():
+    response = client.post("/api/v1/swarmtrade/plan", json=bullish_request(signals={"inside_info": 1}))
+    assert response.status_code == 422
+
+
+def test_swarmtrade_futures_require_tick_value_and_margin_metadata():
+    result = build_swarm_plan(bullish_request(asset_class="future", multiplier=50))
+    assert result["status"] == "REJECTED"
+    assert "tick_size, tick_value, and margin_per_unit" in result["reason"]
+
+
+def test_swarmtrade_future_risk_uses_exchange_tick_value():
+    result = build_swarm_plan(bullish_request(
+        asset_class="future",
+        multiplier=50,
+        tick_size=0.25,
+        tick_value=12.5,
+        margin_per_unit=5000,
+    ))
+    assert result["status"] == "APPROVED_FOR_SIMULATION"
+    assert result["risk"]["risk_model"]["model"] == "futures_tick_value"
+    assert result["risk"]["risk_model"]["tick_size"] == 0.25
+    assert result["sizing"]["quantity"] >= 1
+
+
+def test_swarmtrade_forex_requires_account_currency_pip_metadata():
+    result = build_swarm_plan(bullish_request(asset_class="forex", multiplier=100000))
+    assert result["status"] == "REJECTED"
+    assert "pip_size, pip_value_per_unit, and margin_per_unit" in result["reason"]
+
+
+def test_swarmtrade_forex_risk_uses_pip_value_and_lot_margin():
+    result = build_swarm_plan(bullish_request(
+        asset_class="forex",
+        entry_price=1.1,
+        stop_price=1.095,
+        target_price=1.12,
+        capital=500000,
+        multiplier=100000,
+        unit_step=1,
+        pip_size=0.0001,
+        pip_value_per_unit=10,
+        margin_per_unit=2000,
+        margin_rate=0.05,
+        max_leverage=30,
+    ))
+    assert result["status"] == "APPROVED_FOR_SIMULATION"
+    assert result["risk"]["risk_model"]["model"] == "forex_pip_value"
+    assert result["risk"]["risk_model"]["pip_size"] == 0.0001
+    assert result["sizing"]["quantity"] >= 1
+
+
+def test_swarmtrade_seeded_safety_benchmark_has_no_invariant_failures():
+    report = run_benchmark(30)
+    assert report["cases"] == 30
+    assert report["passed_cases"] == 30
+    assert report["determinism_failures"] == 0
+    assert report["guardrail_violations"] == 0
+    assert report["expected_control_rejections_missed"] == 0
+    assert report["expected_feasible_approval_missed"] == 0
+    assert set(report["asset_class_counts"]) == {"equity", "option", "future", "crypto", "forex"}
+    assert report["approved_simulation_plans_by_asset_class"].get("future", 0) > 0
+    assert report["approved_simulation_plans_by_asset_class"].get("forex", 0) > 0
+    assert report["research_boundary"].startswith("Synthetic deterministic safety benchmark")
+
+
+def test_swarmtrade_requires_balanced_agent_count_multiple():
+    response = client.post("/api/v1/swarmtrade/plan", json=bullish_request(agent_count=6))
+    assert response.status_code == 422
+
+
+def test_swarmtrade_engine_rejects_non_integer_or_unbalanced_agent_count():
+    for count in (4, 6, 500.5, True):
+        try:
+            build_swarm_plan(bullish_request(agent_count=count))
+        except ValueError:
+            continue
+        raise AssertionError(f"Expected agent count {count!r} to be rejected")

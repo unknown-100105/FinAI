@@ -101,3 +101,24 @@ export async function getHardwareResources() {
   }
   return response.json() as Promise<HardwareResourceSnapshot>;
 }
+
+
+export type LocalModelStatus = {
+  status: string;
+  provider: string;
+  configured: boolean;
+  probe_requested: boolean;
+  reachable: boolean;
+  model_available: boolean;
+  model_id?: string | null;
+  message: string;
+};
+
+export async function getLocalModelStatus(probe = false): Promise<LocalModelStatus> {
+  const suffix = probe ? "?probe=true" : "";
+  const response = await fetch(API_BASE_URL + "/api/v1/system/local-model-status" + suffix);
+  if (!response.ok) {
+    throw new Error("FinAI local model status error " + response.status + ": " + await response.text());
+  }
+  return response.json() as Promise<LocalModelStatus>;
+}

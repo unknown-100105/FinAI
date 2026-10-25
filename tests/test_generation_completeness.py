@@ -1,5 +1,12 @@
 from llm.model_gateway import ModelGateway
 from llm.response_service import ResponseService
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def configured_generation_test_environment(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("FINAI_LLM_PREFERENCE", "gemini-cloud")
 
 
 class SequencedAdapter:

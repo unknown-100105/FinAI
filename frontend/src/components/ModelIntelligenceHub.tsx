@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Cloud, Cpu, Gauge, RefreshCw, Route, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Cloud, Cpu, Gauge, RefreshCw, Route, ShieldCheck, HardDrive } from "lucide-react";
 import {
   getFinAIModels,
   getHardwareResources,
+  getLocalModelStatus,
   previewModelRoute,
   type FinAIModel,
   type ModelRoutePreview,
   type HardwareResourceSnapshot,
+  type LocalModelStatus,
 } from "../api/models";
 import "./ModelIntelligenceHub.css";
 
@@ -51,6 +53,21 @@ export default function ModelIntelligenceHub() {
   const [loading, setLoading] = useState(true);
   const [routeLoading, setRouteLoading] = useState(true);
   const [error, setError] = useState("");
+  const [localStatus, setLocalStatus] = useState<LocalModelStatus | null>(null);
+  const [localStatusError, setLocalStatusError] = useState("");
+  const [localStatusLoading, setLocalStatusLoading] = useState(false);
+
+  const loadLocalStatus = useCallback(async (probe: boolean) => {
+    setLocalStatusLoading(true);
+    setLocalStatusError("");
+    try {
+      setLocalStatus(await getLocalModelStatus(probe));
+    } catch (requestError) {
+      setLocalStatusError(requestError instanceof Error ? requestError.message : "Local model status unavailable.");
+    } finally {
+      setLocalStatusLoading(false);
+    }
+  }, []);
 
   const loadModels = useCallback(async () => {
     try {
@@ -66,6 +83,10 @@ export default function ModelIntelligenceHub() {
 
   // oxlint-disable-next-line react/set-state-in-effect -- This effect loads external model metadata asynchronously; state updates follow the request.
   useEffect(() => { void loadModels(); }, [loadModels]);
+
+  // Configuration-only endpoint by default; the local server is contacted only after a user clicks Probe.
+  // oxlint-disable-next-line react/set-state-in-effect -- Loads diagnostic configuration without probing external services.
+  useEffect(() => { void loadLocalStatus(false); }, [loadLocalStatus]);
 
   // oxlint-disable-next-line react/set-state-in-effect -- Hardware metadata is fetched asynchronously and then rendered.
   useEffect(() => {
@@ -123,6 +144,29 @@ export default function ModelIntelligenceHub() {
         <div><span>Capability fit</span><strong>{activeCandidates.length}</strong><small>candidates for this task</small></div>
         <div><span>Architecture</span><strong>Failover</strong><small>provider-level resilience</small></div>
       </div>
+
+      <section className="ai-local-runtime" aria-label="Local inference runtime">
+        <div className="ai-local-runtime-main">
+          <div className="ai-local-runtime-icon"><HardDrive size={17} /></div>
+          <div className="ai-local-runtime-copy">
+            <div className="module-kicker">Local inference</div>
+            <h2>Colibrì runtime</h2>
+            <p>{localStatus?.message ?? "Checking configuration…"} </p>
+            {localStatus?.model_id && <span className="ai-local-model-id">Configured model: {localStatus.model_id}</span>}
+            {localStatusError && <span className="ai-local-runtime-error">{localStatusError}</span>}
+          </div>
+        </div>
+        <div className="ai-local-runtime-actions">
+          <span className={localStatus?.status === "model_listed_not_inference_verified" ? "ai-local-runtime-status configured" : "ai-local-runtime-status"}>
+            {localStatus?.status?.replaceAll("_", " ") ?? "loading"}
+          </span>
+          <button type="button" className="secondary-module-button" onClick={() => void loadLocalStatus(true)} disabled={localStatusLoading}>
+            <RefreshCw size={12} className={localStatusLoading ? "spin" : ""} />
+            {localStatusLoading ? "Checking…" : "Probe local server"}
+          </button>
+        </div>
+        <div className="ai-local-runtime-footnote">The probe checks the loopback server's model list only. It does not prove generation; use scripts/smoke_local_model.py to test a real response through FinAI with offline mode enabled.</div>
+      </section>
 
       <div className="ai-route-workspace">
         <section className="workspace-panel">

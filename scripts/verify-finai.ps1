@@ -1,12 +1,23 @@
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $frontendRoot = Join-Path $repoRoot "frontend"
+$npmCommand = Get-Command npm.cmd -ErrorAction SilentlyContinue
+if ($null -eq $npmCommand) { $npmCommand = Get-Command npm -ErrorAction SilentlyContinue }
+if ($null -eq $npmCommand) { throw "npm was not found on PATH. Install Node.js LTS and reopen the shell." }
+$npm = $npmCommand.Source
 $venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
 
 if (Test-Path $venvPython) {
     $python = $venvPython
 } else {
     $python = "python"
+}
+
+# The integrated acceptance runner can select a free loopback port when the default is occupied.
+$apiBaseUrl = if (-not [string]::IsNullOrWhiteSpace($env:FINAI_API_BASE_URL)) {
+    $env:FINAI_API_BASE_URL.TrimEnd("/")
+} else {
+    "http://127.0.0.1:8000"
 }
 
 Push-Location $repoRoot
@@ -24,19 +35,19 @@ try {
     Write-Host "[2/4] Frontend dependency install" -ForegroundColor Yellow
     Push-Location $frontendRoot
     try {
-        npm ci
+        & $npm ci
         if ($LASTEXITCODE -ne 0) {
             throw "Frontend npm ci FAILED."
         }
 
         Write-Host "[3/4] Frontend production build" -ForegroundColor Yellow
-        npm run build
+        & $npm run build
         if ($LASTEXITCODE -ne 0) {
             throw "Frontend production build FAILED."
         }
 
         Write-Host "[4/4] Frontend lint" -ForegroundColor Yellow
-        npm run lint
+        & $npm run lint
         if ($LASTEXITCODE -ne 0) {
             throw "Frontend lint FAILED."
         }
@@ -52,12 +63,12 @@ try {
             $apiHeaders["Authorization"] = "Bearer $($env:FINAI_API_BEARER_TOKEN)"
         }
         try {
-            $health = Invoke-RestMethod -Uri "http://127.0.0.1:8000/health" -Method Get -Headers $apiHeaders
+            $health = Invoke-RestMethod -Uri "$apiBaseUrl/health" -Method Get -Headers $apiHeaders
             if ($health.status -ne "ok") {
                 throw "FinAI /health did not return status=ok"
             }
 
-            $apiInfo = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1" -Method Get -Headers $apiHeaders
+            $apiInfo = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1" -Method Get -Headers $apiHeaders
             if ($apiInfo.endpoints.brain_status -ne "/api/v1/system/brain-status") {
                 throw "FinAI API info does not advertise the Brain status endpoint"
             }
@@ -65,7 +76,7 @@ try {
                 throw "FinAI API info has an invalid XAI endpoint"
             }
 
-            $models = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/models" -Method Get -Headers $apiHeaders
+            $models = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/models" -Method Get -Headers $apiHeaders
             if ($null -eq $models.models -or $models.models.Count -lt 1) {
                 throw "Model registry endpoint returned no model definitions"
             }
@@ -77,7 +88,7 @@ try {
                 }
             }
 
-            $brain = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/system/brain-status" -Method Get -Headers $apiHeaders
+            $brain = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/system/brain-status" -Method Get -Headers $apiHeaders
             if ($brain.status -ne "diagnostic") {
                 throw "FinAI Brain status endpoint returned an unexpected status"
             }
@@ -88,7 +99,40 @@ try {
                 throw "Brain diagnostics must never expose the API bearer token"
             }
 
-            $research = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/causal-risk/research-status" -Method Get -Headers $apiHeaders
+            # Configuration-only local-model diagnostic: this must never probe a server.
+            $localModel = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/system/local-model-status" -Method Get -Headers $apiHeaders
+            if ($localModel.probe_requested -ne $false -or $localModel.reachable -ne $false) {
+                throw "Default local-model status unexpectedly performed a network probe or claimed reachability"
+            }
+            if ($localModel.status -notin @("unconfigured", "configured_not_probed", "invalid_configuration")) {
+                throw "Local-model diagnostic returned an unexpected configuration-only status: $($localModel.status)"
+            }
+
+            # Retrieval Lab compare mode is local-only and must return a graceful result
+            # for both engines, whether approved RAG artifacts are present or absent.
+            $retrievalBody = @{
+                query = "budget planning"
+                mode = "compare"
+                top_k = 3
+            } | ConvertTo-Json -Compress
+            $retrieval = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/retrieval-lab/search" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $retrievalBody
+            if ($retrieval.mode -ne "compare" -or $null -eq $retrieval.results_by_mode) {
+                throw "Retrieval Lab compare endpoint returned an invalid response shape"
+            }
+            foreach ($retrievalMode in @("vectorless", "hybrid")) {
+                $modeResult = $retrieval.results_by_mode.$retrievalMode
+                if ($null -eq $modeResult -or $modeResult.mode -ne $retrievalMode) {
+                    throw "Retrieval Lab did not return the expected $retrievalMode result"
+                }
+                if ($modeResult.status -notin @("available", "unavailable", "error")) {
+                    throw "Retrieval Lab $retrievalMode returned an undocumented status: $($modeResult.status)"
+                }
+                if ([int]$modeResult.result_count -lt 0) {
+                    throw "Retrieval Lab $retrievalMode returned an invalid result count"
+                }
+            }
+
+            $research = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/causal-risk/research-status" -Method Get -Headers $apiHeaders
             if ($research.status -ne "FINAI_RESEARCH_STACK") {
                 throw "Research status endpoint returned an unexpected status"
             }
@@ -102,9 +146,60 @@ try {
                 throw "Multimodal encoder capability is missing from research status"
             }
 
-            $architecture = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/causal-risk/architecture" -Method Get -Headers $apiHeaders
+            $architecture = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/causal-risk/architecture" -Method Get -Headers $apiHeaders
             if ($architecture.status -ne "architecture_implemented") {
                 throw "Causal architecture endpoint returned an unexpected status"
+            }
+
+            $swarmtrade = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/swarmtrade/status" -Method Get -Headers $apiHeaders
+            if ($swarmtrade.status -ne "available" -or $swarmtrade.max_logical_agents -ne 500) {
+                throw "SwarmTrade status endpoint returned an unexpected response"
+            }
+            if ($swarmtrade.live_order_execution -ne $false) {
+                throw "SwarmTrade status must explicitly disable live order execution"
+            }
+
+            $swarmPlanBody = @{
+                symbol = "FINAI-SMOKE"
+                asset_class = "equity"
+                side = "auto"
+                entry_price = 100
+                stop_price = 95
+                target_price = 112
+                capital = 100000
+                risk_pct = 0.5
+                max_leverage = 2
+                margin_rate = 0.1
+                fee_bps = 5
+                slippage_bps = 5
+                agent_count = 500
+                signals = @{
+                    trend = 0.9
+                    momentum = 0.8
+                    mean_reversion = 0.1
+                    breakout = 0.8
+                    sentiment = 0.7
+                }
+            } | ConvertTo-Json -Depth 6 -Compress
+            $swarmPlan = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/swarmtrade/plan" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $swarmPlanBody
+            if ($swarmPlan.status -ne "APPROVED_FOR_SIMULATION") {
+                throw "Synthetic SwarmTrade plan did not pass expected risk gates: $($swarmPlan.reason)"
+            }
+            if ($swarmPlan.agent_count -ne 500 -or $swarmPlan.execution.order_submitted -ne $false -or $swarmPlan.execution.fill_claimed -ne $false) {
+                throw "SwarmTrade simulation smoke request violated an execution boundary"
+            }
+            if ($swarmPlan.risk.effective_risk_pct -gt 1.0 -or $swarmPlan.risk.estimated_total_risk -gt $swarmPlan.risk.risk_budget) {
+                throw "SwarmTrade simulation smoke request violated position risk limits"
+            }
+
+            $researchControl = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/causal-risk/research-control/status" -Method Get -Headers $apiHeaders
+            if ($researchControl.status -ne "available" -or $researchControl.can_authorize_trades -ne $false) {
+                throw "Research control endpoint returned an unexpected response or trade boundary"
+            }
+
+            $paperLedger = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/swarmtrade/paper/status" -Method Get -Headers $apiHeaders
+            if ($paperLedger.mode -ne "persistent_paper_trading_only" -or $paperLedger.real_orders_supported -ne $false) {
+                throw "Paper ledger status did not confirm simulation-only operation"
             }
 
             # Exercise a real request path without requiring cloud credentials or model inference.
@@ -114,7 +209,7 @@ try {
                 message = "How much is my account balance?"
                 generate_response = $false
             } | ConvertTo-Json -Compress
-            $chat = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/chat" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $chatBody
+            $chat = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/chat" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $chatBody
             if ($chat.session_id -ne $sessionId) {
                 throw "Chat endpoint did not preserve the supplied smoke-test session ID"
             }
@@ -125,7 +220,7 @@ try {
                 throw "Chat smoke request did not return a trace ID"
             }
 
-            $xai = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/xai/traces" -Method Get -Headers $apiHeaders
+            $xai = Invoke-RestMethod -Uri "$apiBaseUrl/api/v1/xai/traces" -Method Get -Headers $apiHeaders
             if ($null -eq $xai.traces -or $null -eq $xai.count) {
                 throw "XAI traces endpoint returned an unexpected response shape"
             }
@@ -168,9 +263,21 @@ try {
         throw "Patent mechanism benchmark failed."
     }
 
+    Write-Host "Running expanded research pruning stress suite..." -ForegroundColor Yellow
+    & $python benchmarks/research_stress_suite.py
+    if ($LASTEXITCODE -ne 0) {
+        throw "Expanded research pruning stress suite failed."
+    }
+
     & $python benchmarks/counterfactual_screening_benchmark.py
     if ($LASTEXITCODE -ne 0) {
         throw "Counterfactual screening benchmark failed."
+    }
+
+    Write-Host "Running seeded SwarmTrade safety benchmark..." -ForegroundColor Yellow
+    & $python benchmarks/swarmtrade_safety_benchmark.py --output swarmtrade-safety-benchmark.json --cases 500
+    if ($LASTEXITCODE -ne 0) {
+        throw "SwarmTrade safety benchmark failed."
     }
 
     Write-Host "=== Verification complete ===" -ForegroundColor Green

@@ -22,6 +22,15 @@ if _REPOSITORY_ROOT not in sys.path:
     sys.path.insert(0, _REPOSITORY_ROOT)
 
 
+def load_project_env(root: Path = Path(_REPOSITORY_ROOT)) -> bool:
+    """Load local .env values for CLI runs without overriding shell/CI secrets."""
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return False
+    return bool(load_dotenv(dotenv_path=Path(root) / ".env", override=False))
+
+
 PROVIDER_ENV = {
     "openai": "OPENAI_API_KEY",
     "gemini": "GEMINI_API_KEY",
@@ -62,6 +71,8 @@ def main() -> int:
         help="Provider to inspect or smoke-test (default: all).",
     )
     args = parser.parse_args()
+    # Local developer convenience: never override explicit shell/CI environment values.
+    load_project_env()
 
     network_mode = os.getenv("FINAI_NETWORK_MODE", "online").strip().lower()
     sensitivity = os.getenv("FINAI_DATA_SENSITIVITY", "standard").strip().lower()
@@ -145,11 +156,21 @@ def main() -> int:
                 }
             )
 
+    no_live_attempt_reason = None
+    if args.live and attempted == 0:
+        failures += 1
+        no_live_attempt_reason = (
+            "Live mode was requested, but no provider request was attempted. "
+            "Configure at least one provider key and ensure online mode, data sensitivity, "
+            "and the provider allowlist permit that provider."
+        )
+
     print(json.dumps({
         "mode": "live" if args.live else "configuration_only",
         "network_mode": network_mode,
         "data_sensitivity": sensitivity,
         "attempted_live_requests": attempted,
+        "live_attempt_error": no_live_attempt_reason,
         "results": results,
         "note": (
             "Live requests use a synthetic prompt and may incur charges. "

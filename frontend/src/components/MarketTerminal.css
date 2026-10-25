@@ -174,8 +174,9 @@
 }
 
 .chart-wrap {
-  height:260px;
-  overflow:hidden;
+  height:auto;
+  min-height:260px;
+  overflow:visible;
   border-radius:11px;
   background:
     linear-gradient(to right, rgba(116,141,180,.06) 1px, transparent 1px),
@@ -183,7 +184,8 @@
   background-size:25% 25%;
 }
 
-.chart-wrap svg { width:100%; height:100%; color:#6f94ff; }
+.chart-wrap svg { width:auto; height:auto; color:#6f94ff; }
+.chart-wrap .candle-scroll>svg { min-width:720px; height:340px; }
 .chart-line-positive { stroke:#69d8c1; }
 .chart-line-negative { stroke:#e27a86; }
 .chart-empty { height:100%; display:grid; place-items:center; color:#586980; font-size:11px; }
@@ -303,3 +305,81 @@
 .trade-tool-disclaimer{margin:10px 0 0;color:#667a92;font-size:8px;line-height:1.5}
 @media(max-width:720px){.trade-tools-grid{grid-template-columns:1fr}.trade-position-card{grid-column:auto}.trade-calculator-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){.trade-position-result{grid-template-columns:1fr}.trade-tools{padding:11px}.trade-tool-card{padding:10px}}
+
+
+/* Historical-only SMA crossover lab; no broker execution is wired to this panel. */
+.strategy-lab{margin-top:14px;padding:16px;border:1px solid rgba(146,174,208,.12);border-radius:17px;background:linear-gradient(145deg,rgba(13,25,41,.86),rgba(7,15,26,.82));min-width:0}
+.strategy-lab-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:13px}
+.strategy-lab-kicker{display:flex;align-items:center;gap:6px;color:#8ba6e9;font-size:8px;font-weight:900;letter-spacing:.12em}
+.strategy-lab-heading h3{margin:5px 0;color:#e4edf9;font-size:15px}
+.strategy-lab-heading p{margin:0;color:#71849d;font-size:9px}
+.strategy-lab-data{display:flex;align-items:center;gap:5px;padding:6px 8px;border:1px solid rgba(146,174,208,.12);border-radius:8px;color:#91a5bf;font-size:9px;white-space:nowrap}
+.strategy-lab-controls{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.strategy-lab-controls label{display:grid;align-content:start;gap:5px;color:#7f92aa;font-size:9px}
+.strategy-lab-controls input{width:100%;min-width:0;box-sizing:border-box;border:1px solid rgba(146,174,208,.15);border-radius:8px;padding:8px;background:rgba(5,12,22,.76);color:#e4edf9;font-size:10px}
+.strategy-lab-controls input:focus{outline:1px solid rgba(100,143,245,.62)}
+.strategy-lab-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.strategy-lab-metrics>div{display:grid;gap:5px;min-width:0;padding:10px;border:1px solid rgba(146,174,208,.09);border-radius:10px;background:rgba(76,108,170,.06)}
+.strategy-lab-metrics span{color:#778ba5;font-size:8px}
+.strategy-lab-metrics strong{font-size:12px;color:#dce7f7;overflow-wrap:anywhere}
+.strategy-lab-trades{margin-top:13px}
+.strategy-lab-trades-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px;color:#cbd8ea;font-size:10px}
+.strategy-lab-trades-heading span{color:#687d98;font-size:8px}
+.strategy-lab-table-wrap{overflow-x:auto;border:1px solid rgba(146,174,208,.08);border-radius:9px}
+.strategy-lab-table-wrap table{width:100%;border-collapse:collapse;min-width:570px}
+.strategy-lab-table-wrap th,.strategy-lab-table-wrap td{padding:8px 9px;text-align:left;border-bottom:1px solid rgba(146,174,208,.07);font-size:9px;white-space:nowrap}
+.strategy-lab-table-wrap th{background:rgba(80,108,157,.08);color:#7e91ab;font-weight:800}
+.strategy-lab-table-wrap td{color:#b5c3d6}
+.strategy-lab-trades p{color:#778ba5;font-size:9px}
+.strategy-lab-error{margin-top:12px;padding:10px;border:1px solid rgba(226,122,134,.2);border-radius:9px;background:rgba(119,40,52,.1);color:#e6a4ad;font-size:10px}
+.strategy-lab-disclaimer{margin:12px 0 0;color:#6f829a;font-size:8px;line-height:1.55}
+@media(max-width:900px){.strategy-lab-controls{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.strategy-lab{padding:11px}.strategy-lab-heading{flex-direction:column}.strategy-lab-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.strategy-lab-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.strategy-lab-equity{margin-top:13px;padding:10px;border:1px solid rgba(146,174,208,.08);border-radius:10px;background:rgba(4,11,20,.3)}
+.strategy-lab-equity svg{display:block;width:100%;height:155px;overflow:visible}
+.strategy-equity-grid{stroke:rgba(126,151,190,.13);stroke-width:1;vector-effect:non-scaling-stroke}
+.strategy-equity-line{stroke:#79b8ff;stroke-width:2;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round}
+
+.market-provider-note{margin:9px 0;padding:10px 12px;border:1px solid rgba(131,167,222,.16);border-radius:10px;background:rgba(47,80,134,.08);color:#9bb0c9;font-size:9px;line-height:1.55}
+.provider-control-group select{width:100%;min-height:32px;padding:6px 9px;border:1px solid rgba(146,174,208,.15);border-radius:8px;background:#091523;color:#dce7f7;font-size:10px}
+.provider-control-group{min-width:155px}
+@media(max-width:600px){.provider-control-group{min-width:100%}}
+
+/* SwarmTrade: deterministic logical-agent planning and risk review */
+.swarmtrade-panel{margin-top:16px;padding:17px;border:1px solid rgba(105,150,205,.2);border-radius:15px;background:linear-gradient(145deg,rgba(10,24,40,.94),rgba(6,15,27,.98));color:#e2ecfa}
+.swarmtrade-heading{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+.swarmtrade-title-icon{display:grid;place-items:center;width:37px;height:37px;border:1px solid rgba(96,165,250,.27);border-radius:11px;color:#83bdff;background:rgba(54,111,180,.12);flex:0 0 auto}
+.swarmtrade-heading h3{margin:0;font-size:14px;font-weight:750;letter-spacing:.01em}
+.swarmtrade-heading p{margin:4px 0 0;color:#94a9c3;font-size:10px;line-height:1.5}
+.swarmtrade-mode{margin-left:auto;align-self:flex-start;padding:5px 7px;border:1px solid rgba(245,179,78,.26);border-radius:7px;background:rgba(161,98,7,.1);color:#f2c477;font-size:8px;font-weight:800;letter-spacing:.07em;white-space:nowrap}
+.swarmtrade-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.swarmtrade-fields label{display:flex;flex-direction:column;gap:5px;min-width:0;color:#9eb2cb;font-size:9px;font-weight:600;text-transform:capitalize}
+.swarmtrade-fields input,.swarmtrade-fields select{width:100%;min-width:0;box-sizing:border-box;min-height:34px;padding:7px 9px;border:1px solid rgba(134,165,206,.18);border-radius:8px;background:#071321;color:#ecf4ff;font-size:11px;outline:none}
+.swarmtrade-fields input:focus,.swarmtrade-fields select:focus{border-color:rgba(107,177,255,.68);box-shadow:0 0 0 2px rgba(59,130,246,.12)}
+.swarmtrade-signal-block{margin-top:13px;padding:12px;border:1px solid rgba(128,161,204,.13);border-radius:10px;background:rgba(4,12,22,.28)}
+.swarmtrade-signal-block>strong{display:block;margin-bottom:10px;font-size:10px;color:#cfddf0}
+.swarmtrade-signal-block small{font-size:9px;font-weight:400;color:#8399b5}
+.swarmtrade-signal-fields{grid-template-columns:repeat(5,minmax(0,1fr))}
+.swarmtrade-caveat{margin:12px 0;color:#91a8c4;font-size:9px;line-height:1.6}
+.swarmtrade-submit{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:9px 13px;border:1px solid rgba(94,157,238,.4);border-radius:9px;background:rgba(44,111,196,.2);color:#e8f3ff;font-size:10px;font-weight:750;cursor:pointer}
+.swarmtrade-submit:hover:not(:disabled){background:rgba(44,111,196,.32)}
+.swarmtrade-submit:disabled{opacity:.55;cursor:wait}
+.swarmtrade-spin{animation:swarmtrade-spin 1s linear infinite}
+@keyframes swarmtrade-spin{to{transform:rotate(360deg)}}
+.swarmtrade-result{display:flex;align-items:flex-start;gap:10px;margin-top:14px;padding:12px;border:1px solid rgba(143,170,206,.17);border-radius:10px;background:rgba(3,10,18,.4);font-size:10px}
+.swarmtrade-approved{border-color:rgba(63,180,139,.3);color:#91e3c2}
+.swarmtrade-rejected,.swarmtrade-error{border-color:rgba(238,133,115,.27);color:#f5b4a7}
+.swarmtrade-result-body{flex:1;min-width:0}
+.swarmtrade-result-title{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.swarmtrade-result-title strong{font-size:10px;letter-spacing:.04em}
+.swarmtrade-result-title span{font-size:9px;color:#9eb2cb}
+.swarmtrade-result-body>p{margin:7px 0;color:#c2d0e2;line-height:1.55}
+.swarmtrade-result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:10px}
+.swarmtrade-result-grid>div{display:flex;flex-direction:column;gap:5px;padding:9px;border:1px solid rgba(127,157,198,.12);border-radius:7px;background:rgba(17,32,51,.52);min-width:0}
+.swarmtrade-result-grid span{font-size:8px;color:#91a7c1}
+.swarmtrade-result-grid strong{font-size:11px;color:#edf5ff;overflow-wrap:anywhere}
+.swarmtrade-execution-label{margin-top:10px;color:#c4ad7a;font-size:9px}
+.swarmtrade-warning{margin:7px 0 0!important;color:#8ea3bc!important;font-size:9px}
+@media(max-width:850px){.swarmtrade-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.swarmtrade-signal-fields{grid-template-columns:repeat(3,minmax(0,1fr))}.swarmtrade-result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.swarmtrade-panel{padding:12px}.swarmtrade-heading{align-items:flex-start;flex-wrap:wrap}.swarmtrade-mode{font-size:7px}.swarmtrade-fields,.swarmtrade-signal-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.swarmtrade-result-title{align-items:flex-start;flex-direction:column}}
