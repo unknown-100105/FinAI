@@ -28,6 +28,13 @@ class RetrievalSearchRequest(BaseModel):
 
 def _get_vectorless() -> VectorlessRetriever:
     global _vectorless
+    # sqlite3.connect creates a new empty database when the path is absent.
+    # Fail closed before constructing the retriever so a diagnostic API request
+    # cannot manufacture a misleading, unusable "RAG database" in the checkout.
+    if not DB_PATH.is_file():
+        raise FileNotFoundError(
+            "Vectorless RAG database is unavailable; build data/rag/finai_rag.db first."
+        )
     if _vectorless is None or _vectorless.db_path != DB_PATH:
         _vectorless = VectorlessRetriever(DB_PATH)
     return _vectorless
