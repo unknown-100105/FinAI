@@ -212,3 +212,19 @@ The previously added `causal_risk/finai_control_plane.py` was found to be
 unreferenced by the PR diff and has been removed to avoid maintaining two
 overlapping research control-plane implementations. The retained
 `causal_risk/research_control_plane.py` is explicitly research-only.
+
+
+## Integration and verification status
+
+For the runtime/trading integration branch, see
+[docs/REMEDIATION_AND_ACCEPTANCE.md](docs/REMEDIATION_AND_ACCEPTANCE.md).
+The shared bearer middleware is not a substitute for user identity and per-account
+authorization. The demo session flow is not bank/customer identity verification.
+CORS production defaults now deny browser origins unless
+`FINAI_CORS_ALLOW_ORIGINS` is explicitly configured.
+
+Do not mark the integration complete until the full regression suite, frontend
+build/lint, local API smoke checks, and deterministic benchmarks have actually
+run and their logs have been reviewed. The latest recorded CI failure had no
+assigned runner and no steps, so it is not evidence of passing or failing
+application tests. CI repair is tracked separately.
