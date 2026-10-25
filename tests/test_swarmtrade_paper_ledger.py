@@ -293,3 +293,40 @@ def test_paper_ledger_persists_account_across_instances(tmp_path):
     assert reloaded["initial_capital"] == 25000
     assert reloaded["realized_pnl"] == 0
     assert reloaded["open_position_count"] == 0
+
+def test_paper_ledger_reloads_position_history_after_new_instance(monkeypatch, tmp_path):
+    monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
+    db_path = tmp_path / "restart-workflow.sqlite3"
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(db_path))
+    account = client.post(
+        "/api/v1/swarmtrade/paper/accounts",
+        json={"label": "Restart workflow", "currency": "USD", "initial_capital": 100000},
+    )
+    assert account.status_code == 200, account.text
+    account_id = account.json()["account_id"]
+    opened = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+        json={
+            "idempotency_key": "restart-open",
+            "acknowledge_simulation_only": True,
+            "quote_currency": "USD",
+            "plan": approved_plan_request(),
+        },
+    )
+    assert opened.status_code == 200, opened.text
+    position_id = opened.json()["position_id"]
+    closed = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions/{position_id}/close",
+        json={"idempotency_key": "restart-close", "exit_price": 115, "reason": "target"},
+    )
+    assert closed.status_code == 200, closed.text
+
+    # A new ledger object simulates a process restart against the same SQLite file.
+    restarted = PaperLedger(db_path)
+    account_after_restart = restarted.get_account(account_id)
+    history_after_restart = restarted.list_positions(account_id, status="closed")
+    assert account_after_restart["open_position_count"] == 0
+    assert account_after_restart["realized_pnl"] == closed.json()["net_pnl"]
+    assert history_after_restart["count"] == 1
+    assert history_after_restart["positions"][0]["position_id"] == position_id
+    assert history_after_restart["positions"][0]["status"] == "CLOSED"
