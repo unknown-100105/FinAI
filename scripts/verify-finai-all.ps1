@@ -143,7 +143,7 @@ try {
                 throw "Vite dev server exited during startup. Logs: $frontendStdoutPath ; $frontendStderrPath. $tail"
             }
             try {
-                $frontendResponse = Invoke-WebRequest -Uri "http://127.0.0.1:$frontendPort/" -Method Get -TimeoutSec 2
+                $frontendResponse = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:$frontendPort/" -Method Get -TimeoutSec 2
                 if ([int]$frontendResponse.StatusCode -eq 200) { $frontendHealthy = $true; break }
             } catch { Start-Sleep -Seconds 1 }
         }
