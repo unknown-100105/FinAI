@@ -20,6 +20,12 @@ router = APIRouter(prefix="/api/v1/swarmtrade/paper", tags=["swarmtrade-paper"])
 
 
 def _enabled() -> bool:
+    # The ledger has no authenticated per-user ownership boundary yet. A shared
+    # bearer token is not tenant isolation, so never expose shared paper accounts
+    # in production until account ownership and authorization are implemented.
+    environment = os.getenv("FINAI_ENV", "development").strip().casefold()
+    if environment in {"production", "prod"}:
+        return False
     return os.getenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
