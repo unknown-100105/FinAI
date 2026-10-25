@@ -115,6 +115,35 @@ Until all gates are signed off, the system must remain in research/paper mode an
 
 Do not accept profitability claims from agent consensus or in-sample backtests. Record net returns after costs, volatility, maximum drawdown, tail loss, turnover, exposure, capacity, rejected/partial orders, and operational failures. Use chronological splits, walk-forward validation, untouched holdout periods, multiple market regimes, and simple baselines. Correct for repeated strategy search and selection bias. Retire or disable agents that do not add reproducible out-of-sample value.
 
+
+## Broker selection for a multi-market rollout
+
+No single provider should be assumed to cover every exchange, instrument, and account jurisdiction. Start with provider adapters that are explicitly enabled per account and market.
+
+| Rollout need | Candidate | Why it is worth evaluating | Caveat |
+|---|---|---|---|
+| Global equities, options, futures, FX | Interactive Brokers (IBKR) | Its official API pages describe stocks, options, futures, currencies, bonds and access to multiple global markets. | Account eligibility, country restrictions, product permissions, market-data subscriptions, API product onboarding and venue-specific rules still need verification. |
+| India-first development and sandbox validation | Upstox API | Official developer docs expose order lifecycle APIs, account/portfolio endpoints and a sandbox for place/modify/cancel order testing. | Treat it as an India adapter; do not assume it routes orders to foreign exchanges or supports every product/account type. |
+| India alternative | Zerodha Kite Connect | Official docs describe order APIs, portfolio management and WebSocket market data for supported products. | Its FAQ says it does not provide a sandbox; use paper-mode adapter tests and carefully scoped live-account validation only after approval. |
+
+Official provider references:
+- IBKR API overview: https://www.interactivebrokers.com/en/trading/ib-api.php
+- Upstox developer API and sandbox: https://upstox.com/developer/api-documentation
+- Kite Connect API: https://kite.trade/docs/connect/v3/
+- Kite Connect product/plan information: https://www.zerodha.com/products/api/
+
+These are candidates, not endorsements or guarantees of account eligibility. Re-check the provider's current official terms and supported contract/venue metadata before implementation. Do not share broker passwords or API secrets with FinAI prompts or source control.
+
+## India-specific automated-trading compliance gate
+
+Before routing automated orders for Indian exchange products, review the current SEBI retail algorithmic-trading circular and the relevant exchange implementation standards with the chosen broker. The applicable framework may impose broker onboarding, API authentication, static-IP, tagging/registration, order-rate, logging, or other requirements depending on the trading arrangement and strategy. Do not infer that an API key alone authorizes a live autonomous strategy.
+
+References:
+- SEBI circular, “Safer participation of retail investors in Algorithmic trading” (4 February 2025): https://www.sebi.gov.in/legal/circulars/feb-2025/safer-participation-of-retail-investors-in-algorithmic-trading_91614.html
+- NSE implementation standards: https://nsearchives.nseindia.com/content/circulars/INVG67858.pdf
+
+Compliance is a launch gate, not a runtime warning to ignore. The platform must refuse live activation until the broker confirms the specific account, instruments, API configuration, and algorithmic-trading arrangement are eligible.
+
 ## Incremental implementation plan
 
 1. Inventory the existing SwarmTrade planner, API schemas, paper ledger, risk checks, market-data adapters, and frontend.
