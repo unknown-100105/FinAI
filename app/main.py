@@ -38,6 +38,7 @@ from app.retrieval_lab_api import router as retrieval_lab_router
 from app.research_control_api import router as research_control_router
 from app.swarmtrade_api import router as swarmtrade_router
 from app.swarmtrade_paper_api import router as swarmtrade_paper_router
+from app.swarmtrade_agent_mesh_api import router as swarmtrade_agent_mesh_router
 
 
 APP_VERSION = "0.1.0"
@@ -108,6 +109,7 @@ app.include_router(retrieval_lab_router)
 app.include_router(research_control_router)
 app.include_router(swarmtrade_router)
 app.include_router(swarmtrade_paper_router)
+app.include_router(swarmtrade_agent_mesh_router)
 
 # Experimental patent-mechanism endpoints remain disabled unless explicitly opted in.
 if os.getenv("FINAI_ENABLE_RESEARCH_PATENT_ENDPOINTS", "").strip().casefold() in {
