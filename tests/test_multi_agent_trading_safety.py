@@ -91,6 +91,18 @@ def test_agent_confidence_must_be_finite_and_bounded():
             asset_class=AssetClass.EQUITY, timeframe="1d", thesis="neutral",
             confidence=1.1, evidence=[evidence()],
         )
+    with pytest.raises(ValueError):
+        AgentFinding.create(
+            agent_id="agent", role="research", instrument_id="TEST",
+            asset_class=AssetClass.EQUITY, timeframe="1d", thesis="neutral",
+            confidence="not-a-number", evidence=[evidence()],
+        )
+    with pytest.raises(ValueError):
+        AgentFinding.create(
+            agent_id="agent", role="research", instrument_id="TEST",
+            asset_class=AssetClass.EQUITY, timeframe="1d", thesis="neutral",
+            confidence=True, evidence=[evidence()],
+        )
 
 
 def test_candidate_is_approved_for_simulation_when_all_checks_pass():
