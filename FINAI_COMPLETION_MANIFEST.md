@@ -218,6 +218,14 @@ overlapping research control-plane implementations. The retained
 
 For the runtime/trading integration branch, see
 [docs/REMEDIATION_AND_ACCEPTANCE.md](docs/REMEDIATION_AND_ACCEPTANCE.md).
+
+For the consolidated Windows local verification pass, use
+[scripts/verify-finai-all.ps1](scripts/verify-finai-all.ps1) and
+[docs/FINAL_INTEGRATION_RUNBOOK.md](docs/FINAL_INTEGRATION_RUNBOOK.md). The
+runner is a verification tool, not evidence that its checks have already run.
+It deliberately reports local model, RAG data/index, provider reachability,
+browser acceptance, causal evaluation, and live-broker integration as separate
+environment-specific acceptance requirements. No CI configuration is changed.
 The shared bearer middleware is not a substitute for user identity and per-account
 authorization. The demo session flow is not bank/customer identity verification.
 CORS production defaults now deny browser origins unless
