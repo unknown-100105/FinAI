@@ -27,7 +27,9 @@ $timestamp = [DateTime]::UtcNow.ToString("yyyyMMdd-HHmmss-fff")
 $logDir = Join-Path $repoRoot "logs"
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 $apiLog = Join-Path $logDir "finai-dev-api-$timestamp.log"
+$apiErrorLog = Join-Path $logDir "finai-dev-api-error-$timestamp.log"
 $frontendLog = Join-Path $logDir "finai-dev-frontend-$timestamp.log"
+$frontendErrorLog = Join-Path $logDir "finai-dev-frontend-error-$timestamp.log"
 $apiProcess = $null
 $frontendProcess = $null
 $envNames = @("FINAI_LIVE_TRADING_ENABLED", "FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "FINAI_SWARMTRADE_PAPER_DB")
@@ -62,12 +64,12 @@ try {
     Push-Location $repoRoot
     try {
         Write-Host "Starting FinAI API on http://127.0.0.1:$apiPort ..." -ForegroundColor Cyan
-        $apiProcess = Start-Process -FilePath $python -ArgumentList "-m uvicorn app.main:app --host 127.0.0.1 --port $apiPort" -WorkingDirectory $repoRoot -PassThru -NoNewWindow -RedirectStandardOutput $apiLog -RedirectStandardError $apiLog
+        $apiProcess = Start-Process -FilePath $python -ArgumentList "-m uvicorn app.main:app --host 127.0.0.1 --port $apiPort" -WorkingDirectory $repoRoot -PassThru -NoNewWindow -RedirectStandardOutput $apiLog -RedirectStandardError $apiErrorLog
 
         $apiHealthy = $false
         for ($attempt = 0; $attempt -lt 45; $attempt++) {
             $apiProcess.Refresh()
-            if ($apiProcess.HasExited) { throw "FinAI API exited during startup. Inspect $apiLog" }
+            if ($apiProcess.HasExited) { throw "FinAI API exited during startup. Inspect $apiLog and $apiErrorLog" }
             try {
                 $health = Invoke-RestMethod -Uri "http://127.0.0.1:$apiPort/health" -Method Get -TimeoutSec 2
                 if ($health.status -eq "ok") { $apiHealthy = $true; break }
@@ -76,19 +78,19 @@ try {
         if (-not $apiHealthy) { throw "FinAI API did not become healthy within 45 seconds. Inspect $apiLog" }
 
         Write-Host "Starting Vite frontend on http://127.0.0.1:$frontendPort ..." -ForegroundColor Cyan
-        $frontendProcess = Start-Process -FilePath $npm -ArgumentList "run dev -- --host 127.0.0.1 --port $frontendPort --strictPort" -WorkingDirectory $frontendRoot -PassThru -NoNewWindow -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendLog
+        $frontendProcess = Start-Process -FilePath $npm -ArgumentList "run dev -- --host 127.0.0.1 --port $frontendPort --strictPort" -WorkingDirectory $frontendRoot -PassThru -NoNewWindow -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErrorLog
 
         Start-Sleep -Seconds 3
         $frontendProcess.Refresh()
-        if ($frontendProcess.HasExited) { throw "Vite frontend exited during startup. Inspect $frontendLog" }
+        if ($frontendProcess.HasExited) { throw "Vite frontend exited during startup. Inspect $frontendLog and $frontendErrorLog" }
 
         Write-Host ""
         Write-Host "FinAI development services started." -ForegroundColor Green
         Write-Host "API:       http://127.0.0.1:$apiPort"
         Write-Host "Swagger:   http://127.0.0.1:$apiPort/docs"
         Write-Host "Frontend:  http://127.0.0.1:$frontendPort"
-        Write-Host "API log:   $apiLog"
-        Write-Host "UI log:    $frontendLog"
+        Write-Host "API logs:  $apiLog ; $apiErrorLog"
+        Write-Host "UI logs:   $frontendLog ; $frontendErrorLog"
         Write-Host "Press Ctrl+C to stop both services." -ForegroundColor Yellow
 
         while ($true) {
