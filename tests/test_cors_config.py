@@ -33,3 +33,12 @@ def test_credentialed_cors_rejects_wildcard():
             environment="production",
             configured="https://finai.example, *",
         )
+
+
+
+def test_production_cors_rejects_plain_http_origins():
+    with pytest.raises(ValueError, match="must use HTTPS"):
+        _cors_allowed_origins(
+            environment="production",
+            configured="http://finai.example",
+        )
