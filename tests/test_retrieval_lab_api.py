@@ -116,3 +116,22 @@ def test_retrieval_lab_validates_query_and_top_k():
 
     assert blank.status_code == 422
     assert too_many.status_code == 422
+
+def test_compare_mode_does_not_create_a_missing_vectorless_database(monkeypatch, tmp_path):
+    missing_db = tmp_path / "not-built-yet.db"
+    monkeypatch.setattr(retrieval_lab_api, "DB_PATH", missing_db)
+    monkeypatch.setattr(retrieval_lab_api, "FAISS_PATH", tmp_path / "missing.faiss")
+    monkeypatch.setattr(retrieval_lab_api, "DOC_IDS_PATH", tmp_path / "missing.npy")
+    monkeypatch.setattr(retrieval_lab_api, "_vectorless", None)
+    monkeypatch.setattr(retrieval_lab_api, "_hybrid", None)
+
+    response = client.post(
+        "/api/v1/retrieval-lab/search",
+        json={"query": "budget planning", "mode": "compare", "top_k": 3},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["results_by_mode"]["vectorless"]["status"] == "unavailable"
+    assert body["results_by_mode"]["hybrid"]["status"] == "unavailable"
+    assert not missing_db.exists()
