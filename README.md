@@ -27,6 +27,8 @@ See [Remediation and acceptance status](docs/REMEDIATION_AND_ACCEPTANCE.md) for 
 
 See [Multi-agent, multi-asset trading architecture](docs/MULTI_AGENT_LIVE_TRADING_ARCHITECTURE.md) for the proposed agent hierarchy, shared evidence contract, risk gates, broker-adapter design, live-mode acceptance criteria, and profitability evaluation protocol.
 
+See [Broker selection for multi-market rollout](docs/BROKER_SELECTION_MULTI_MARKET.md) for a provider shortlist, official API references, sandbox limitations, and a staged adapter rollout.
+
 ## Backend setup
 
 Create and activate a virtual environment, then install:
