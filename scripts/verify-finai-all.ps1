@@ -28,7 +28,7 @@ $frontendProcess = $null
 $stageResults = [System.Collections.Generic.List[object]]::new()
 $startedAt = [DateTime]::UtcNow.ToString("o")
 $originalEnvironment = @{}
-$environmentNames = @("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "FINAI_SWARMTRADE_PAPER_DB", "FINAI_LIVE_TRADING_ENABLED", "FINAI_SKIP_LIVE", "FINAI_RUN_LIVE_PROVIDER_SMOKE", "FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "FINAI_SWARMTRADE_PAPER_HALT_FILE", "FINAI_API_BASE_URL")
+$environmentNames = @("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "FINAI_SWARMTRADE_PAPER_DB", "FINAI_LIVE_TRADING_ENABLED", "FINAI_SKIP_LIVE", "FINAI_RUN_LIVE_PROVIDER_SMOKE", "FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "FINAI_SWARMTRADE_PAPER_HALT_FILE", "FINAI_API_BASE_URL", "FINAI_CORS_ALLOW_ORIGINS", "VITE_API_BASE_URL")
 
 New-Item -ItemType Directory -Path $runDir -Force | Out-Null
 foreach ($name in $environmentNames) { $originalEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, "Process") }
@@ -87,7 +87,12 @@ try {
         $port = Get-AvailableLoopbackPort -PreferredPort 8000
         $frontendPort = Get-AvailableLoopbackPort -PreferredPort 5173
         $baseUrl = "http://127.0.0.1:$port"
+        $frontendOrigin = "http://127.0.0.1:$frontendPort"
         [Environment]::SetEnvironmentVariable("FINAI_API_BASE_URL", $baseUrl, "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_CORS_ALLOW_ORIGINS", $frontendOrigin, "Process")
+        # Keep the production build's API URL independent of this run's ephemeral port;
+        # set VITE_API_BASE_URL only for the dev-server smoke process below.
+        [Environment]::SetEnvironmentVariable("VITE_API_BASE_URL", $null, "Process")
         Write-Host "API port: $port ; frontend port: $frontendPort"
 
         [Environment]::SetEnvironmentVariable("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1", "Process")
@@ -138,6 +143,7 @@ try {
         finally { $frontendProbe.Stop() }
         $commandProcessor = if (-not [string]::IsNullOrWhiteSpace($env:ComSpec)) { $env:ComSpec } else { Join-Path $env:SystemRoot "System32\cmd.exe" }
         $frontendRoot = Join-Path $repoRoot "frontend"
+        [Environment]::SetEnvironmentVariable("VITE_API_BASE_URL", $baseUrl, "Process")
         $frontendProcess = Start-Process -FilePath $commandProcessor -ArgumentList "/d /c npm.cmd run dev -- --host 127.0.0.1 --port $frontendPort --strictPort" -WorkingDirectory $frontendRoot -PassThru -NoNewWindow -RedirectStandardOutput $frontendStdoutPath -RedirectStandardError $frontendStderrPath
         $frontendHealthy = $false
         for ($attempt = 0; $attempt -lt 30; $attempt++) {
