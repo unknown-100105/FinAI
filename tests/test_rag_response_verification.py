@@ -60,6 +60,7 @@ def test_response_service_applies_rag_evidence_verification():
         intent="KYC_DOCUMENTS",
         verified_result=evidence(),
         source="retrieval_evidence",
+        model_id="gemini-cloud",
     )
 
     assert result["status"] == "GENERATED_VERIFIED"
