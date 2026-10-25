@@ -52,6 +52,18 @@ Every agent output should be structured and versioned, including:
 
 Agents must not treat another agent's output as verified market data. Shared findings need provenance, freshness checks, and conflict resolution. Untrusted news or tool output must never be treated as executable instructions.
 
+## Implemented research API surface
+
+The current research-only agent evidence service is exposed at:
+- `GET /api/v1/swarmtrade/agent-mesh/status`
+- `POST /api/v1/swarmtrade/agent-mesh/runs`
+- `POST /api/v1/swarmtrade/agent-mesh/runs/{run_id}/evidence`
+- `GET /api/v1/swarmtrade/agent-mesh/runs/{run_id}/summary`
+
+The SQLite evidence store retains agent role/version, claim, source IDs, source/observation timestamps, confidence, stance, invalidation conditions, and missing-data flags. It rejects unknown roles, missing provenance, invalid confidence, timezone-free/far-future timestamps, duplicate evidence IDs, unknown runs, and more than 300 evidence records per run. Summaries expose stale-evidence flags and stance counts, but explicitly do not claim calibrated probabilities or grant execution authority.
+
+This is an initial shared-evidence substrate, not yet a distributed agent runtime: it does not spawn 300 independent workers, call external LLMs, subscribe to real-time feeds, calculate a validated trading edge, or route broker orders. Those components remain separate work and require runtime tests before they can be considered operational.
+
 ## Candidate-to-order state machine
 
 `OBSERVE -> RESEARCH -> CANDIDATE -> RISK_CHECK -> APPROVAL_OR_POLICY_GATE -> SUBMITTED -> ACKNOWLEDGED -> PARTIALLY_FILLED/FILLED/REJECTED/CANCELLED -> RECONCILED`
