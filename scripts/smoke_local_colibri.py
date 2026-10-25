@@ -58,7 +58,7 @@ def main() -> int:
     # Set a bounded timeout for this test rather than trusting an arbitrarily
     # long runtime timeout configured for interactive use, then restore it.
     original_timeout = os.environ.get("FINAI_COLIBRI_TIMEOUT_SECONDS")
-    os.environ["FINAI_COLIBRI_TIMEOUT_SECONDS"] = str(args.timeout_seconds)
+    os.environ["FINAI_COLIBRI_TIMEOUT_SECONDS"] = format(args.timeout_seconds, "g")
     try:
         try:
             from llm.colibri_adapter import ColibriResponseAdapter
