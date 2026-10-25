@@ -359,3 +359,19 @@ Requirements: Python project dependencies installed, Node.js/npm available, netw
 The runner never opts into live LLM provider calls and explicitly disables live trading. It runs backend tests, frontend production build and lint, API checks, provider-configuration inspection, patent-mechanism and counterfactual benchmarks, the 500-case SwarmTrade benchmark, plus a paper-account open/replay/conflict/close/history round trip. It does not modify CI configuration.
 
 A successful local report is scoped to the exact commit and environment recorded in the JSON report. It does not establish that external provider credentials, local model weights, licensed RAG corpora, browser interactions, empirical causal claims, profitability, or live broker execution are verified. See `docs/FINAL_INTEGRATION_RUNBOOK.md` for the complete acceptance boundary.
+
+## Run backend and frontend together
+
+For local UI/browser acceptance, the helper below starts FastAPI and Vite on loopback and stops both processes when interrupted:
+
+~~~powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-finai.ps1
+~~~
+
+The paper ledger remains disabled by default. To enable only the local simulation ledger explicitly:
+
+~~~powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-finai.ps1 -EnablePaperLedger
+~~~
+
+Open the frontend at http://127.0.0.1:5173 and the API documentation at http://127.0.0.1:8000/docs. Logs are written beneath logs/ and are ignored by Git. This development helper binds to localhost and keeps live trading disabled; do not expose it to the public internet.
