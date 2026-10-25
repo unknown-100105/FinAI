@@ -13,7 +13,7 @@ git pull --ff-only
 python -m pytest -q
 ~~~
 
-At commit 30515b5, the local full suite reported 789 passed in 22.18 seconds and the deterministic SwarmTrade benchmark reported 500/500 cases passed with zero guardrail violations. These results predate subsequent test-only commits and are not a substitute for rerunning checks on the exact commit being evaluated.
+At commit 30515b5, the local full suite reported 789 passed in 22.18 seconds and the deterministic SwarmTrade benchmark reported 500/500 cases passed with zero guardrail violations. These results predate later paper entry-halt and unified verification-runner changes, and are not a substitute for rerunning checks on the exact commit being evaluated.
 
 ## 2. Start the API
 
