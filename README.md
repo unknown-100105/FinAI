@@ -334,3 +334,10 @@ The benchmark is synthetic implementation-safety testing, not evidence of invest
 A separate opt-in SQLite ledger records simulated positions and P&L. To enable it for trusted local verification, set `FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER=1` in `.env`; `FINAI_SWARMTRADE_PAPER_DB` sets the file path. It is disabled by default. The API requires explicit simulation acknowledgement, records idempotent open/close events, enforces paper-account current equity and aggregate risk limits, and never sends a live order. Account equity excludes unrealized P&L; manual exits use caller-supplied prices.
 
 See [docs/SWARMTRADE_PAPER_LEDGER.md](docs/SWARMTRADE_PAPER_LEDGER.md). Run `python -m pytest -q tests/test_swarmtrade_paper_ledger.py` for the focused tests.
+
+
+### Multi-agent research safety gate
+
+The API now also exposes `GET /api/v1/swarmtrade/safety/status` and `POST /api/v1/swarmtrade/safety/evaluate`. This deterministic gate checks candidate notional, portfolio and daily-loss bounds, leverage, spread, quote freshness, evidence presence, conflicting findings, and derivative contract-risk metadata. An approval is **simulation-only**; live execution is hard-disabled. The existing agent mesh, planner, and SQLite paper ledger remain separate capabilities.
+
+See [docs/MULTI_AGENT_LIVE_TRADING_ARCHITECTURE.md](docs/MULTI_AGENT_LIVE_TRADING_ARCHITECTURE.md), [docs/BROKER_SELECTION_MULTI_MARKET.md](docs/BROKER_SELECTION_MULTI_MARKET.md), and [docs/SWARMTRADE_SAFETY_API_QUICKSTART.md](docs/SWARMTRADE_SAFETY_API_QUICKSTART.md). Focused tests: `python -m pytest -q tests/test_multi_agent_trading_safety.py tests/test_swarmtrade_safety_api.py`.
