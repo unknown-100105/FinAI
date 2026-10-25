@@ -263,6 +263,12 @@ try {
         throw "Patent mechanism benchmark failed."
     }
 
+    Write-Host "Running expanded research pruning stress suite..." -ForegroundColor Yellow
+    & $python benchmarks/research_stress_suite.py
+    if ($LASTEXITCODE -ne 0) {
+        throw "Expanded research pruning stress suite failed."
+    }
+
     & $python benchmarks/counterfactual_screening_benchmark.py
     if ($LASTEXITCODE -ne 0) {
         throw "Counterfactual screening benchmark failed."
