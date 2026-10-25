@@ -17,7 +17,7 @@ if (Test-Path $venvPython) {
 $apiBaseUrl = if (-not [string]::IsNullOrWhiteSpace($env:FINAI_API_BASE_URL)) {
     $env:FINAI_API_BASE_URL.TrimEnd("/")
 } else {
-    "$apiBaseUrl"
+    "http://127.0.0.1:8000"
 }
 
 Push-Location $repoRoot
