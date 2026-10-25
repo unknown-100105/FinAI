@@ -92,6 +92,39 @@ try {
                 throw "Brain diagnostics must never expose the API bearer token"
             }
 
+            # Configuration-only local-model diagnostic: this must never probe a server.
+            $localModel = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/system/local-model-status" -Method Get -Headers $apiHeaders
+            if ($localModel.probe_requested -ne $false -or $localModel.reachable -ne $false) {
+                throw "Default local-model status unexpectedly performed a network probe or claimed reachability"
+            }
+            if ($localModel.status -notin @("unconfigured", "configured_not_probed", "invalid_configuration")) {
+                throw "Local-model diagnostic returned an unexpected configuration-only status: $($localModel.status)"
+            }
+
+            # Retrieval Lab compare mode is local-only and must return a graceful result
+            # for both engines, whether approved RAG artifacts are present or absent.
+            $retrievalBody = @{
+                query = "budget planning"
+                mode = "compare"
+                top_k = 3
+            } | ConvertTo-Json -Compress
+            $retrieval = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/retrieval-lab/search" -Method Post -Headers $apiHeaders -ContentType "application/json" -Body $retrievalBody
+            if ($retrieval.mode -ne "compare" -or $null -eq $retrieval.results_by_mode) {
+                throw "Retrieval Lab compare endpoint returned an invalid response shape"
+            }
+            foreach ($retrievalMode in @("vectorless", "hybrid")) {
+                $modeResult = $retrieval.results_by_mode.$retrievalMode
+                if ($null -eq $modeResult -or $modeResult.mode -ne $retrievalMode) {
+                    throw "Retrieval Lab did not return the expected $retrievalMode result"
+                }
+                if ($modeResult.status -notin @("available", "unavailable", "error")) {
+                    throw "Retrieval Lab $retrievalMode returned an undocumented status: $($modeResult.status)"
+                }
+                if ([int]$modeResult.result_count -lt 0) {
+                    throw "Retrieval Lab $retrievalMode returned an invalid result count"
+                }
+            }
+
             $research = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/causal-risk/research-status" -Method Get -Headers $apiHeaders
             if ($research.status -ne "FINAI_RESEARCH_STACK") {
                 throw "Research status endpoint returned an unexpected status"
