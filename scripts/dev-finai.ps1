@@ -81,9 +81,19 @@ try {
         $commandProcessor = if (-not [string]::IsNullOrWhiteSpace($env:ComSpec)) { $env:ComSpec } else { Join-Path $env:SystemRoot "System32\cmd.exe" }
         $frontendProcess = Start-Process -FilePath $commandProcessor -ArgumentList "/d /c npm.cmd run dev -- --host 127.0.0.1 --port $frontendPort --strictPort" -WorkingDirectory $frontendRoot -PassThru -NoNewWindow -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErrorLog
 
-        Start-Sleep -Seconds 3
-        $frontendProcess.Refresh()
-        if ($frontendProcess.HasExited) { throw "Vite frontend exited during startup. Inspect $frontendLog and $frontendErrorLog" }
+        $frontendHealthy = $false
+        for ($attempt = 0; $attempt -lt 30; $attempt++) {
+            $frontendProcess.Refresh()
+            if ($frontendProcess.HasExited) { throw "Vite frontend exited during startup. Inspect $frontendLog and $frontendErrorLog" }
+            try {
+                $frontendResponse = Invoke-WebRequest -Uri "http://127.0.0.1:$frontendPort/" -Method Get -TimeoutSec 2
+                if ([int]$frontendResponse.StatusCode -ge 200 -and [int]$frontendResponse.StatusCode -lt 500) {
+                    $frontendHealthy = $true
+                    break
+                }
+            } catch { Start-Sleep -Seconds 1 }
+        }
+        if (-not $frontendHealthy) { throw "Vite did not return an HTTP response within 30 seconds. Inspect $frontendLog and $frontendErrorLog" }
 
         Write-Host ""
         Write-Host "FinAI development services started." -ForegroundColor Green
@@ -111,7 +121,14 @@ catch {
 finally {
     foreach ($process in @($frontendProcess, $apiProcess)) {
         if ($null -ne $process) {
-            try { $process.Refresh(); if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue } } catch {}
+            try {
+                $process.Refresh()
+                if (-not $process.HasExited) {
+                    # Stop process trees so cmd.exe cannot leave npm/Node running.
+                    & taskkill.exe /PID $process.Id /T /F 2>$null | Out-Null
+                    if ($LASTEXITCODE -ne 0) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
+                }
+            } catch {}
         }
     }
     foreach ($name in $envNames) { [Environment]::SetEnvironmentVariable($name, $oldEnv[$name], "Process") }
