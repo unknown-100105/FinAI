@@ -66,8 +66,8 @@ try {
         [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_DB", (Join-Path $paperDir "paper_ledger.dev.sqlite3"), "Process")
         Write-Host "Paper ledger: ENABLED (simulation only; no live orders)" -ForegroundColor Yellow
     } else {
-        [Environment]::SetEnvironmentVariable("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", $null, "Process")
-        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_DB", $null, "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "0", "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_DB", "", "Process")
         Write-Host "Paper ledger: disabled (pass -EnablePaperLedger to opt in)" -ForegroundColor DarkYellow
     }
 
