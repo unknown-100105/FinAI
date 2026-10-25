@@ -65,6 +65,10 @@ def _cors_allowed_origins(
     if origins:
         if "*" in origins:
             raise ValueError("FINAI_CORS_ALLOW_ORIGINS must not contain '*' when credentials are enabled")
+        if env_name in {"production", "prod"} and any(
+            not origin.startswith("https://") for origin in origins
+        ):
+            raise ValueError("production FINAI_CORS_ALLOW_ORIGINS entries must use HTTPS")
         return origins
     if env_name in {"production", "prod"}:
         return []
