@@ -10,17 +10,21 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
 $python = if (Test-Path $venvPython) { $venvPython } else { "python" }
 $port = 8000
+$frontendPort = 5173
 $baseUrl = "http://127.0.0.1:$port"
 $timestamp = [DateTime]::UtcNow.ToString("yyyyMMdd-HHmmss-fff")
 $outputRoot = Join-Path $repoRoot "verification-output"
 $runDir = Join-Path $outputRoot $timestamp
 $stdoutPath = Join-Path $runDir "api.stdout.log"
 $stderrPath = Join-Path $runDir "api.stderr.log"
+$frontendStdoutPath = Join-Path $runDir "frontend-dev.stdout.log"
+$frontendStderrPath = Join-Path $runDir "frontend-dev.stderr.log"
 $paperDbPath = Join-Path $runDir "paper-ledger.sqlite3"
 $haltFilePath = Join-Path $runDir "paper-entries.halt"
 $summaryPath = Join-Path $runDir "verification-report.json"
 $preflightPath = Join-Path $runDir "preflight.json"
 $apiProcess = $null
+$frontendProcess = $null
 $stageResults = [System.Collections.Generic.List[object]]::new()
 $startedAt = [DateTime]::UtcNow.ToString("o")
 $originalEnvironment = @{}
@@ -102,6 +106,29 @@ try {
         & (Join-Path $repoRoot "scripts\verify-finai.ps1")
         if ($LASTEXITCODE -ne 0) { throw "scripts/verify-finai.ps1 returned exit code $LASTEXITCODE." }
         Add-StageResult "existing_full_verifier" "passed" "verify-finai.ps1 completed backend tests, frontend npm ci/build/lint, API smoke checks, provider configuration, patent mechanism, counterfactual screening, and SwarmTrade safety benchmarks."
+
+        Write-Host "[FRONTEND] Starting built Vite application for a local HTTP smoke check..." -ForegroundColor Yellow
+        $frontendProbe = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $frontendPort)
+        try { $frontendProbe.Start() }
+        catch { throw "Frontend port $frontendPort is already in use. Stop the service using 127.0.0.1:$frontendPort and rerun." }
+        finally { $frontendProbe.Stop() }
+        $commandProcessor = if (-not [string]::IsNullOrWhiteSpace($env:ComSpec)) { $env:ComSpec } else { Join-Path $env:SystemRoot "System32\cmd.exe" }
+        $frontendRoot = Join-Path $repoRoot "frontend"
+        $frontendProcess = Start-Process -FilePath $commandProcessor -ArgumentList "/d /c npm.cmd run dev -- --host 127.0.0.1 --port $frontendPort --strictPort" -WorkingDirectory $frontendRoot -PassThru -NoNewWindow -RedirectStandardOutput $frontendStdoutPath -RedirectStandardError $frontendStderrPath
+        $frontendHealthy = $false
+        for ($attempt = 0; $attempt -lt 30; $attempt++) {
+            $frontendProcess.Refresh()
+            if ($frontendProcess.HasExited) {
+                $tail = if (Test-Path $frontendStderrPath) { (Get-Content $frontendStderrPath -Tail 60) -join [Environment]::NewLine } else { "No frontend stderr log." }
+                throw "Vite dev server exited during startup. Logs: $frontendStdoutPath ; $frontendStderrPath. $tail"
+            }
+            try {
+                $frontendResponse = Invoke-WebRequest -Uri "http://127.0.0.1:$frontendPort/" -Method Get -TimeoutSec 2
+                if ([int]$frontendResponse.StatusCode -eq 200) { $frontendHealthy = $true; break }
+            } catch { Start-Sleep -Seconds 1 }
+        }
+        if (-not $frontendHealthy) { throw "Vite did not return HTTP 200 within 30 seconds. Inspect $frontendStdoutPath and $frontendStderrPath." }
+        Add-StageResult "frontend_dev_server" "passed" "Vite dev server returned HTTP 200 on loopback after the production build; child will be stopped during cleanup."
 
         Write-Host "[PAPER] Checking safety boundary..." -ForegroundColor Yellow
         $safety = Invoke-ApiJson -Method Get -Path "/api/v1/swarmtrade/safety/status"
@@ -264,7 +291,7 @@ try {
                 runtime_reachability_verified_by_preflight = $false
             }
             output_directory = $runDir
-            logs = @{ api_stdout = $stdoutPath; api_stderr = $stderrPath }
+            logs = @{ api_stdout = $stdoutPath; api_stderr = $stderrPath; frontend_stdout = $frontendStdoutPath; frontend_stderr = $frontendStderrPath }
             scope_limitations = @(
                 "Synthetic safety cases do not demonstrate profitability, forecasting skill, or live-market execution quality.",
                 "Provider credentials are listed by provider name only; this run does not send paid live LLM prompts.",
@@ -280,7 +307,7 @@ try {
     } finally { Pop-Location }
 } catch {
     $failureMessage = $_.Exception.Message
-    $failureReport = [ordered]@{ schema_version = "1.0"; status = "failed"; started_at_utc = $startedAt; finished_at_utc = [DateTime]::UtcNow.ToString("o"); failure = $failureMessage; stages = @($stageResults); output_directory = $runDir; logs = @{ api_stdout = $stdoutPath; api_stderr = $stderrPath } }
+    $failureReport = [ordered]@{ schema_version = "1.0"; status = "failed"; started_at_utc = $startedAt; finished_at_utc = [DateTime]::UtcNow.ToString("o"); failure = $failureMessage; stages = @($stageResults); output_directory = $runDir; logs = @{ api_stdout = $stdoutPath; api_stderr = $stderrPath; frontend_stdout = $frontendStdoutPath; frontend_stderr = $frontendStderrPath } }
     try { $failureReport | ConvertTo-Json -Depth 8 | Set-Content -Path $summaryPath -Encoding UTF8 } catch {}
     Write-Host ""
     Write-Host "FINAI LOCAL ACCEPTANCE CHECKS FAILED: $failureMessage" -ForegroundColor Red
@@ -288,8 +315,16 @@ try {
     if (Test-Path $stderrPath) { Write-Host "--- API stderr (last 80 lines) ---" -ForegroundColor DarkYellow; Get-Content $stderrPath -Tail 80 }
     throw
 } finally {
-    if ($null -ne $apiProcess) {
-        try { $apiProcess.Refresh(); if (-not $apiProcess.HasExited) { Stop-Process -Id $apiProcess.Id -Force -ErrorAction SilentlyContinue } } catch {}
+    foreach ($process in @($frontendProcess, $apiProcess)) {
+        if ($null -ne $process) {
+            try {
+                $process.Refresh()
+                if (-not $process.HasExited) {
+                    & taskkill.exe /PID $process.Id /T /F 2>$null | Out-Null
+                    if ($LASTEXITCODE -ne 0) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
+                }
+            } catch {}
+        }
     }
     Remove-Item -LiteralPath $haltFilePath -Force -ErrorAction SilentlyContinue
     foreach ($name in $environmentNames) { [Environment]::SetEnvironmentVariable($name, $originalEnvironment[$name], "Process") }
