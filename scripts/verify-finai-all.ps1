@@ -107,6 +107,26 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "scripts/verify-finai.ps1 returned exit code $LASTEXITCODE." }
         Add-StageResult "existing_full_verifier" "passed" "verify-finai.ps1 completed backend tests, frontend npm ci/build/lint, API smoke checks, provider configuration, patent mechanism, counterfactual screening, and SwarmTrade safety benchmarks."
 
+        Write-Host "[LOCAL MODEL] Running loopback-only Colibrì inference smoke (skips when unconfigured)..." -ForegroundColor Yellow
+        $localSmokeLines = & $python scripts/smoke_local_colibri.py --timeout-seconds 120 2>&1
+        $localSmokeExit = $LASTEXITCODE
+        $localSmokeText = @($localSmokeLines) -join [Environment]::NewLine
+        if ($localSmokeExit -ne 0) {
+            throw "Local Colibrì inference smoke failed with exit code $localSmokeExit. Safe output: $localSmokeText"
+        }
+        try { $localSmoke = $localSmokeText | ConvertFrom-Json }
+        catch { throw "Local Colibrì smoke did not emit valid JSON. Output: $localSmokeText" }
+        if ($localSmoke.status -eq "passed") {
+            if ($localSmoke.cloud_fallback_used -ne $false -or $localSmoke.network_target -ne "loopback_only") {
+                throw "Local Colibrì smoke did not confirm loopback-only operation without cloud fallback."
+            }
+            Add-StageResult "local_colibri_inference" "passed" "Real local generation succeeded; latency=$($localSmoke.latency_ms)ms, response_chars=$($localSmoke.response_characters), no cloud fallback; generated text was not logged."
+        } elseif ($localSmoke.status -eq "skipped_unconfigured") {
+            Add-StageResult "local_colibri_inference" "skipped" "No local Colibrì endpoint configured; no model request was made."
+        } else {
+            throw "Local Colibrì smoke returned unexpected status '$($localSmoke.status)'."
+        }
+
         Write-Host "[FRONTEND] Starting built Vite application for a local HTTP smoke check..." -ForegroundColor Yellow
         $frontendProbe = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $frontendPort)
         try { $frontendProbe.Start() }
