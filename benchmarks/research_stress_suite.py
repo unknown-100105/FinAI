@@ -91,7 +91,7 @@ def run_suite() -> dict:
 def main() -> int:
     report = run_suite()
     output = ROOT / "benchmarks" / "research_stress_report.json"
-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2, sort_keys=True))
     print(f"Full report: {output}")
     return 0 if report["status"] == "passed" else 1
