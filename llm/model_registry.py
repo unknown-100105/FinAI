@@ -173,7 +173,7 @@ MODEL_REGISTRY = {
 
     "anthropic-claude": ModelSpec(
         model_id="anthropic-claude",
-        model_name="claude-sonnet-5-5",
+        model_name="claude-sonnet-5",
         role="anthropic_deep_reasoning",
         capabilities=(
             "response_generation",
