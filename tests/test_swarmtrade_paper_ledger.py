@@ -202,3 +202,14 @@ def test_paper_ledger_rejects_account_currency_mismatch(monkeypatch, tmp_path):
     )
     assert response.status_code == 409
     assert "does not match instrument quote currency" in response.json()["detail"]
+
+
+def test_paper_ledger_close_is_disabled_when_feature_flag_is_off(monkeypatch, tmp_path):
+    monkeypatch.delenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", raising=False)
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
+    response = client.post(
+        "/api/v1/swarmtrade/paper/accounts/nonexistent/positions/nonexistent/close",
+        json={"idempotency_key": "closed-while-disabled", "exit_price": 100, "reason": "manual"},
+    )
+    assert response.status_code == 503
+    assert "Paper ledger is disabled" in response.json()["detail"]
