@@ -57,7 +57,7 @@ try {
         $branchName = (& git branch --show-current).Trim()
         if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($head)) { throw "Could not determine the current Git commit." }
 
-        $portProbe = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback, $port)
+        $portProbe = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $port)
         try { $portProbe.Start() }
         catch { throw "Port $port is already in use. Stop the existing local API on 127.0.0.1:$port and rerun so this script can test an isolated process." }
         finally { if ($null -ne $portProbe) { $portProbe.Stop() } }
