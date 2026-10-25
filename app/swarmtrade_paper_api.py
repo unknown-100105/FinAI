@@ -18,6 +18,13 @@ def _enabled() -> bool:
     return os.getenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _entries_halted() -> bool:
+    """Fail closed on new paper entries when the operator enables the entry halt."""
+    return os.getenv("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+
+
 def _ledger() -> PaperLedger:
     if not _enabled():
         raise HTTPException(
@@ -76,6 +83,9 @@ def paper_ledger_status() -> dict:
         "status": "available" if _enabled() else "disabled",
         "enabled": _enabled(),
         "mode": "persistent_paper_trading_only",
+        "new_entries_halted": _entries_halted(),
+        "entry_halt_control": "FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED",
+        "close_operations_allowed_during_entry_halt": True,
         "real_orders_supported": False,
         "live_fills_claimed": False,
         "unrealized_pnl_included_in_equity": False,
@@ -136,6 +146,11 @@ def open_paper_position(account_id: str, request: OpenPaperPositionRequest) -> d
     if not request.acknowledge_simulation_only:
         raise HTTPException(status_code=422, detail="Explicit acknowledgement of simulation-only mode is required")
     ledger = _ledger()
+    if _entries_halted():
+        raise HTTPException(
+            status_code=423,
+            detail="Paper entry halt is active; new simulated positions are blocked. Existing simulated positions may still be closed.",
+        )
     try:
         # Idempotent retries must replay before recalculating against changed account state.
         request_payload = {
