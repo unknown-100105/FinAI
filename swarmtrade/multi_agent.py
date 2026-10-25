@@ -91,7 +91,13 @@ class AgentFinding:
     ) -> "AgentFinding":
         if not agent_id.strip() or not role.strip() or not instrument_id.strip():
             raise ValueError("agent_id, role, and instrument_id are required")
-        if not math.isfinite(confidence) or not 0.0 <= confidence <= 1.0:
+        if isinstance(confidence, bool):
+            raise ValueError("confidence must be finite and between 0 and 1")
+        try:
+            normalized_confidence = float(confidence)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("confidence must be finite and between 0 and 1") from exc
+        if not math.isfinite(normalized_confidence) or not 0.0 <= normalized_confidence <= 1.0:
             raise ValueError("confidence must be finite and between 0 and 1")
         return cls(
             run_id=str(uuid4()),
@@ -102,7 +108,7 @@ class AgentFinding:
             timeframe=timeframe.strip(),
             created_at=utc_now_iso(),
             thesis=thesis.strip(),
-            confidence=confidence,
+            confidence=normalized_confidence,
             evidence=tuple(evidence),
             risks=tuple(risks),
             invalidation_conditions=tuple(invalidation_conditions),
