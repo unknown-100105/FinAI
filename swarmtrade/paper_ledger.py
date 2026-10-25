@@ -30,6 +30,19 @@ def utc_day_start_timestamp() -> float:
     return datetime(now.year, now.month, now.day, tzinfo=timezone.utc).timestamp()
 
 
+class PaperEntryHaltedError(ValueError):
+    """Raised inside the ledger transaction when new simulated entries are paused."""
+
+
+def paper_entries_halted() -> bool:
+    """Read the operator-controlled paper-only entry pause without cached state."""
+    flag = os.getenv("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "").strip().lower()
+    if flag in {"1", "true", "yes", "on"}:
+        return True
+    sentinel = os.getenv("FINAI_SWARMTRADE_PAPER_HALT_FILE", "").strip()
+    return bool(sentinel) and Path(sentinel).is_file()
+
+
 def payload_digest(payload: Mapping[str, Any]) -> str:
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
@@ -327,6 +340,13 @@ class PaperLedger:
                 if replay is not None:
                     connection.commit()
                     return replay
+                # Recheck the operator pause while holding the serialized write
+                # transaction, immediately before risk evaluation/insertion. This
+                # complements the API guard and narrows a concurrent halt race.
+                if paper_entries_halted():
+                    raise PaperEntryHaltedError(
+                        "Paper entry halt is active; new simulated positions are blocked."
+                    )
                 snapshot = self._account_snapshot(connection, account_id)
                 equity = max(float(snapshot["equity_excluding_unrealized_pnl"]), 1e-9)
                 if snapshot["daily_realized_loss_pct"] >= float(risk["daily_loss_limit_pct"]):
