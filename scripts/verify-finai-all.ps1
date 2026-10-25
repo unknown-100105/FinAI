@@ -322,7 +322,8 @@ try {
             verification_scope = "local_backend_frontend_api_paper_ledger_and_synthetic_benchmarks"
             live_execution_enabled = $false
             broker_connected = $false
-            live_provider_calls_made = $false
+            live_provider_smoke_opted_in = [bool]($liveProviderSmoke -in @("1", "true", "yes", "on"))
+            live_provider_calls_made = $(if ($liveProviderSmoke -in @("1", "true", "yes", "on")) { $null } else { $false })
             stages = @($stageResults)
             benchmark = @{ name = $swarmReport.benchmark; cases = [int]$swarmReport.cases; passed_cases = [int]$swarmReport.passed_cases; failure_count = [int]$swarmReport.failure_count; guardrail_violations = [int]$swarmReport.guardrail_violations }
             patent_mechanism_benchmark = @{
@@ -349,7 +350,7 @@ try {
             logs = @{ api_stdout = $stdoutPath; api_stderr = $stderrPath; frontend_stdout = $frontendStdoutPath; frontend_stderr = $frontendStderrPath }
             scope_limitations = @(
                 "Synthetic safety cases do not demonstrate profitability, forecasting skill, or live-market execution quality.",
-                "Provider credentials are listed by provider name only; this run does not send paid live LLM prompts.",
+                $(if ($liveProviderSmoke -in @("1", "true", "yes", "on")) { "Live provider smoke was explicitly opted in; inspect per-provider smoke output for actual attempted requests and results." } else { "Provider credentials are listed by provider name only; this run does not send paid live LLM prompts." }),
                 "Local Colibri model weights/server, licensed RAG corpora, provider reachability, and browser interactions need environment-specific verification.",
                 "No live broker adapter, live order submission, live fill reconciliation, or production deployment approval is asserted."
             )
