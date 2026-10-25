@@ -269,8 +269,18 @@ def api_info() -> Dict[str, Any]:
     }
 
 
+def _require_demo_session_flow_non_production() -> None:
+    """Prevent a demo-only session toggle from being mistaken for real identity auth."""
+    if os.getenv("FINAI_ENV", "development").strip().casefold() in {"production", "prod"}:
+        raise HTTPException(
+            status_code=503,
+            detail="Demo session authentication is disabled in production; configure a real identity provider.",
+        )
+
+
 @app.post("/api/v1/session/authenticate")
 def authenticate_session(request: SessionRequest) -> Dict[str, Any]:
+    _require_demo_session_flow_non_production()
     session_id = request.session_id.strip()
     if not session_id:
         raise HTTPException(status_code=422, detail="session_id cannot be empty.")
@@ -289,6 +299,7 @@ def authenticate_session(request: SessionRequest) -> Dict[str, Any]:
 
 @app.post("/api/v1/session/logout")
 def logout_session(request: SessionRequest) -> Dict[str, Any]:
+    _require_demo_session_flow_non_production()
     session_id = request.session_id.strip()
     if not session_id:
         raise HTTPException(status_code=422, detail="session_id cannot be empty.")
