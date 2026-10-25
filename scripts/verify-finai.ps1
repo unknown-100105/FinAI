@@ -1,6 +1,10 @@
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $frontendRoot = Join-Path $repoRoot "frontend"
+$npmCommand = Get-Command npm.cmd -ErrorAction SilentlyContinue
+if ($null -eq $npmCommand) { $npmCommand = Get-Command npm -ErrorAction SilentlyContinue }
+if ($null -eq $npmCommand) { throw "npm was not found on PATH. Install Node.js LTS and reopen the shell." }
+$npm = $npmCommand.Source
 $venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
 
 if (Test-Path $venvPython) {
@@ -24,19 +28,19 @@ try {
     Write-Host "[2/4] Frontend dependency install" -ForegroundColor Yellow
     Push-Location $frontendRoot
     try {
-        npm ci
+        & $npm ci
         if ($LASTEXITCODE -ne 0) {
             throw "Frontend npm ci FAILED."
         }
 
         Write-Host "[3/4] Frontend production build" -ForegroundColor Yellow
-        npm run build
+        & $npm run build
         if ($LASTEXITCODE -ne 0) {
             throw "Frontend production build FAILED."
         }
 
         Write-Host "[4/4] Frontend lint" -ForegroundColor Yellow
-        npm run lint
+        & $npm run lint
         if ($LASTEXITCODE -ne 0) {
             throw "Frontend lint FAILED."
         }
