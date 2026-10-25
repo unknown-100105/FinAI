@@ -76,7 +76,26 @@ The supported workflow is:
 
 Use a new idempotency key for every distinct operation. A retry must reuse the original key and identical payload. Never interpret a paper-ledger response as a broker acknowledgement or execution.
 
-## 6. Required validation before sign-off
+
+## 6. Paper-only new-entry halt
+
+The paper API supports an entry pause that blocks new simulated positions while still allowing existing positions to be closed. It is intentionally limited to the paper ledger; it is not a live broker kill switch.
+
+For a boolean process-level pause, start the API with:
+
+~~~powershell
+$env:FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED = "1"
+~~~
+
+For an operator-controlled, dynamically checked sentinel file, configure a path before starting the API:
+
+~~~powershell
+$env:FINAI_SWARMTRADE_PAPER_HALT_FILE = "$PWD\data\swarmtrade\paper-entries.halt"
+~~~
+
+Create the configured file to halt new paper entries. Remove it to resume entries. The path is checked on each request. GET /api/v1/swarmtrade/paper/status reports new_entries_halted. When the halt is active, a new open request is rejected with HTTP 423; a retry of an already-successful idempotent request replays the original response, and closing an existing paper position remains available. Keep access to the host filesystem restricted.
+
+## 7. Required validation before sign-off
 
 - [ ] Run the full test suite on the exact commit being evaluated.
 - [ ] Run the SwarmTrade safety benchmark and retain the full report.
@@ -87,7 +106,7 @@ Use a new idempotency key for every distinct operation. A retry must reuse the o
 - [ ] Confirm live execution remains disabled even if FINAI_LIVE_TRADING_ENABLED=true.
 - [ ] Review the risk and P&L formulas for each asset class against venue-specific contract specifications.
 
-## 7. Explicit non-goals / live-execution blockers
+## 8. Explicit non-goals / live-execution blockers
 
 This workflow does not provide authoritative real-time quotes, venue-verified instrument metadata, live order submission, real fill reconciliation, a broker sandbox integration, or an operational kill switch. The agent mesh records research evidence; it does not turn the logical-agent planner into 500 independently running autonomous agents. No profitability claim is supported by the deterministic safety benchmark.
 
