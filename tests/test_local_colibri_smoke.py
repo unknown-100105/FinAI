@@ -64,7 +64,8 @@ def test_local_colibri_smoke_rejects_non_loopback_without_leaking_error(monkeypa
     monkeypatch.setattr(sys, "argv", ["smoke_local_colibri.py"])
 
     assert smoke_local_colibri.main() == 1
-    report = json.loads(capsys.readouterr().out)
+    output = capsys.readouterr().out
+    report = json.loads(output)
     assert report["status"] == "failed"
     assert report["error_type"] == "ValueError"
-    assert "not-local.example" not in capsys.readouterr().out
+    assert "not-local.example" not in output
