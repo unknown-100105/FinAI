@@ -33,6 +33,23 @@ def test_paper_ledger_is_disabled_by_default(monkeypatch):
     assert response.status_code == 503
 
 
+def test_paper_ledger_is_disabled_in_production_even_when_feature_flag_is_enabled(monkeypatch, tmp_path):
+    monkeypatch.setenv("FINAI_ENV", "production")
+    monkeypatch.setenv("FINAI_API_AUTH_MODE", "bearer")
+    monkeypatch.setenv("FINAI_API_BEARER_TOKEN", "test-production-token-with-at-least-32-chars")
+    monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
+    headers = {"Authorization": "Bearer test-production-token-with-at-least-32-chars"}
+
+    status = client.get("/api/v1/swarmtrade/paper/status", headers=headers)
+    assert status.status_code == 200
+    assert status.json()["enabled"] is False
+    assert status.json()["status"] == "disabled"
+
+    accounts = client.get("/api/v1/swarmtrade/paper/accounts", headers=headers)
+    assert accounts.status_code == 503
+
+
 def test_paper_ledger_open_close_and_idempotent_replay(monkeypatch, tmp_path):
     monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
     monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
