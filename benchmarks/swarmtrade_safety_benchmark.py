@@ -52,7 +52,10 @@ def _base_request(index: int, rng: random.Random) -> dict[str, Any]:
         "stop_price": stop,
         "target_price": target,
         "capital": capital,
-        "risk_pct": rng.choice((0.25, 0.5, 0.75, 2.0)),
+        # A 0.25% budget cannot fit one futures contract in this benchmark's
+        # configured tick-value/cost model. Keep generated baseline cases
+        # feasible at the unit-step level; the engine still caps risk at 1%.
+        "risk_pct": rng.choice((0.5, 0.75, 1.0, 2.0)),
         "open_position_risk_pct": rng.choice((0.0, 0.5, 1.0, 2.5)),
         "current_daily_loss_pct": rng.choice((0.0, 0.2, 0.8, 1.2)),
         "max_daily_loss_pct": 2.0,
