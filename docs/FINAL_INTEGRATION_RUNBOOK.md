@@ -12,7 +12,7 @@ It composes the existing verification workflow with a temporary API process and 
 - Install a current Node.js LTS release so npm is on PATH.
 - Ensure **frontend/package-lock.json** is committed and available for **npm ci**.
 - Check out the target feature branch and pull the latest remote commits.
-- Stop any other local API bound to **127.0.0.1:8000**. The script refuses to reuse an existing service.
+- The runner prefers ports **8000** (API) and **5173** (frontend), but automatically selects free loopback ports if either default is occupied. It never reuses an existing service.
 - Keep licensed/approved finance source chunks, generated RAG indexes, router training assets, local model weights, and provider credentials outside Git as required by their terms.
 
 Example from the current dedicated worktree:
@@ -29,7 +29,7 @@ If the worktree is in a different location, activate the virtual environment tha
 ## What the runner performs
 
 1. Captures the branch and commit SHA for the report.
-2. Reserves port 8000 and starts an API process bound only to loopback.
+2. Selects a free loopback port (preferring 8000) and starts an API process bound only to loopback; the chosen base URL is passed to the nested verifier. The frontend port is selected similarly (preferring 5173).
 3. Sets up a fresh, run-specific SQLite paper ledger, explicitly enables the paper-only feature, and explicitly disables live execution.
 4. Runs **scripts/verify-finai.ps1**, which executes backend pytest, frontend dependency installation, TypeScript/Vite production build, frontend lint, local API contract checks (including no-probe local model status and Retrieval Lab compare mode), offline package/artifact preflight, provider-configuration checks without network requests, patent-mechanism benchmark, counterfactual-screening benchmark, and the seeded 500-case SwarmTrade safety benchmark.
 5. Runs paper-ledger API checks: account creation, approved simulated entry, idempotent retry, conflicting-idempotency rejection (HTTP 409), dynamic entry-halt activation, safe replay during halt, rejection of new entries (HTTP 423), permitted close of existing paper position, halt removal, close retry, and account/history reconciliation.
@@ -54,7 +54,7 @@ The verification-output directory is excluded from version control. Preserve the
 
 The runner stops on the first required check that fails, writes a report with status failed, prints the API stderr tail when available, restores the environment, and terminates the API child process. Fix the reported failure and rerun the same command. A missing dependency or a local environment problem should be diagnosed rather than bypassed.
 
-The runner requires port 8000 to be free. Do not modify the port in this script without also changing the existing verifier's API URLs.
+The runner dynamically selects free loopback ports and passes the API base URL to the nested verifier. If a port is claimed by another process between selection and startup, stop that process or rerun the runner.
 
 ## What passing means
 
