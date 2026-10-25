@@ -47,7 +47,10 @@ def evidence():
     }
 
 
-def test_response_service_applies_rag_evidence_verification():
+def test_response_service_applies_rag_evidence_verification(monkeypatch):
+    # This test uses a fixed adapter; a dummy credential satisfies the router's
+    # provider-configuration check without making a real API request.
+    monkeypatch.setenv("GEMINI_API_KEY", "test-only-not-a-real-key")
     service = make_service(
         (
             "KYC may require a PAN card and address proof. "
