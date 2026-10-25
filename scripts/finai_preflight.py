@@ -281,6 +281,12 @@ def main(argv: list[str] | None = None) -> int:
         help="exit nonzero when any full-readiness file, package, or generated artifact is missing",
     )
     args = parser.parse_args(argv)
+    # Load developer-local configuration for CLI readiness checks. Shell/CI values win.
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(dotenv_path=Path(args.root).resolve() / ".env", override=False)
+    except ImportError:
+        pass
     report = audit(args.root)
 
     missing_required_files = [
