@@ -53,6 +53,8 @@ const XAIExplorerHub = lazy(() => import("./components/XAIExplorerHub").then((mo
 const CausalRiskLab = lazy(() => import("./components/CausalRiskLab"));
 const RetrievalLab = lazy(() => import("./components/RetrievalLab").then((module) => ({ default: module.RetrievalLab })));
 const ModelIntelligenceHub = lazy(() => import("./components/ModelIntelligenceHub"));
+const AssistantResultCard = lazy(() => import("./components/AssistantResultCard").then((module) => ({ default: module.AssistantResultCard })));
+const PlatformGuide = lazy(() => import("./components/PlatformGuide").then((module) => ({ default: module.PlatformGuide })));
 import "./index.css";
 
 const languages = ["English", "Tamil", "Telugu", "Kannada", "Malayalam"];
