@@ -31,7 +31,7 @@ If the worktree is in a different location, activate the virtual environment tha
 1. Captures the branch and commit SHA for the report.
 2. Reserves port 8000 and starts an API process bound only to loopback.
 3. Sets up a fresh, run-specific SQLite paper ledger, explicitly enables the paper-only feature, and explicitly disables live execution.
-4. Runs **scripts/verify-finai.ps1**, which executes backend pytest, frontend dependency installation, TypeScript/Vite production build, frontend lint, local API contract checks, offline package/artifact preflight, provider-configuration checks without network requests, patent-mechanism benchmark, counterfactual-screening benchmark, and the seeded 500-case SwarmTrade safety benchmark.
+4. Runs **scripts/verify-finai.ps1**, which executes backend pytest, frontend dependency installation, TypeScript/Vite production build, frontend lint, local API contract checks (including no-probe local model status and Retrieval Lab compare mode), offline package/artifact preflight, provider-configuration checks without network requests, patent-mechanism benchmark, counterfactual-screening benchmark, and the seeded 500-case SwarmTrade safety benchmark.
 5. Runs paper-ledger API checks: account creation, approved simulated entry, idempotent retry, conflicting-idempotency rejection (HTTP 409), dynamic entry-halt activation, safe replay during halt, rejection of new entries (HTTP 423), permitted close of existing paper position, halt removal, close retry, and account/history reconciliation.
 6. Validates machine-readable SwarmTrade benchmark counts and zero-failure guardrail fields.
 7. Writes a JSON preflight snapshot and a consolidated JSON report.
