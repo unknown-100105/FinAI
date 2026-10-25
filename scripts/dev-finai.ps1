@@ -45,6 +45,16 @@ function Assert-LocalPortFree {
 }
 
 try {
+    if (-not (Test-Path (Join-Path $frontendRoot "node_modules"))) {
+        Write-Host "Frontend dependencies are missing; running npm ci..." -ForegroundColor Yellow
+        Push-Location $frontendRoot
+        try {
+            & $npm ci
+            if ($LASTEXITCODE -ne 0) { throw "npm ci failed while preparing the frontend. Inspect npm output above." }
+        }
+        finally { Pop-Location }
+    }
+
     Assert-LocalPortFree -Port $apiPort
     Assert-LocalPortFree -Port $frontendPort
     [Environment]::SetEnvironmentVariable("FINAI_LIVE_TRADING_ENABLED", "0", "Process")
