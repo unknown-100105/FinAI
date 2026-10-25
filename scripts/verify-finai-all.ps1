@@ -11,19 +11,20 @@ $venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
 $python = if (Test-Path $venvPython) { $venvPython } else { "python" }
 $port = 8000
 $baseUrl = "http://127.0.0.1:$port"
-$timestamp = [DateTime]::UtcNow.ToString("yyyyMMdd-HHmmss")
+$timestamp = [DateTime]::UtcNow.ToString("yyyyMMdd-HHmmss-fff")
 $outputRoot = Join-Path $repoRoot "verification-output"
 $runDir = Join-Path $outputRoot $timestamp
 $stdoutPath = Join-Path $runDir "api.stdout.log"
 $stderrPath = Join-Path $runDir "api.stderr.log"
 $paperDbPath = Join-Path $runDir "paper-ledger.sqlite3"
+$haltFilePath = Join-Path $runDir "paper-entries.halt"
 $summaryPath = Join-Path $runDir "verification-report.json"
 $preflightPath = Join-Path $runDir "preflight.json"
 $apiProcess = $null
 $stageResults = [System.Collections.Generic.List[object]]::new()
 $startedAt = [DateTime]::UtcNow.ToString("o")
 $originalEnvironment = @{}
-$environmentNames = @("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "FINAI_SWARMTRADE_PAPER_DB", "FINAI_LIVE_TRADING_ENABLED", "FINAI_SKIP_LIVE", "FINAI_RUN_LIVE_PROVIDER_SMOKE")
+$environmentNames = @("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "FINAI_SWARMTRADE_PAPER_DB", "FINAI_LIVE_TRADING_ENABLED", "FINAI_SKIP_LIVE", "FINAI_RUN_LIVE_PROVIDER_SMOKE", "FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", "FINAI_SWARMTRADE_PAPER_HALT_FILE")
 
 New-Item -ItemType Directory -Path $runDir -Force | Out-Null
 foreach ($name in $environmentNames) { $originalEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, "Process") }
@@ -66,6 +67,8 @@ try {
         [Environment]::SetEnvironmentVariable("FINAI_LIVE_TRADING_ENABLED", "0", "Process")
         [Environment]::SetEnvironmentVariable("FINAI_SKIP_LIVE", $null, "Process")
         [Environment]::SetEnvironmentVariable("FINAI_RUN_LIVE_PROVIDER_SMOKE", $null, "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_ENTRIES_HALTED", $null, "Process")
+        [Environment]::SetEnvironmentVariable("FINAI_SWARMTRADE_PAPER_HALT_FILE", $haltFilePath, "Process")
 
         Write-Host "[API] Starting isolated loopback API..." -ForegroundColor Yellow
         $apiProcess = Start-Process -FilePath $python -ArgumentList "-m uvicorn app.main:app --host 127.0.0.1 --port $port" -WorkingDirectory $repoRoot -PassThru -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
@@ -138,6 +141,27 @@ try {
             if ($conflictStatus -ne 409) { throw "Conflicting idempotency payload should return HTTP 409; observed '$conflictStatus'. Original error: $($_.Exception.Message)" }
         }
 
+        # Activate the operator-controlled paper entry halt without restarting the API.
+        New-Item -ItemType File -Path $haltFilePath -Force | Out-Null
+        $haltStatus = Invoke-ApiJson -Method Get -Path "/api/v1/swarmtrade/paper/status"
+        if ($haltStatus.new_entries_halted -ne $true) { throw "Paper entry-halt sentinel did not appear in status." }
+        $haltedOpen = @{
+            idempotency_key = "verify-halted-open-$([guid]::NewGuid().ToString('N'))"
+            quote_currency = "USD"
+            acknowledge_simulation_only = $true
+            plan = $openRequest.plan
+        }
+        $haltResponseStatus = $null
+        try {
+            $null = Invoke-ApiJson -Method Post -Path $openPath -Body $haltedOpen
+            throw "New paper position unexpectedly succeeded while entry halt was active."
+        } catch {
+            if ($_.Exception.Message -like "*unexpectedly succeeded*") { throw }
+            try { $haltResponseStatus = [int]$_.Exception.Response.StatusCode } catch { $haltResponseStatus = $null }
+            if ($haltResponseStatus -ne 423) { throw "Entry halt should reject new simulated positions with HTTP 423; observed '$haltResponseStatus'." }
+        }
+        Add-StageResult "paper_entry_halt" "passed" "Operator halt sentinel blocks new paper entries with HTTP 423 while preserving the ability to close the existing paper position."
+
         $positionId = [string]$opened.position_id
         $closePath = "/api/v1/swarmtrade/paper/accounts/$accountId/positions/$positionId/close"
         $closeRequest = @{ idempotency_key = "verify-close-$([guid]::NewGuid().ToString('N'))"; exit_price = 115; reason = "manual" }
@@ -151,7 +175,10 @@ try {
         if ($accountAfter.open_position_count -ne 0 -or $history.count -ne 1 -or $history.positions[0].position_id -ne $positionId -or $null -eq $accountAfter.realized_pnl) {
             throw "Paper account snapshot/closed history did not reconcile after the simulated round trip."
         }
-        Add-StageResult "paper_ledger_api_round_trip" "passed" "Account create; simulated open; same-payload replay; conflicting-key HTTP 409; close; close replay; realized P&L and closed history."
+        Remove-Item -LiteralPath $haltFilePath -Force -ErrorAction SilentlyContinue
+        $resumedStatus = Invoke-ApiJson -Method Get -Path "/api/v1/swarmtrade/paper/status"
+        if ($resumedStatus.new_entries_halted -ne $false) { throw "Paper entry halt remained active after removing its sentinel." }
+        Add-StageResult "paper_ledger_api_round_trip" "passed" "Account create; simulated open; same-payload replay; conflicting-key HTTP 409; close despite halt; close replay; realized P&L and closed history; entry resumption after halt removal."
 
         Write-Host "[BENCHMARK] Validating machine-readable SwarmTrade output..." -ForegroundColor Yellow
         $swarmReportPath = Join-Path $repoRoot "swarmtrade-safety-benchmark.json"
@@ -220,5 +247,6 @@ try {
     if ($null -ne $apiProcess) {
         try { $apiProcess.Refresh(); if (-not $apiProcess.HasExited) { Stop-Process -Id $apiProcess.Id -Force -ErrorAction SilentlyContinue } } catch {}
     }
+    Remove-Item -LiteralPath $haltFilePath -Force -ErrorAction SilentlyContinue
     foreach ($name in $environmentNames) { [Environment]::SetEnvironmentVariable($name, $originalEnvironment[$name], "Process") }
 }
