@@ -13,7 +13,7 @@ git pull --ff-only
 python -m pytest -q
 ~~~
 
-A previous local run at commit f149514 reported 787 passed in 20 seconds. Re-run the suite after pulling any new commits; that earlier result does not verify later changes.
+At commit 30515b5, the local full suite reported 789 passed in 22.18 seconds and the deterministic SwarmTrade benchmark reported 500/500 cases passed with zero guardrail violations. These results predate subsequent test-only commits and are not a substitute for rerunning checks on the exact commit being evaluated.
 
 ## 2. Start the API
 
