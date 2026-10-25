@@ -25,8 +25,8 @@ The exact capabilities at a provider boundary depend on that provider's adapter,
 - FastAPI exposes the OpenAPI schema and interactive documentation at `/openapi.json` and `/docs` when enabled by the application configuration.
 - Local development normally binds the API to `127.0.0.1:8000`.
 - The Vite frontend defaults to `http://localhost:8000`; set `VITE_API_BASE_URL` when the backend is hosted elsewhere.
-- The application has an optional shared-token authentication middleware. Deployment configuration must use a strong secret and HTTPS; never place backend secrets in frontend environment variables or commit them to Git.
-- The local CORS allowlist is intended for development origins. Review it before deployment.
+- The application has optional shared-token authentication middleware. Production fails closed unless a server-side bearer token of at least 32 characters is configured. This is a single shared credential, not user identity, per-account authorization, token revocation, or a full authentication service. Never embed the token in browser code; use an identity-aware gateway/OIDC provider for multi-user deployments.
+- Development CORS defaults to localhost origins. Production has no allowed browser origins by default; set `FINAI_CORS_ALLOW_ORIGINS` to a comma-separated list of exact frontend origins (for example `https://finai.example,https://admin.example`). Wildcard `*` is rejected while credentialed CORS is enabled. CORS is not an authentication mechanism.
 
 ## Relevant endpoint groups
 
