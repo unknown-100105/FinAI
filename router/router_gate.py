@@ -390,7 +390,7 @@ class FinAIRouterGate:
             }
 
         if (
-            re.search(r"\\bemi\\b|equated monthly instal+ment", normalized_for_rules)
+            re.search(r"\bemi\b|equated monthly instal+ment", normalized_for_rules)
             and any(term in normalized_for_rules for term in ("calculate", "what is", "my emi", "emi for", "emi amount", "emi calculator", "emi"))
         ):
             return {
