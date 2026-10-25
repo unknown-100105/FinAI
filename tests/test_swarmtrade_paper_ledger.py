@@ -213,3 +213,70 @@ def test_paper_ledger_close_is_disabled_when_feature_flag_is_off(monkeypatch, tm
     )
     assert response.status_code == 503
     assert "Paper ledger is disabled" in response.json()["detail"]
+
+
+def test_paper_ledger_rejects_idempotency_key_reuse_with_changed_open_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
+    account = client.post(
+        "/api/v1/swarmtrade/paper/accounts",
+        json={"currency": "USD", "initial_capital": 100000},
+    ).json()
+    account_id = account["account_id"]
+    base_body = {
+        "idempotency_key": "same-open-key",
+        "acknowledge_simulation_only": True,
+        "quote_currency": "USD",
+        "plan": approved_plan_request(),
+    }
+    first = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+        json=base_body,
+    )
+    assert first.status_code == 200, first.text
+
+    changed_body = {
+        **base_body,
+        "plan": approved_plan_request(target_price=115),
+    }
+    replay = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+        json=changed_body,
+    )
+    assert replay.status_code == 409
+    assert "Idempotency key" in replay.json()["detail"]
+
+
+def test_paper_ledger_rejects_idempotency_key_reuse_with_changed_close_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("FINAI_ENABLE_SWARMTRADE_PAPER_LEDGER", "1")
+    monkeypatch.setenv("FINAI_SWARMTRADE_PAPER_DB", str(tmp_path / "ledger.sqlite3"))
+    account = client.post(
+        "/api/v1/swarmtrade/paper/accounts",
+        json={"currency": "USD", "initial_capital": 100000},
+    ).json()
+    account_id = account["account_id"]
+    opened = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions",
+        json={
+            "idempotency_key": "open-for-close-key-test",
+            "acknowledge_simulation_only": True,
+            "quote_currency": "USD",
+            "plan": approved_plan_request(),
+        },
+    )
+    assert opened.status_code == 200, opened.text
+    position_id = opened.json()["position_id"]
+
+    first_close = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions/{position_id}/close",
+        json={"idempotency_key": "same-close-key", "exit_price": 115, "reason": "target"},
+    )
+    assert first_close.status_code == 200, first_close.text
+
+    changed_close = client.post(
+        f"/api/v1/swarmtrade/paper/accounts/{account_id}/positions/{position_id}/close",
+        json={"idempotency_key": "same-close-key", "exit_price": 116, "reason": "target"},
+    )
+    assert changed_close.status_code == 409
+    assert "Idempotency key" in changed_close.json()["detail"]
+
