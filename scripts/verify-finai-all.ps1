@@ -202,6 +202,27 @@ try {
         if ([int]$swarmReport.passed_cases -ne [int]$swarmReport.cases) { throw "SwarmTrade benchmark passed_cases ($($swarmReport.passed_cases)) did not equal cases ($($swarmReport.cases))." }
         Add-StageResult "swarmtrade_benchmark_assertions" "passed" "$($swarmReport.passed_cases)/$($swarmReport.cases) synthetic deterministic cases; zero reported failures and guardrail violations."
 
+        Write-Host "[BENCHMARK] Validating patent mechanism correctness report..." -ForegroundColor Yellow
+        $patentReportPath = Join-Path $repoRoot "patent-benchmark.json"
+        if (-not (Test-Path $patentReportPath)) { throw "Expected patent mechanism report was not written: $patentReportPath" }
+        $patentReport = Get-Content $patentReportPath -Raw | ConvertFrom-Json
+        if ($patentReport.status -ne "PATENT_MECHANISM_VARIANT_BENCHMARK_READY" -or
+            $patentReport.correctness.forward_no_false_prune -ne $true -or
+            $patentReport.correctness.bidirectional_no_false_prune -ne $true -or
+            [double]$patentReport.incremental_propagation.exact_match_rate -ne 1.0) {
+            throw "Patent mechanism benchmark failed its no-false-prune or incremental-equivalence assertions."
+        }
+        Add-StageResult "patent_mechanism_assertions" "passed" "Finite-action benchmark reports zero false prunes for forward/bidirectional screens and exact incremental/full propagation agreement."
+
+        Write-Host "[BENCHMARK] Validating counterfactual screening report..." -ForegroundColor Yellow
+        $counterfactualReportPath = Join-Path $repoRoot "benchmarks\counterfactual_screening_benchmark.json"
+        if (-not (Test-Path $counterfactualReportPath)) { throw "Expected counterfactual screening report was not written: $counterfactualReportPath" }
+        $counterfactualReport = Get-Content $counterfactualReportPath -Raw | ConvertFrom-Json
+        if ($counterfactualReport.all_reference_feasible_actions_retained -ne $true) {
+            throw "Counterfactual screening benchmark masked at least one reference-feasible action."
+        }
+        Add-StageResult "counterfactual_screening_assertions" "passed" "All reference-feasible synthetic actions were retained by the conservative screen."
+
         Write-Host "[PREFLIGHT] Saving JSON readiness snapshot..." -ForegroundColor Yellow
         & $python scripts/finai_preflight.py --json | Set-Content -Path $preflightPath -Encoding UTF8
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path $preflightPath)) { throw "Could not write the preflight JSON snapshot." }
@@ -222,6 +243,17 @@ try {
             live_provider_calls_made = $false
             stages = @($stageResults)
             benchmark = @{ name = $swarmReport.benchmark; cases = [int]$swarmReport.cases; passed_cases = [int]$swarmReport.passed_cases; failure_count = [int]$swarmReport.failure_count; guardrail_violations = [int]$swarmReport.guardrail_violations }
+            patent_mechanism_benchmark = @{
+                status = [string]$patentReport.status
+                forward_no_false_prune = [bool]$patentReport.correctness.forward_no_false_prune
+                bidirectional_no_false_prune = [bool]$patentReport.correctness.bidirectional_no_false_prune
+                incremental_exact_match_rate = [double]$patentReport.incremental_propagation.exact_match_rate
+                report_file = $patentReportPath
+            }
+            counterfactual_screening_benchmark = @{
+                all_reference_feasible_actions_retained = [bool]$counterfactualReport.all_reference_feasible_actions_retained
+                report_file = $counterfactualReportPath
+            }
             preflight = @{
                 configured_provider_names = @($preflight.provider_credentials.configured_provider_names)
                 router_model_present = [bool]$preflight.artifacts.router_model_present
