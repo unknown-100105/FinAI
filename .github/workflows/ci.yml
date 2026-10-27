@@ -87,6 +87,7 @@ jobs:
             tests/test_network_mode_enforcement.py \
             tests/test_cloud_provider_network_policy.py \
             tests/test_advanced_causal.py \
+            tests/test_advanced_causal_hardening.py \
             tests/test_causal_risk.py \
             tests/test_new_api_routes.py \
             tests/test_research_upgrades.py \
