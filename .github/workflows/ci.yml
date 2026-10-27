@@ -173,6 +173,8 @@ jobs:
         run: python benchmarks/counterfactual_stress_benchmark.py --output counterfactual-stress-benchmark.json --cases 500
       - name: Run seeded SwarmTrade safety benchmark
         run: python benchmarks/swarmtrade_safety_benchmark.py --output swarmtrade-safety-benchmark.json --cases 500
+      - name: Validate advanced causal-risk research stack
+        run: python scripts/validate_advanced_causal_stack.py
 
       - name: Upload benchmark artifact
         uses: actions/upload-artifact@v4
